@@ -1,5 +1,5 @@
 
-# 🏢 HỆ THỐNG QUẢN TRỊ NHÂN SỰ & CHẤM CÔNG DOANH NGHIỆP
+# HỆ THỐNG QUẢN TRỊ NHÂN SỰ & CHẤM CÔNG DOANH NGHIỆP
 ### (Enterprise Human Resource & Attendance Management System)
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.x-brightgreen)](https://spring.io/projects/spring-boot)
@@ -9,12 +9,12 @@
 
 ---
 
-## 📖 Tổng quan dự án
+## Tổng quan dự án
 Đây là giải pháp phần mềm toàn diện dành cho bộ phận **Quản trị nguồn nhân lực (HRM)**. Hệ thống giúp tự động hóa các quy trình từ quản lý hồ sơ nhân viên, theo dõi biến động nhân sự đến việc kiểm soát thời gian làm việc và phê duyệt các chế độ phúc lợi (nghỉ phép, tăng ca).
 
 Dự án được xây dựng trên nền tảng **Microservices**, đảm bảo tính bảo mật dữ liệu cao và khả năng tích hợp linh hoạt với các hệ thống khác của doanh nghiệp.
 
-## 🏗️ Kiến trúc các phân hệ (Microservices)
+## Kiến trúc các phân hệ (Microservices)
 Hệ thống được module hóa để phục vụ các nghiệp vụ chuyên biệt của phòng Nhân sự:
 
 * **`api-gateway`**: Cửa ngõ bảo mật, xác thực người dùng (JWT) và điều phối các yêu cầu từ phía người dùng.
@@ -25,7 +25,7 @@ Hệ thống được module hóa để phục vụ các nghiệp vụ chuyên b
 
 ---
 
-## 🛠️ Stack Công nghệ
+## Stack Công nghệ
 ### Backend
 - **Core:** Java 17, Spring Boot 3.x.
 - **Microservices Stack:** Spring Cloud Gateway, Eureka/Consul (Service Discovery), OpenFeign.
@@ -38,7 +38,7 @@ Hệ thống được module hóa để phục vụ các nghiệp vụ chuyên b
 
 ---
 
-## 📁 Cấu trúc thư mục dự án
+## Cấu trúc thư mục dự án
 ```text
 attendance-system-api
 ├── api-gateway          # Phân hệ điều hướng & Bảo mật
@@ -53,7 +53,7 @@ attendance-system-api
 
 ---
 
-## 🚀 Quy trình triển khai
+## Quy trình triển khai
 
 ### 1. Chuẩn bị môi trường
 
@@ -79,7 +79,6 @@ mvn spring-boot:run
 
 ```
 
----
 
 ## 🎯 Các tính năng trọng tâm dành cho HR
 
@@ -89,22 +88,5 @@ mvn spring-boot:run
 * [ ] **Báo cáo nhân sự:** Tự động tổng hợp bảng công, báo cáo biến động nhân sự hàng tháng.
 * [ ] **Tích hợp:** Khả năng kết nối với máy chấm công vân tay hoặc nhận diện khuôn mặt.
 
-
----
-
-*© 2026 - Giải pháp quản trị nhân sự số hóa.*
-
-```
-
----
-
-### Điểm khác biệt của bản này:
-1.  **Thuật ngữ chuyên môn:** Sử dụng các từ như *HRM, Workflow, Phê duyệt cấp quản lý, Biến động nhân sự, Chốt công*... thay vì chỉ nói chung chung.
-2.  **Định hướng doanh nghiệp:** Nhấn mạnh vào tính bảo mật và tự động hóa quy trình (thay thế giấy tờ).
-3.  **Bố cục:** Rõ ràng hơn, tập trung vào giá trị mà hệ thống mang lại cho bộ phận Nhân sự.
-
-
-
-**Bước tiếp theo, bạn có cần mình viết một kịch bản demo (Use Case) để bạn trình bày với giáo viên về cách "Một nhân viên gửi đơn nghỉ phép" đi qua các service này như thế nào không?**
 
 ```
