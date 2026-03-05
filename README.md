@@ -78,15 +78,3 @@ cd hr-service
 mvn spring-boot:run
 
 ```
-
-
-## 🎯 Các tính năng trọng tâm dành cho HR
-
-* [x] **Số hóa hồ sơ:** Lưu trữ tập trung thông tin nhân viên, quá trình công tác.
-* [x] **Giám sát chấm công:** Theo dõi dữ liệu check-in/out thời gian thực, tự động chốt công.
-* [x] **Quy trình phê duyệt (Workflow):** Thay thế giấy tờ bằng luồng duyệt đơn online qua 2-3 cấp quản lý.
-* [ ] **Báo cáo nhân sự:** Tự động tổng hợp bảng công, báo cáo biến động nhân sự hàng tháng.
-* [ ] **Tích hợp:** Khả năng kết nối với máy chấm công vân tay hoặc nhận diện khuôn mặt.
-
-
-```
