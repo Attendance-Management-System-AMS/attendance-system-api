@@ -1,10 +1,4 @@
-À, mình hiểu rồi! Vì đây là hệ thống dành cho **Nhân sự công ty (HR)** nên nội dung cần tập trung vào quản trị doanh nghiệp, tính chuyên nghiệp và các nghiệp vụ đặc thù của phòng HR.
 
-Dưới đây là bản `README.md` đã được tinh chỉnh lại toàn bộ thuật ngữ và mô tả để phù hợp với một hệ thống quản lý nhân sự chuyên nghiệp:
-
----
-
-```markdown
 # 🏢 HỆ THỐNG QUẢN TRỊ NHÂN SỰ & CHẤM CÔNG DOANH NGHIỆP
 ### (Enterprise Human Resource & Attendance Management System)
 
