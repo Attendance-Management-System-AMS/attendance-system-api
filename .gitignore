@@ -1,0 +1,28 @@
+### Thư mục Build (Quan trọng nhất) ###
+target/
+**/target/
+build/
+**/build/
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+gen/
+
+### Maven ###
+.mvn/
+mvnw
+mvnw.cmd
+.mvn/wrapper/maven-wrapper.jar
+
+### Hệ điều hành & Log ###
+bin/
+*.log
+.DS_Store
+Thumbs.db
+
+### VS Code ###
+.vscode/

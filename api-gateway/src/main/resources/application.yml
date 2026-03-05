@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+gateway:
+  targets:
+    hr: http://localhost:8081
+    attendance: http://localhost:8082
+    request: http://localhost:8083
+    system: http://localhost:8084

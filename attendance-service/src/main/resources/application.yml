@@ -1,0 +1,13 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: attendance-service
+  datasource:
+    url: jdbc:postgresql://ep-rapid-thunder-aio4c6y7-pooler.c-4.us-east-1.aws.neon.tech/attendance_service_db?sslmode=require
+    username: neondb_owner
+    password: npg_0NfvBHSXDru8
+  jpa:
+    hibernate:
+      ddl-auto: update
