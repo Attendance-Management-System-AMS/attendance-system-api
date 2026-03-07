@@ -10,9 +10,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "employee_schedules")
+@Getter
+@Setter
 public class EmployeeSchedule {
 
     @Id

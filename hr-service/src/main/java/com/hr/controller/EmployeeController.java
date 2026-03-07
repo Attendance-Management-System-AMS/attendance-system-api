@@ -4,11 +4,15 @@ import com.hr.dto.common.ApiResponse;
 import com.hr.dto.common.PagingResponse;
 import com.hr.dto.employee.EmployeeRequest;
 import com.hr.dto.employee.EmployeeResponse;
+import com.hr.dto.schedule.EmployeeScheduleResponse;
 import com.hr.service.EmployeeService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -41,5 +45,20 @@ public class EmployeeController {
     @GetMapping("/{id}")
     public ApiResponse<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
         return ApiResponse.success(employeeService.getById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<EmployeeResponse> updateEmployee(@PathVariable Long id,
+                                                        @Valid @RequestBody EmployeeRequest request) {
+        EmployeeResponse response = employeeService.update(id, request);
+        return ApiResponse.success(200, "Cập nhật nhân viên thành công", response);
+    }
+
+    @GetMapping("/{id}/schedule")
+    public ApiResponse<List<EmployeeScheduleResponse>> getEmployeeScheduleByDate(
+            @PathVariable Long id,
+            @RequestParam(required = false) LocalDate date
+    ) {
+        return ApiResponse.success(employeeService.getScheduleByDate(id, date));
     }
 }
