@@ -1,11 +1,11 @@
-package com.attendance.attendance;
+package com.system;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AttendanceServiceApplication {
+public class SystemServiceApplication {
     public static void main(String[] args) {
-        SpringApplication.run(AttendanceServiceApplication.class, args);
+        SpringApplication.run(SystemServiceApplication.class, args);
     }
 }

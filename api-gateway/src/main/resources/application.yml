@@ -29,17 +29,21 @@ server:
 
 gateway:
   targets:
-    hr: http://localhost:8081
-    attendance: http://localhost:8082
-    request: http://localhost:8083
-    system: http://localhost:8084
+    hr: http://localhost:8001
+    attendance: http://localhost:8002
+    request: http://localhost:8003
+    system: http://localhost:8004
 
 eureka:
   client:
     enabled: false
 
 springdoc:
+  api-docs:
+    enabled: true
   swagger-ui:
+    disable-swagger-default-url: true
+    path: /swagger-ui.html
     urls:
       - name: 1. Nhân sự (HR)
         url: /api/hr/v3/api-docs
@@ -47,3 +51,5 @@ springdoc:
         url: /api/attendance/v3/api-docs
       - name: 3. Đơn từ (Request)
         url: /api/request/v3/api-docs
+      - name: 4. Hệ thống (System)
+        url: /api/system/v3/api-docs

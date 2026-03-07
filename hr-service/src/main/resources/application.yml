@@ -1,5 +1,5 @@
 server:
-  port: 8081 
+  port: 8001 
 
 spring:
   application:
@@ -11,3 +11,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update 
+
+springdoc:
+  api-docs:
+    path: /api/hr/v3/api-docs
