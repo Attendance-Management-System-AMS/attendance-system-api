@@ -1,0 +1,34 @@
+package com.hr.mapper;
+
+import com.hr.dto.shift.ShiftRequest;
+import com.hr.dto.shift.ShiftResponse;
+import com.hr.entity.Shift;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ShiftMapper {
+
+    public Shift toEntity(ShiftRequest request) {
+        Shift shift = new Shift();
+        shift.setName(request.name().trim());
+        shift.setStartTime(request.startTime());
+        shift.setEndTime(request.endTime());
+        shift.setBreakStart(request.breakStart());
+        shift.setBreakEnd(request.breakEnd());
+        shift.setGracePeriod(request.gracePeriod() == null ? 0 : request.gracePeriod());
+        return shift;
+    }
+
+    public ShiftResponse toResponse(Shift shift) {
+        return new ShiftResponse(
+                shift.getId(),
+                shift.getName(),
+                shift.getStartTime(),
+                shift.getEndTime(),
+                shift.getBreakStart(),
+                shift.getBreakEnd(),
+                shift.getGracePeriod(),
+                shift.getCreatedAt()
+        );
+    }
+}

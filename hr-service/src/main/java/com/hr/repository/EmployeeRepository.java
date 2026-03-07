@@ -1,0 +1,30 @@
+package com.hr.repository;
+
+import com.hr.entity.Employee;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+
+    @Override
+    @EntityGraph(attributePaths = {"department", "position", "manager"})
+    Page<Employee> findAll(Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = {"department", "position", "manager"})
+    Optional<Employee> findById(Long id);
+
+    Optional<Employee> findByEmployeeCode(String employeeCode);
+
+    Optional<Employee> findByEmail(String email);
+
+    List<Employee> findByDepartmentId(Long departmentId);
+
+    boolean existsByEmployeeCode(String employeeCode);
+
+    boolean existsByEmail(String email);
+}
