@@ -1,9 +1,31 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: hr-service
+          uri: ${gateway.targets.hr}
+          predicates:
+            - Path=/api/hr/**
+
+        - id: attendance-service
+          uri: ${gateway.targets.attendance}
+          predicates:
+            - Path=/api/attendance/**
+
+        - id: request-service
+          uri: ${gateway.targets.request}
+          predicates:
+            - Path=/api/request/**
+
+        - id: system-service
+          uri: ${gateway.targets.system}
+          predicates:
+            - Path=/api/system/**
+
+server:
+  port: 8000
 
 gateway:
   targets:
@@ -11,3 +33,17 @@ gateway:
     attendance: http://localhost:8082
     request: http://localhost:8083
     system: http://localhost:8084
+
+eureka:
+  client:
+    enabled: false
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: 1. Nhân sự (HR)
+        url: /api/hr/v3/api-docs
+      - name: 2. Chấm công (Attendance)
+        url: /api/attendance/v3/api-docs
+      - name: 3. Đơn từ (Request)
+        url: /api/request/v3/api-docs

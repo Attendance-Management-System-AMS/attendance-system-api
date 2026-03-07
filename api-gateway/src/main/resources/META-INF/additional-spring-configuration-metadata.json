@@ -1,0 +1,24 @@
+{
+  "properties": [
+    {
+      "name": "gateway.targets.hr",
+      "type": "java.lang.String",
+      "description": "Base URL of the HR service."
+    },
+    {
+      "name": "gateway.targets.attendance",
+      "type": "java.lang.String",
+      "description": "Base URL of the attendance service."
+    },
+    {
+      "name": "gateway.targets.request",
+      "type": "java.lang.String",
+      "description": "Base URL of the request service."
+    },
+    {
+      "name": "gateway.targets.system",
+      "type": "java.lang.String",
+      "description": "Base URL of the system service."
+    }
+  ]
+}
