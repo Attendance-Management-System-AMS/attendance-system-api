@@ -29,6 +29,6 @@ public class Position {
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
 
-    @Column(nullable = false)
-    private Integer level;
+    @Column(nullable = false, length = 50)
+    private String level;
 }
