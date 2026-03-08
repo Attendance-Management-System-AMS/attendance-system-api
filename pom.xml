@@ -19,7 +19,6 @@
         <module>api-gateway</module>
         <module>hr-service</module>
         <module>attendance-service</module>
-        <module>leave-service</module>
         <module>auth-service</module>
     </modules>
 
