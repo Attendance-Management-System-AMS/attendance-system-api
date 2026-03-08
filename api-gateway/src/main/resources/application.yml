@@ -11,11 +11,15 @@ spring:
           uri: ${gateway.targets.hr}
           predicates:
             - Path=/api/hr/**
+          filters:
+            - JwtAuthenticationFilter
 
         - id: attendance-service
           uri: ${gateway.targets.attendance}
           predicates:
             - Path=/api/attendance/**
+          filters:
+            - JwtAuthenticationFilter
 
         - id: auth-service
           uri: ${gateway.targets.auth}
