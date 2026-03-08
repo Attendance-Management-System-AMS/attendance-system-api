@@ -3,21 +3,15 @@ package com.hr.service;
 import com.hr.dto.common.PagingResponse;
 import com.hr.dto.employee.EmployeeRequest;
 import com.hr.dto.employee.EmployeeResponse;
-import com.hr.dto.schedule.EmployeeScheduleResponse;
 import com.hr.entity.Department;
 import com.hr.entity.Employee;
-import com.hr.entity.EmployeeSchedule;
 import com.hr.entity.Position;
 import com.hr.exception.AppException;
 import com.hr.exception.ErrorCode;
 import com.hr.mapper.EmployeeMapper;
-import com.hr.mapper.EmployeeScheduleMapper;
 import com.hr.repository.DepartmentRepository;
-import com.hr.repository.EmployeeScheduleRepository;
 import com.hr.repository.EmployeeRepository;
 import com.hr.repository.PositionRepository;
-import java.time.LocalDate;
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,24 +23,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
-    private final EmployeeScheduleRepository employeeScheduleRepository;
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final EmployeeMapper employeeMapper;
-    private final EmployeeScheduleMapper employeeScheduleMapper;
 
     public EmployeeService(EmployeeRepository employeeRepository,
-                           EmployeeScheduleRepository employeeScheduleRepository,
                            DepartmentRepository departmentRepository,
                            PositionRepository positionRepository,
-                           EmployeeMapper employeeMapper,
-                           EmployeeScheduleMapper employeeScheduleMapper) {
+                           EmployeeMapper employeeMapper) {
         this.employeeRepository = employeeRepository;
-        this.employeeScheduleRepository = employeeScheduleRepository;
         this.departmentRepository = departmentRepository;
         this.positionRepository = positionRepository;
         this.employeeMapper = employeeMapper;
-        this.employeeScheduleMapper = employeeScheduleMapper;
     }
 
     @Transactional
@@ -131,24 +119,7 @@ public class EmployeeService {
         return employeeMapper.toResponse(saved);
     }
 
-    @Transactional(readOnly = true)
-    public List<EmployeeScheduleResponse> getScheduleByDate(Long employeeId, LocalDate date) {
-        employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
 
-        LocalDate targetDate = date == null ? LocalDate.now() : date;
-        int targetDayOfWeek = targetDate.getDayOfWeek().getValue() + 1;
-
-        List<EmployeeSchedule> schedules = employeeScheduleRepository
-                .findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqual(employeeId, targetDate)
-                .stream()
-                .filter(schedule -> schedule.getDayOfWeek() != null && schedule.getDayOfWeek().equals(targetDayOfWeek))
-                .toList();
-
-        return schedules.stream()
-                .map(employeeScheduleMapper::toResponse)
-                .toList();
-    }
 
     private Department resolveDepartment(Long departmentId) {
         if (departmentId == null) {
