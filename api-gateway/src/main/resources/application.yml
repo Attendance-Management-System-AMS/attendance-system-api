@@ -1,6 +1,9 @@
 spring:
   application:
     name: api-gateway
+  output:
+    ansi:
+      enabled: always
   cloud:
     gateway:
       routes:
@@ -14,15 +17,15 @@ spring:
           predicates:
             - Path=/api/attendance/**
 
-        - id: request-service
-          uri: ${gateway.targets.request}
+        - id: leave-service
+          uri: ${gateway.targets.leave}
           predicates:
-            - Path=/api/request/**
+            - Path=/api/leave/**
 
-        - id: system-service
-          uri: ${gateway.targets.system}
+        - id: auth-service
+          uri: ${gateway.targets.auth}
           predicates:
-            - Path=/api/system/**
+            - Path=/api/auth/**
 
 server:
   port: 8000
@@ -31,8 +34,8 @@ gateway:
   targets:
     hr: http://localhost:8001
     attendance: http://localhost:8002
-    request: http://localhost:8003
-    system: http://localhost:8004
+    leave: http://localhost:8003
+    auth: http://localhost:8004
 
 eureka:
   client:
@@ -49,9 +52,13 @@ springdoc:
         url: /api/hr/v3/api-docs
       - name: 2. Chấm công (Attendance)
         url: /api/attendance/v3/api-docs
-      - name: 3. Đơn từ (Request)
-        url: /api/request/v3/api-docs
-      - name: 4. Hệ thống (System)
-        url: /api/system/v3/api-docs
+      - name: 3. Đơn từ (Leave)
+        url: /api/leave/v3/api-docs
+      - name: 4. Xác thực (Auth)
+        url: /api/auth/v3/api-docs
+logging:
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
+
 jwt:
   secret: "YOUR_VERY_SECRET_KEY_THAT_IS_LONG_ENOUGH_FOR_HS256_ALGORITHM_MIN_32_CHARS"

@@ -19,8 +19,8 @@
         <module>api-gateway</module>
         <module>hr-service</module>
         <module>attendance-service</module>
-        <module>request-service</module>
-        <module>system-service</module>
+        <module>leave-service</module>
+        <module>auth-service</module>
     </modules>
 
     <properties>
@@ -37,6 +37,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 

@@ -31,4 +31,8 @@ public class Position {
 
     @Column(nullable = false, length = 50)
     private String level;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Position parentPosition;
 }

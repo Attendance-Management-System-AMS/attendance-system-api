@@ -13,12 +13,12 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
-            .csrf(ServerHttpSecurity.CsrfSpec::disable)
-            .authorizeExchange(exchange -> exchange
-                .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/webjars/**").permitAll()
-                .pathMatchers("/api/auth/**").permitAll()
-                .anyExchange().permitAll() // The actual validation happens in our AuthenticationFilter
-            );
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .authorizeExchange(exchange -> exchange
+                        .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/webjars/**")
+                        .permitAll()
+                        .pathMatchers("/api/auth/**").permitAll()
+                        .anyExchange().permitAll());
         return http.build();
     }
 }
