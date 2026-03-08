@@ -16,7 +16,7 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(request -> {
                     var config = new org.springframework.web.cors.CorsConfiguration();
-                    config.addAllowedOrigin("http://localhost:3000"); // Link frontend mặc định (hoặc "*" nếu muốn mở hết)
+                    config.addAllowedOrigin("http://localhost:3000");
                     config.addAllowedMethod("*");
                     config.addAllowedHeader("*");
                     return config;
