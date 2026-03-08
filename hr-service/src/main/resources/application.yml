@@ -14,7 +14,15 @@ spring:
     password: npg_0NfvBHSXDru8
   jpa:
     hibernate:
-      ddl-auto: update 
+      ddl-auto: update
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 5000
+            readTimeout: 5000
+            loggerLevel: basic
 
 logging:
   pattern:
