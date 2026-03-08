@@ -30,7 +30,7 @@ Hệ thống được module hóa để phục vụ các nghiệp vụ chuyên b
 - **Core:** Java 17, Spring Boot 3.x.
 - **Microservices Stack:** Spring Cloud Gateway, Eureka/Consul (Service Discovery), OpenFeign.
 - **Security:** Spring Security, JWT (Stateless Authentication).
-- **Database:** MySQL (Lưu trữ dữ liệu nghiệp vụ).
+- **Database:** PostgreSQL (Lưu trữ dữ liệu nghiệp vụ, Cloud-native với Neon).
 
 ### Frontend (Dự kiến)
 - **Framework:** Vue 3 (Composition API).

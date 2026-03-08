@@ -53,3 +53,5 @@ springdoc:
         url: /api/request/v3/api-docs
       - name: 4. Hệ thống (System)
         url: /api/system/v3/api-docs
+jwt:
+  secret: "YOUR_VERY_SECRET_KEY_THAT_IS_LONG_ENOUGH_FOR_HS256_ALGORITHM_MIN_32_CHARS"
