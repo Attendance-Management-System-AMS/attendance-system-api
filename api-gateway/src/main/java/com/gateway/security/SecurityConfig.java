@@ -25,6 +25,7 @@ public class SecurityConfig {
                         .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/webjars/**")
                         .permitAll()
                         .pathMatchers("/api/auth/**").permitAll()
+                        .pathMatchers("/api/*/v3/api-docs").permitAll()
                         .anyExchange().permitAll());
         return http.build();
     }

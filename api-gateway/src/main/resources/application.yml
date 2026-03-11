@@ -7,6 +7,16 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: hr-service-docs
+          uri: ${gateway.targets.hr}
+          predicates:
+            - Path=/api/hr/v3/api-docs
+
+        - id: attendance-service-docs
+          uri: ${gateway.targets.attendance}
+          predicates:
+            - Path=/api/attendance/v3/api-docs
+
         - id: hr-service
           uri: ${gateway.targets.hr}
           predicates:
