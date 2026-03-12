@@ -16,6 +16,7 @@
     <name>attendance-system-api</name>
 
     <modules>
+        <module>common-model</module>
         <module>api-gateway</module>
         <module>hr-service</module>
         <module>attendance-service</module>

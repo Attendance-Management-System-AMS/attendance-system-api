@@ -1,6 +1,6 @@
 package com.hr.controller;
 
-import com.hr.dto.common.ApiResponse;
+import com.common.dto.ApiResponse;
 import com.hr.dto.common.PagingResponse;
 import com.hr.dto.employee.EmployeeRequest;
 import com.hr.dto.employee.EmployeeResponse;

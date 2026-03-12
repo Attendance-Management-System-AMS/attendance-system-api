@@ -1,6 +1,6 @@
 package com.attendance.controller;
 
-import com.attendance.dto.common.ApiResponse;
+import com.common.dto.ApiResponse;
 import com.attendance.dto.holiday.HolidayRequest;
 import com.attendance.dto.holiday.HolidayResponse;
 import com.attendance.service.HolidayService;

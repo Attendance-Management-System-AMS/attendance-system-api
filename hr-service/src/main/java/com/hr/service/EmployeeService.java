@@ -1,12 +1,12 @@
 package com.hr.service;
 
+import com.common.exception.AppException;
 import com.hr.dto.common.PagingResponse;
 import com.hr.dto.employee.EmployeeRequest;
 import com.hr.dto.employee.EmployeeResponse;
 import com.hr.entity.Department;
 import com.hr.entity.Employee;
 import com.hr.entity.Position;
-import com.hr.exception.AppException;
 import com.hr.exception.ErrorCode;
 import com.hr.mapper.EmployeeMapper;
 import com.hr.repository.DepartmentRepository;

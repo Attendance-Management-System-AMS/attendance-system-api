@@ -1,6 +1,6 @@
 package com.attendance.controller;
 
-import com.attendance.dto.common.ApiResponse;
+import com.common.dto.ApiResponse;
 import com.attendance.dto.schedule.EmployeeScheduleRequest;
 import com.attendance.dto.schedule.EmployeeScheduleResponse;
 import com.attendance.service.ScheduleService;

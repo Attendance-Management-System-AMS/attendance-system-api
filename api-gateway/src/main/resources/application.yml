@@ -17,6 +17,11 @@ spring:
           predicates:
             - Path=/api/attendance/v3/api-docs
 
+        - id: auth-service-docs
+          uri: ${gateway.targets.auth}
+          predicates:
+            - Path=/api/auth/v3/api-docs
+
         - id: hr-service
           uri: ${gateway.targets.hr}
           predicates:
@@ -54,7 +59,7 @@ springdoc:
     enabled: true
   swagger-ui:
     disable-swagger-default-url: true
-    path: /swagger-ui.html
+    path: /swagger-ui/index.html
     urls:
       - name: 1. Nhân sự & Đơn từ (HR)
         url: /api/hr/v3/api-docs

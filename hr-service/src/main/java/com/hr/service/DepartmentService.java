@@ -2,8 +2,8 @@ package com.hr.service;
 
 import com.hr.dto.department.DepartmentRequest;
 import com.hr.dto.department.DepartmentResponse;
+import com.common.exception.AppException;
 import com.hr.entity.Department;
-import com.hr.exception.AppException;
 import com.hr.exception.ErrorCode;
 import com.hr.mapper.DepartmentMapper;
 import com.hr.repository.DepartmentRepository;

@@ -1,6 +1,6 @@
 package com.attendance.controller;
 
-import com.attendance.dto.common.ApiResponse;
+import com.common.dto.ApiResponse;
 import com.attendance.dto.shift.ShiftRequest;
 import com.attendance.dto.shift.ShiftResponse;
 import com.attendance.service.ShiftService;

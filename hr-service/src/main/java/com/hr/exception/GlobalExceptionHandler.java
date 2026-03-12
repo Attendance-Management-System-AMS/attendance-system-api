@@ -1,6 +1,8 @@
 package com.hr.exception;
 
-import com.hr.dto.common.ApiResponse;
+import com.common.dto.ApiResponse;
+import com.common.exception.AppException;
+import com.common.exception.ErrorCodeContract;
 import jakarta.validation.ConstraintViolationException;
 import java.util.Objects;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +15,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<Object>> handleAppException(AppException ex) {
-        ErrorCode errorCode = ex.getErrorCode();
+        ErrorCodeContract errorCode = ex.getErrorCode();
         String message = ex.getMessage() != null ? ex.getMessage() : errorCode.getMessage();
 
         return ResponseEntity.status(errorCode.getStatus())

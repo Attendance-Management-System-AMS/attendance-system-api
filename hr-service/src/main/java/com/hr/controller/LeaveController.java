@@ -1,6 +1,6 @@
 package com.hr.controller;
 
-import com.hr.dto.common.ApiResponse;
+import com.common.dto.ApiResponse;
 import com.hr.dto.leave.LeaveRequestRecord;
 import com.hr.dto.leave.LeaveResponse;
 import com.hr.service.LeaveService;

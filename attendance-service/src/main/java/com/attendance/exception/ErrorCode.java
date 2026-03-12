@@ -1,8 +1,9 @@
 package com.attendance.exception;
 
+import com.common.exception.ErrorCodeContract;
 import org.springframework.http.HttpStatus;
 
-public enum ErrorCode {
+public enum ErrorCode implements ErrorCodeContract {
 
     UNCATEGORIZED_ERROR(1999, "Lỗi chưa xác định", HttpStatus.INTERNAL_SERVER_ERROR),
     VALIDATION_FAILED(1001, "Xác thực dữ liệu thất bại", HttpStatus.BAD_REQUEST),

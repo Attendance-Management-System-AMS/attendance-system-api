@@ -1,10 +1,10 @@
 package com.hr.service;
 
+import com.common.exception.AppException;
 import com.hr.dto.leave.LeaveRequestRecord;
 import com.hr.dto.leave.LeaveResponse;
 import com.hr.entity.Employee;
 import com.hr.entity.LeaveRequest;
-import com.hr.exception.AppException;
 import com.hr.exception.ErrorCode;
 import com.hr.mapper.LeaveMapper;
 import com.hr.repository.EmployeeRepository;

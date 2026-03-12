@@ -1,10 +1,10 @@
 package com.attendance.service;
 
+import com.common.exception.AppException;
 import com.attendance.dto.schedule.EmployeeScheduleRequest;
 import com.attendance.dto.schedule.EmployeeScheduleResponse;
 import com.attendance.entity.EmployeeSchedule;
 import com.attendance.entity.Shift;
-import com.attendance.exception.AppException;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.EmployeeScheduleMapper;
 import com.attendance.repository.EmployeeScheduleRepository;

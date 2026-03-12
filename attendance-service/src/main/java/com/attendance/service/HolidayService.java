@@ -1,9 +1,9 @@
 package com.attendance.service;
 
+import com.common.exception.AppException;
 import com.attendance.dto.holiday.HolidayRequest;
 import com.attendance.dto.holiday.HolidayResponse;
 import com.attendance.entity.Holiday;
-import com.attendance.exception.AppException;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.HolidayMapper;
 import com.attendance.repository.HolidayRepository;

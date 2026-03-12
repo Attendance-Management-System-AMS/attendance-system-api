@@ -1,9 +1,9 @@
 package com.attendance.service;
 
+import com.common.exception.AppException;
 import com.attendance.dto.shift.ShiftRequest;
 import com.attendance.dto.shift.ShiftResponse;
 import com.attendance.entity.Shift;
-import com.attendance.exception.AppException;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.ShiftMapper;
 import com.attendance.repository.ShiftRepository;
