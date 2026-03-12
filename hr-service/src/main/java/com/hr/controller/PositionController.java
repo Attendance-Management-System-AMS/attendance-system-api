@@ -4,6 +4,9 @@ import com.common.dto.ApiResponse;
 import com.hr.dto.position.PositionRequest;
 import com.hr.dto.position.PositionResponse;
 import com.hr.service.PositionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/hr/positions")
+@Tag(name = "HR - Chức vụ", description = "Quản lý chức vụ nhân sự")
 public class PositionController {
 
     private final PositionService positionService;
@@ -25,25 +29,32 @@ public class PositionController {
         this.positionService = positionService;
     }
 
+    @GetMapping
+    @Operation(summary = "Lấy danh sách chức vụ", description = "Có thể lọc theo phòng ban thông qua departmentId")
+    public ApiResponse<List<PositionResponse>> getPositions(
+            @Parameter(description = "ID phòng ban (không bắt buộc)", example = "2") @RequestParam(required = false) Long departmentId) {
+        return ApiResponse.success(positionService.getAll(departmentId));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Lấy chi tiết chức vụ theo ID")
+    public ApiResponse<PositionResponse> getPositionById(
+            @Parameter(description = "ID chức vụ", example = "5") @PathVariable Long id) {
+        return ApiResponse.success(positionService.getById(id));
+    }
+
     @PostMapping
+    @Operation(summary = "Tạo mới chức vụ")
     public ApiResponse<PositionResponse> createPosition(@Valid @RequestBody PositionRequest request) {
         PositionResponse response = positionService.create(request);
         return ApiResponse.success(201, "Tạo chức vụ thành công", response);
     }
 
-    @GetMapping
-    public ApiResponse<List<PositionResponse>> getPositions(@RequestParam(required = false) Long departmentId) {
-        return ApiResponse.success(positionService.getAll(departmentId));
-    }
-
-    @GetMapping("/{id}")
-    public ApiResponse<PositionResponse> getPositionById(@PathVariable Long id) {
-        return ApiResponse.success(positionService.getById(id));
-    }
-
     @PutMapping("/{id}")
-    public ApiResponse<PositionResponse> updatePosition(@PathVariable Long id,
-                                                        @Valid @RequestBody PositionRequest request) {
+    @Operation(summary = "Cập nhật chức vụ")
+    public ApiResponse<PositionResponse> updatePosition(
+            @Parameter(description = "ID chức vụ", example = "5") @PathVariable Long id,
+            @Valid @RequestBody PositionRequest request) {
         PositionResponse response = positionService.update(id, request);
         return ApiResponse.success(200, "Cập nhật chức vụ thành công", response);
     }
