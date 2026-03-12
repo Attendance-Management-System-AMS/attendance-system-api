@@ -9,5 +9,9 @@ public interface PositionRepository extends JpaRepository<Position, Long> {
 
     Optional<Position> findByName(String name);
 
+    Optional<Position> findByNameIgnoreCaseAndDepartmentId(String name, Long departmentId);
+
+    boolean existsByNameIgnoreCaseAndDepartmentId(String name, Long departmentId);
+
     List<Position> findByDepartmentId(Long departmentId);
 }

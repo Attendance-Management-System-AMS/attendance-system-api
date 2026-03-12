@@ -1,14 +1,14 @@
-package com.hr.exception;
+package com.common.exception;
 
 import com.common.dto.ApiResponse;
-import com.common.exception.AppException;
-import com.common.exception.ErrorCodeContract;
 import jakarta.validation.ConstraintViolationException;
 import java.util.Objects;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -22,23 +22,27 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(errorCode.getCode(), message));
     }
 
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResponseStatusException(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        String message = ex.getReason() == null || ex.getReason().isBlank() ? "Yeu cau khong hop le" : ex.getReason();
+        return ResponseEntity.status(status).body(ApiResponse.error(status.value(), message));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidation(MethodArgumentNotValidException ex) {
-        String message = Objects.requireNonNull(ex.getFieldError()).getDefaultMessage();
-
-        return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.getStatus())
-                .body(ApiResponse.error(ErrorCode.VALIDATION_FAILED.getCode(), message));
+        String message = Objects.requireNonNull(ex.getBindingResult().getFieldError()).getDefaultMessage();
+        return ResponseEntity.badRequest().body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), message));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleConstraintViolation(ConstraintViolationException ex) {
-        return ResponseEntity.status(ErrorCode.INVALID_INPUT.getStatus())
-                .body(ApiResponse.error(ErrorCode.INVALID_INPUT.getCode(), ex.getMessage()));
+        return ResponseEntity.badRequest().body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleUnexpected(Exception ex) {
-        return ResponseEntity.status(ErrorCode.UNCATEGORIZED_ERROR.getStatus())
-                .body(ApiResponse.error(ErrorCode.UNCATEGORIZED_ERROR.getCode(), ErrorCode.UNCATEGORIZED_ERROR.getMessage()));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Da xay ra loi he thong"));
     }
 }
