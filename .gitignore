@@ -26,3 +26,7 @@ Thumbs.db
 
 ### VS Code ###
 .vscode/
+
+### Secrets/Environment ###
+.env
+.env.*

@@ -1,3 +1,6 @@
+server:
+  port: ${GATEWAY_PORT:9000}
+
 spring:
   application:
     name: api-gateway
@@ -8,51 +11,47 @@ spring:
     gateway:
       routes:
         - id: hr-service-docs
-          uri: ${gateway.targets.hr}
+          uri: lb://hr-service
           predicates:
             - Path=/api/hr/v3/api-docs
 
         - id: attendance-service-docs
-          uri: ${gateway.targets.attendance}
+          uri: lb://attendance-service
           predicates:
             - Path=/api/attendance/v3/api-docs
 
         - id: auth-service-docs
-          uri: ${gateway.targets.auth}
+          uri: lb://auth-service
           predicates:
             - Path=/api/auth/v3/api-docs
 
         - id: hr-service
-          uri: ${gateway.targets.hr}
+          uri: lb://hr-service
           predicates:
             - Path=/api/hr/**
           filters:
             - JwtAuthenticationFilter
 
         - id: attendance-service
-          uri: ${gateway.targets.attendance}
+          uri: lb://attendance-service
           predicates:
             - Path=/api/attendance/**
           filters:
             - JwtAuthenticationFilter
 
         - id: auth-service
-          uri: ${gateway.targets.auth}
+          uri: lb://auth-service
           predicates:
             - Path=/api/auth/**
 
-server:
-  port: 8000
-
-gateway:
-  targets:
-    hr: http://localhost:8001
-    attendance: http://localhost:8002
-    auth: http://localhost:8004
-
 eureka:
   client:
-    enabled: false
+    service-url:
+      defaultZone: http://${EUREKA_USER:eureka}:${EUREKA_PASSWORD:eureka123}@${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
 
 springdoc:
   api-docs:
@@ -67,9 +66,10 @@ springdoc:
         url: /api/attendance/v3/api-docs
       - name: 3. Xác thực (Auth)
         url: /api/auth/v3/api-docs
+
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
 
 jwt:
-  secret: "YOUR_VERY_SECRET_KEY_THAT_IS_LONG_ENOUGH_FOR_HS256_ALGORITHM_MIN_32_CHARS"
+  secret: ${JWT_SECRET:AMS_DEFAULT_SECRET_KEY_PLEASE_CHANGE_IN_PROD_32CHARS}

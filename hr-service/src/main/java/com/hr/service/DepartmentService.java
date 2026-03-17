@@ -39,4 +39,31 @@ public class DepartmentService {
                 .map(departmentMapper::toResponse)
                 .toList();
     }
+
+    public DepartmentResponse getById(Long id) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+        return departmentMapper.toResponse(department);
+    }
+
+    public DepartmentResponse update(Long id, DepartmentRequest request) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+
+        departmentRepository.findByName(request.name().trim())
+                .filter(found -> !found.getId().equals(department.getId()))
+                .ifPresent(found -> {
+                    throw new AppException(ErrorCode.INVALID_INPUT, "Tên phòng ban đã tồn tại");
+                });
+
+        department.setName(request.name().trim());
+        department.setDescription(request.description());
+        return departmentMapper.toResponse(departmentRepository.save(department));
+    }
+
+    public void delete(Long id) {
+        Department department = departmentRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+        departmentRepository.delete(department);
+    }
 }

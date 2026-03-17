@@ -89,4 +89,11 @@ public class PositionService {
         return departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
     }
+
+    @Transactional
+    public void delete(Long id) {
+        Position position = positionRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.POSITION_NOT_FOUND));
+        positionRepository.delete(position);
+    }
 }

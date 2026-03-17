@@ -9,6 +9,7 @@ import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.EmployeeScheduleMapper;
 import com.attendance.repository.EmployeeScheduleRepository;
 import com.attendance.repository.ShiftRepository;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,5 +42,20 @@ public class ScheduleService {
 
         EmployeeSchedule saved = employeeScheduleRepository.save(schedule);
         return employeeScheduleMapper.toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeScheduleResponse> getByEmployee(Long employeeId) {
+        return employeeScheduleRepository.findByEmployeeId(employeeId)
+                .stream()
+                .map(employeeScheduleMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        EmployeeSchedule schedule = employeeScheduleRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
+        employeeScheduleRepository.delete(schedule);
     }
 }

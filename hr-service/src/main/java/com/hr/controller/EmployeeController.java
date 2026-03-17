@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,6 +61,14 @@ public class EmployeeController {
                                                         @Valid @RequestBody EmployeeRequest request) {
         EmployeeResponse response = employeeService.update(id, request);
         return ApiResponse.success(200, "Cập nhật nhân viên thành công", response);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Vô hiệu hoá nhân viên", description = "Đặt trạng thái nhân viên thành INACTIVE")
+    public ApiResponse<Void> deleteEmployee(
+            @Parameter(description = "ID nhân viên") @PathVariable Long id) {
+        employeeService.delete(id);
+        return ApiResponse.success(200, "Vô hiệu hoá nhân viên thành công", null);
     }
 
 

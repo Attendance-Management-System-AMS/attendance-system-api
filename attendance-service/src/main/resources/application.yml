@@ -1,5 +1,5 @@
 server:
-  port: 8002
+  port: ${ATTENDANCE_SERVICE_PORT:9002}
 
 spring:
   application:
@@ -8,9 +8,9 @@ spring:
     ansi:
       enabled: always
   datasource:
-    url: jdbc:postgresql://ep-rapid-thunder-aio4c6y7-pooler.c-4.us-east-1.aws.neon.tech/attendance_service_db?sslmode=require
-    username: neondb_owner
-    password: npg_0NfvBHSXDru8
+    url: ${DB_URL:jdbc:postgresql://ep-rapid-thunder-aio4c6y7-pooler.c-4.us-east-1.aws.neon.tech/attendance_service_db?sslmode=require}
+    username: ${DB_USERNAME:neondb_owner}
+    password: ${DB_PASSWORD:npg_0NfvBHSXDru8}
   jpa:
     hibernate:
       ddl-auto: update
@@ -22,6 +22,15 @@ spring:
             connectTimeout: 5000
             readTimeout: 5000
             loggerLevel: basic
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_USER:eureka}:${EUREKA_PASSWORD:eureka123}@${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
 
 logging:
   pattern:

@@ -147,4 +147,12 @@ public class EmployeeService {
         return employeeRepository.findById(managerId)
                 .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND, "Không tìm thấy quản lý"));
     }
+
+    @Transactional
+    public void delete(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        employee.setStatus("INACTIVE");
+        employeeRepository.save(employee);
+    }
 }

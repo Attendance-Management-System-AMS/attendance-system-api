@@ -17,7 +17,9 @@ public enum ErrorCode implements ErrorCodeContract {
     EMPLOYEE_NOT_FOUND(2003, "Không tìm thấy nhân viên", HttpStatus.NOT_FOUND),
     SHIFT_NOT_FOUND(2004, "Không tìm thấy ca làm", HttpStatus.NOT_FOUND),
     SCHEDULE_NOT_FOUND(2005, "Không tìm thấy lịch làm", HttpStatus.NOT_FOUND),
-    HOLIDAY_NOT_FOUND(2006, "Không tìm thấy ngày nghỉ", HttpStatus.NOT_FOUND);
+    HOLIDAY_NOT_FOUND(2006, "Không tìm thấy ngày nghỉ", HttpStatus.NOT_FOUND),
+    LEAVE_NOT_FOUND(2007, "Không tìm thấy đơn nghỉ", HttpStatus.NOT_FOUND),
+    ATTENDANCE_NOT_FOUND(2008, "Không tìm thấy bản ghi chấm công", HttpStatus.NOT_FOUND);
 
     private final int code;
     private final String message;

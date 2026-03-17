@@ -1,49 +1,113 @@
 package com.attendance.service;
 
 import com.attendance.entity.Attendance;
+import com.attendance.entity.EmployeeSchedule;
+import com.attendance.entity.Shift;
+import com.attendance.exception.ErrorCode;
+import com.attendance.feign.HrClient;
 import com.attendance.repository.AttendanceRepository;
+import com.attendance.repository.EmployeeScheduleRepository;
+import com.common.exception.AppException;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
+    private final EmployeeScheduleRepository employeeScheduleRepository;
+    private final HrClient hrClient;
 
     @Transactional
     public Attendance checkIn(Long employeeId) {
+        validateEmployee(employeeId);
+
         LocalDate today = LocalDate.now();
-        
-        return attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, today)
-                .map(attendance -> {
-                    // Already checked in, return current or update if needed
-                    return attendance;
-                })
-                .orElseGet(() -> {
-                    Attendance attendance = Attendance.builder()
-                            .employeeId(employeeId)
-                            .workDate(today)
-                            .checkInTime(LocalDateTime.now())
-                            .status("PRESENT")
-                            .build();
-                    return attendanceRepository.save(attendance);
-                });
+        LocalTime nowTime = LocalTime.now();
+
+        if (attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, today).isPresent()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đã check-in hôm nay rồi");
+        }
+
+        Shift shift = getTodayShift(employeeId, today);
+        String status = "PRESENT";
+
+        if (shift != null) {
+            LocalTime allowedLateTime = shift.getStartTime().plusMinutes(shift.getGracePeriod() != null ? shift.getGracePeriod() : 0);
+            if (nowTime.isAfter(allowedLateTime)) {
+                status = "LATE";
+            }
+        }
+
+        Attendance attendance = Attendance.builder()
+                .employeeId(employeeId)
+                .workDate(today)
+                .checkInTime(LocalDateTime.now())
+                .status(status)
+                .build();
+        return attendanceRepository.save(attendance);
     }
 
     @Transactional
     public Attendance checkOut(Long employeeId) {
         LocalDate today = LocalDate.now();
-        
+        LocalTime nowTime = LocalTime.now();
+
         Attendance attendance = attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, today)
-                .orElseThrow(() -> new RuntimeException("No check-in record found for today"));
-        
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_INPUT, "Bạn chưa check-in hôm nay"));
+
         attendance.setCheckOutTime(LocalDateTime.now());
-        // Logic for EARLY_LEAVE could be added here later
+
+        Shift shift = getTodayShift(employeeId, today);
+        if (shift != null && nowTime.isBefore(shift.getEndTime())) {
+            if ("PRESENT".equals(attendance.getStatus())) {
+                attendance.setStatus("EARLY_LEAVE");
+            } else if ("LATE".equals(attendance.getStatus())) {
+                attendance.setStatus("LATE_AND_EARLY_LEAVE");
+            }
+        }
+
         return attendanceRepository.save(attendance);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Attendance> getByEmployee(Long employeeId) {
+        return attendanceRepository.findByEmployeeIdOrderByWorkDateDesc(employeeId);
+    }
+
+    @Transactional(readOnly = true)
+    public Attendance getTodayByEmployee(Long employeeId) {
+        return attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
+                .orElse(null);
+    }
+
+    private void validateEmployee(Long employeeId) {
+        try {
+            hrClient.getEmployeeById(employeeId);
+        } catch (FeignException e) {
+            log.error("Lỗi khi xác thực nhân viên: {}", e.getMessage());
+            throw new AppException(ErrorCode.INVALID_INPUT, "Nhân viên không tồn tại trong hệ thống HR");
+        }
+    }
+
+    private Shift getTodayShift(Long employeeId, LocalDate date) {
+        int dayOfWeek = date.getDayOfWeek().getValue();
+        return employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqual(employeeId, date)
+                .stream()
+                .filter(schedule -> schedule.getDayOfWeek() == dayOfWeek)
+                .map(EmployeeSchedule::getShift)
+                .findFirst()
+                .orElse(null);
     }
 }

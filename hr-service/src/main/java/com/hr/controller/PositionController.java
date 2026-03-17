@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,14 +33,14 @@ public class PositionController {
     @GetMapping
     @Operation(summary = "Lấy danh sách chức vụ", description = "Có thể lọc theo phòng ban thông qua departmentId")
     public ApiResponse<List<PositionResponse>> getPositions(
-            @Parameter(description = "ID phòng ban (không bắt buộc)", example = "2") @RequestParam(required = false) Long departmentId) {
+            @Parameter(description = "ID phòng ban (không bắt buộc)") @RequestParam(required = false) Long departmentId) {
         return ApiResponse.success(positionService.getAll(departmentId));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết chức vụ theo ID")
     public ApiResponse<PositionResponse> getPositionById(
-            @Parameter(description = "ID chức vụ", example = "5") @PathVariable Long id) {
+            @Parameter(description = "ID chức vụ") @PathVariable Long id) {
         return ApiResponse.success(positionService.getById(id));
     }
 
@@ -53,9 +54,17 @@ public class PositionController {
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật chức vụ")
     public ApiResponse<PositionResponse> updatePosition(
-            @Parameter(description = "ID chức vụ", example = "5") @PathVariable Long id,
+            @Parameter(description = "ID chức vụ") @PathVariable Long id,
             @Valid @RequestBody PositionRequest request) {
         PositionResponse response = positionService.update(id, request);
         return ApiResponse.success(200, "Cập nhật chức vụ thành công", response);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Xóa chức vụ")
+    public ApiResponse<Void> deletePosition(
+            @Parameter(description = "ID chức vụ") @PathVariable Long id) {
+        positionService.delete(id);
+        return ApiResponse.success(200, "Xóa chức vụ thành công", null);
     }
 }

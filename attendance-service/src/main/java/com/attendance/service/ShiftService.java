@@ -43,4 +43,39 @@ public class ShiftService {
                 .map(shiftMapper::toResponse)
                 .toList();
     }
+
+    public ShiftResponse getById(Long id) {
+        Shift shift = shiftRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+        return shiftMapper.toResponse(shift);
+    }
+
+    public ShiftResponse update(Long id, ShiftRequest request) {
+        Shift shift = shiftRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+
+        shiftRepository.findByName(request.name().trim())
+                .filter(found -> !found.getId().equals(shift.getId()))
+                .ifPresent(found -> {
+                    throw new AppException(ErrorCode.INVALID_INPUT, "Tên ca làm đã tồn tại");
+                });
+
+        if (!request.endTime().isAfter(request.startTime())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Giờ kết thúc phải sau giờ bắt đầu");
+        }
+
+        shift.setName(request.name().trim());
+        shift.setStartTime(request.startTime());
+        shift.setEndTime(request.endTime());
+        shift.setBreakStart(request.breakStart());
+        shift.setBreakEnd(request.breakEnd());
+        shift.setGracePeriod(request.gracePeriod() == null ? 0 : request.gracePeriod());
+        return shiftMapper.toResponse(shiftRepository.save(shift));
+    }
+
+    public void delete(Long id) {
+        Shift shift = shiftRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+        shiftRepository.delete(shift);
+    }
 }
