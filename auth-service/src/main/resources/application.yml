@@ -1,5 +1,6 @@
 server:
-  port: ${AUTH_SERVICE_PORT=:9004}
+  port: ${AUTH_SERVICE_PORT:9004}
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -39,6 +40,9 @@ logging:
 springdoc:
   api-docs:
     path: /api/auth/v3/api-docs
+  servers:
+    - url: http://localhost:9000
+      description: API Gateway
 
 jwt:
   secret: ${JWT_SECRET:AMS_DEFAULT_SECRET_KEY_PLEASE_CHANGE_IN_PROD_32CHARS}

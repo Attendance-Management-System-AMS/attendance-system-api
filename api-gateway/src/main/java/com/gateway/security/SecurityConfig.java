@@ -17,7 +17,7 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(request -> {
                     var config = new org.springframework.web.cors.CorsConfiguration();
-                    config.setAllowedOriginPatterns(List.of("*"));
+                    config.addAllowedOriginPattern("*");
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(List.of("*"));
                     config.setExposedHeaders(List.of("*"));
@@ -29,6 +29,7 @@ public class SecurityConfig {
                         .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/webjars/**")
                         .permitAll()
                         .pathMatchers("/api/auth/**").permitAll()
+                        .pathMatchers("/api/hr/**").permitAll() // mở public cho hr-service
                         .pathMatchers("/api/*/v3/api-docs").permitAll()
                         .anyExchange().permitAll());
         return http.build();

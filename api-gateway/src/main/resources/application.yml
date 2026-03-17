@@ -29,8 +29,8 @@ spring:
           uri: lb://hr-service
           predicates:
             - Path=/api/hr/**
-          filters:
-            - JwtAuthenticationFilter
+          # filters:
+          #   - JwtAuthenticationFilter
 
         - id: attendance-service
           uri: lb://attendance-service
@@ -58,15 +58,14 @@ springdoc:
     enabled: true
   swagger-ui:
     disable-swagger-default-url: true
-    path: /swagger-ui/index.html
     urls:
-      - name: 1. Nhân sự & Đơn từ (HR)
-        url: /api/hr/v3/api-docs
-      - name: 2. Chấm công (Attendance)
-        url: /api/attendance/v3/api-docs
-      - name: 3. Xác thực (Auth)
-        url: /api/auth/v3/api-docs
-
+      - url: /api/hr/v3/api-docs
+        name: HR Service
+      - url: /api/attendance/v3/api-docs
+        name: Attendance Service
+      - url: /api/auth/v3/api-docs
+        name: Auth Service
+    path: /swagger-ui/index.html
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"

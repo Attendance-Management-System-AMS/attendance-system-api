@@ -1,5 +1,6 @@
 server:
   port: ${HR_SERVICE_PORT:8001}
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -39,3 +40,8 @@ logging:
 springdoc:
   api-docs:
     path: /api/hr/v3/api-docs
+  swagger-ui:
+    path: /api/hr/swagger-ui.html
+  servers:
+    - url: http://localhost:9000
+      description: API Gateway

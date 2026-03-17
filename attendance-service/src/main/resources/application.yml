@@ -1,5 +1,6 @@
 server:
   port: ${ATTENDANCE_SERVICE_PORT:9002}
+  forward-headers-strategy: framework
 
 spring:
   application:
@@ -39,3 +40,6 @@ logging:
 springdoc:
   api-docs:
     path: /api/attendance/v3/api-docs
+  servers:
+    - url: http://localhost:9000
+      description: API Gateway
