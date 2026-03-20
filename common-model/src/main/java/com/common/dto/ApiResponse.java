@@ -24,6 +24,13 @@ public class ApiResponse<T> {
         return new ApiResponse<>(true, 200, "Success", result, Instant.now());
     }
 
+    /**
+     * Giống envelope warehouse-service: luôn kèm message rõ ràng, HTTP status do controller (200).
+     */
+    public static <T> ApiResponse<T> success(String message, T result) {
+        return new ApiResponse<>(true, 200, message, result, Instant.now());
+    }
+
     public static <T> ApiResponse<T> success(int code, String message, T result) {
         return new ApiResponse<>(true, code, message, result, Instant.now());
     }

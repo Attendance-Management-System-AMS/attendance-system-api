@@ -2,6 +2,9 @@ server:
   port: ${ATTENDANCE_SERVICE_PORT:9002}
   forward-headers-strategy: framework
 
+gateway:
+  url: ${GATEWAY_URL:http://localhost:9000}
+
 spring:
   application:
     name: attendance-service
@@ -15,6 +18,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  # LoadBalancer + Eureka: Feign @FeignClient(name = "hr-service") gọi trực tiếp instance HR (không qua gateway)
   cloud:
     openfeign:
       client:

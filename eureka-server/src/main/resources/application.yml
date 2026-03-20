@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8761}
+  port: ${EUREKA_PORT:8761}
 
 spring:
   application:
@@ -23,7 +23,8 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
     service-url:
-      defaultZone: http://${EUREKA_USER:eureka}:${EUREKA_PASSWORD:eureka123}@${EUREKA_HOST:localhost}:${SERVER_PORT:8761}/eureka/
+      # Cùng cổng với server.port; giữ trùng EUREKA_PORT khi cấu hình client (hr, attendance, gateway)
+      defaultZone: http://${EUREKA_USER:eureka}:${EUREKA_PASSWORD:eureka123}@${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
 
 logging:
   pattern:

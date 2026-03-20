@@ -68,13 +68,51 @@ mvn clean install
 
 ```
 
-### 3. Khởi chạy hệ thống
+### 3. Khởi chạy hệ thống (Eureka + Gateway + HR + Attendance)
 
-Khởi chạy lần lượt các service. Đảm bảo các cấu hình trong `application.yml` (DB URL, Port) đã chính xác:
+**Phải chạy lệnh từ thư mục chứa `mvnw.cmd`** — trong repo này là `attendance-system/attendance-system-api`.  
+Nếu bạn đang ở `...\attendance-system` thì sẽ báo *mvnw.cmd is not recognized*.
 
-```bash
-# Ví dụ chạy service nhân sự
-cd hr-service
-mvn spring-boot:run
-
+```powershell
+cd attendance-system-api   # hoặc: cd D:\K22-DATN\attendance-system\attendance-system-api
 ```
+
+**Một lệnh (Windows):** mở 5 cửa sổ, mỗi cửa một service —
+
+```powershell
+.\start-stack.ps1
+```
+
+Các service **đăng ký Eureka** với `spring.application.name` khớp route `lb://...` trên gateway (`hr-service`, `attendance-service`, …).
+
+**Thứ tự gợi ý** (mỗi lệnh một terminal, sau khi đã `cd` vào `attendance-system-api`):
+
+| Thứ tự | Module | Port mặc định | Ghi chú |
+|--------|--------|----------------|--------|
+| 1 | `eureka-server` | 8761 | Bật trước để discovery sẵn sàng |
+| 2 | `hr-service` | 8001 | Attendance gọi API qua **Feign + Eureka** (`/api/hr/employees/{id}`) |
+| 3 | `attendance-service` | 9002 | Cần HR đã lên để check-in validate nhân viên |
+| 4 | `auth-service` | 9004 | Nếu dùng login JWT qua gateway |
+| 5 | `api-gateway` | 9000 | Client/frontend chỉ gọi **một cổng**: `http://localhost:9000` |
+
+```powershell
+# Windows — đang đứng trong thư mục attendance-system-api
+.\mvnw.cmd -pl eureka-server spring-boot:run
+.\mvnw.cmd -pl hr-service spring-boot:run
+.\mvnw.cmd -pl attendance-service spring-boot:run
+.\mvnw.cmd -pl auth-service spring-boot:run
+.\mvnw.cmd -pl api-gateway spring-boot:run
+```
+
+Hoặc không cần `cd`, chỉ định đường dẫn tới wrapper (ví dụ đang ở thư mục `attendance-system`):
+
+```powershell
+.\attendance-system-api\mvnw.cmd -f attendance-system-api\pom.xml -pl eureka-server spring-boot:run
+```
+
+**Luồng request:**
+
+- Người dùng / frontend → **API Gateway** (`9000`) → `GET/POST .../api/attendance/**` hoặc `/api/hr/**` (đi qua `lb://attendance-service` / `lb://hr-service`).
+- **Attendance** → **HR** trực tiếp qua service discovery (`@FeignClient(name = "hr-service")`), không bắt buộc đi qua gateway.
+
+Biến môi trường dùng chung: `EUREKA_HOST`, `EUREKA_PORT` (trùng cổng Eureka), `EUREKA_USER`, `EUREKA_PASSWORD`. Gateway và Swagger tổng hợp: `http://localhost:9000/swagger-ui/index.html`.

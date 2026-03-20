@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,27 +20,24 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/attendance/schedules")
+@RequiredArgsConstructor
 @Tag(name = "Chấm công - Lịch làm việc", description = "Gán lịch làm việc cho nhân viên")
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
 
-    public ScheduleController(ScheduleService scheduleService) {
-        this.scheduleService = scheduleService;
-    }
-
     @PostMapping
     @Operation(summary = "Gán lịch làm việc cho nhân viên")
     public ApiResponse<EmployeeScheduleResponse> assignSchedule(@Valid @RequestBody EmployeeScheduleRequest request) {
         EmployeeScheduleResponse response = scheduleService.assignSchedule(request);
-        return ApiResponse.success(201, "Gán ca làm việc thành công", response);
+        return ApiResponse.success("Gán ca làm việc thành công", response);
     }
 
     @GetMapping("/employee/{employeeId}")
     @Operation(summary = "Lấy lịch làm việc của nhân viên")
     public ApiResponse<List<EmployeeScheduleResponse>> getByEmployee(
             @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
-        return ApiResponse.success(scheduleService.getByEmployee(employeeId));
+        return ApiResponse.success("Lấy lịch làm việc thành công", scheduleService.getByEmployee(employeeId));
     }
 
     @DeleteMapping("/{id}")
@@ -47,6 +45,6 @@ public class ScheduleController {
     public ApiResponse<Void> deleteSchedule(
             @Parameter(description = "ID lịch làm") @PathVariable Long id) {
         scheduleService.delete(id);
-        return ApiResponse.success(200, "Xóa lịch làm việc thành công", null);
+        return ApiResponse.success("Xóa lịch làm việc thành công", null);
     }
 }

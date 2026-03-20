@@ -1,10 +1,12 @@
 package com.attendance.service;
 
+import com.attendance.dto.response.AttendanceResponse;
 import com.attendance.entity.Attendance;
 import com.attendance.entity.EmployeeSchedule;
 import com.attendance.entity.Shift;
 import com.attendance.exception.ErrorCode;
 import com.attendance.feign.HrClient;
+import com.attendance.mapper.AttendanceMapper;
 import com.attendance.repository.AttendanceRepository;
 import com.attendance.repository.EmployeeScheduleRepository;
 import com.common.exception.AppException;
@@ -23,14 +25,16 @@ import java.util.Optional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
     private final EmployeeScheduleRepository employeeScheduleRepository;
     private final HrClient hrClient;
+    private final AttendanceMapper attendanceMapper;
 
     @Transactional
-    public Attendance checkIn(Long employeeId) {
+    public AttendanceResponse checkIn(Long employeeId) {
         validateEmployee(employeeId);
 
         LocalDate today = LocalDate.now();
@@ -56,11 +60,11 @@ public class AttendanceService {
                 .checkInTime(LocalDateTime.now())
                 .status(status)
                 .build();
-        return attendanceRepository.save(attendance);
+        return attendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
     @Transactional
-    public Attendance checkOut(Long employeeId) {
+    public AttendanceResponse checkOut(Long employeeId) {
         LocalDate today = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
@@ -78,17 +82,19 @@ public class AttendanceService {
             }
         }
 
-        return attendanceRepository.save(attendance);
+        return attendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
-    @Transactional(readOnly = true)
-    public List<Attendance> getByEmployee(Long employeeId) {
-        return attendanceRepository.findByEmployeeIdOrderByWorkDateDesc(employeeId);
+    public List<AttendanceResponse> getByEmployee(Long employeeId) {
+        return attendanceRepository.findByEmployeeIdOrderByWorkDateDesc(employeeId)
+                .stream()
+                .map(attendanceMapper::toResponse)
+                .toList();
     }
 
-    @Transactional(readOnly = true)
-    public Attendance getTodayByEmployee(Long employeeId) {
+    public AttendanceResponse getTodayByEmployee(Long employeeId) {
         return attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
+                .map(attendanceMapper::toResponse)
                 .orElse(null);
     }
 
