@@ -28,6 +28,7 @@ public class User {
     private String email;
 
     @Column(name = "is_enabled")
+    @Builder.Default
     private boolean isEnabled = true;
 
     @ManyToMany(fetch = FetchType.EAGER)
