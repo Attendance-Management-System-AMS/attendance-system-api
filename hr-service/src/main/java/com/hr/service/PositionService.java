@@ -48,8 +48,7 @@ public class PositionService {
         if (departmentId == null) {
             positions = positionRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
         } else {
-            positions = positionRepository.findByDepartmentId(departmentId)
-                    .stream()
+            positions = positionRepository.findByDepartmentId(departmentId).stream()
                     .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
                     .toList();
         }

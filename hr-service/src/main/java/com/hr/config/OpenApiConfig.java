@@ -33,6 +33,9 @@ public class OpenApiConfig {
                                 .bearerFormat("JWT")))
                 .servers(List.of(
                         new Server()
+                                .url("/")
+                                .description("Trực tiếp HR service (host hiện tại)"),
+                        new Server()
                                 .url(gatewayUrl)
                                 .description("API Gateway")));
     }

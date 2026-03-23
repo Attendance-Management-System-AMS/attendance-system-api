@@ -55,8 +55,7 @@ public class LeaveController {
     @GetMapping("/employee/{employeeId}")
     @Operation(summary = "Lấy danh sách đơn nghỉ theo nhân viên")
     public ApiResponse<List<LeaveResponse>> getByEmployee(
-            @Parameter(description = "ID nhân viên")
-            @PathVariable Long employeeId) {
+            @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
         return ApiResponse.success(leaveService.getByEmployee(employeeId));
     }
 

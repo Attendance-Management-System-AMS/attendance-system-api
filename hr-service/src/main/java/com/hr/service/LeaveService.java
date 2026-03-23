@@ -45,8 +45,7 @@ public class LeaveService {
         leaveRequest.setFromDate(request.fromDate());
         leaveRequest.setToDate(request.toDate());
         leaveRequest.setReason(request.reason());
-        
-        // Simple calculation: include both start and end date
+
         long days = ChronoUnit.DAYS.between(request.fromDate(), request.toDate()) + 1;
         leaveRequest.setTotalDays((double) days);
 
@@ -54,9 +53,9 @@ public class LeaveService {
         return leaveMapper.toResponse(saved);
     }
 
+    @Transactional(readOnly = true)
     public List<LeaveResponse> getByEmployee(Long employeeId) {
-        return leaveRequestRepository.findByEmployeeId(employeeId)
-                .stream()
+        return leaveRequestRepository.findByEmployeeId(employeeId).stream()
                 .map(leaveMapper::toResponse)
                 .toList();
     }

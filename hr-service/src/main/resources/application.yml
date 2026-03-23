@@ -8,6 +8,12 @@ gateway:
 spring:
   application:
     name: hr-service
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
+        one-indexed-parameters: false
   output:
     ansi:
       enabled: always
@@ -45,3 +51,5 @@ springdoc:
     path: /api/hr/v3/api-docs
   swagger-ui:
     path: /api/hr/swagger-ui.html
+    url: /api/hr/v3/api-docs
+  show-actuator: false

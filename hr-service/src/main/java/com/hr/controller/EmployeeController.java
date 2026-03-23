@@ -1,7 +1,7 @@
 package com.hr.controller;
 
 import com.common.dto.ApiResponse;
-import com.hr.dto.common.PagingResponse;
+import com.common.pagination.PageResponse;
 import com.hr.dto.employee.EmployeeRequest;
 import com.hr.dto.employee.EmployeeResponse;
 import com.hr.service.EmployeeService;
@@ -9,7 +9,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,14 +42,16 @@ public class EmployeeController {
     }
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách nhân viên", description = "Hỗ trợ phân trang bằng page và size")
-    public ApiResponse<PagingResponse<EmployeeResponse>> getEmployees(
-            @Parameter(description = "Trang hiện tại", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Số bản ghi mỗi trang", example = "10")
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return ApiResponse.success(employeeService.getAll(page, size));
+    @Operation(summary = "Lấy danh sách nhân viên (phân trang, lọc)")
+    public ApiResponse<PageResponse<EmployeeResponse>> getEmployees(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) Long positionId,
+            @RequestParam(required = false) String status,
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ApiResponse.success(
+                employeeService.search(keyword, departmentId, positionId, status, pageable));
     }
 
     @GetMapping("/{id}")
@@ -70,6 +75,4 @@ public class EmployeeController {
         employeeService.delete(id);
         return ApiResponse.success(200, "Vô hiệu hoá nhân viên thành công", null);
     }
-
-
 }

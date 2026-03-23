@@ -1,8 +1,8 @@
 package com.hr.service;
 
+import com.common.exception.AppException;
 import com.hr.dto.department.DepartmentRequest;
 import com.hr.dto.department.DepartmentResponse;
-import com.common.exception.AppException;
 import com.hr.entity.Department;
 import com.hr.exception.ErrorCode;
 import com.hr.mapper.DepartmentMapper;
@@ -10,6 +10,7 @@ import com.hr.repository.DepartmentRepository;
 import java.util.List;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class DepartmentService {
@@ -33,9 +34,9 @@ public class DepartmentService {
         return departmentMapper.toResponse(saved);
     }
 
+    @Transactional(readOnly = true)
     public List<DepartmentResponse> getAll() {
-        return departmentRepository.findAll(Sort.by(Sort.Direction.ASC, "name"))
-                .stream()
+        return departmentRepository.findAll(Sort.by(Sort.Direction.ASC, "name")).stream()
                 .map(departmentMapper::toResponse)
                 .toList();
     }

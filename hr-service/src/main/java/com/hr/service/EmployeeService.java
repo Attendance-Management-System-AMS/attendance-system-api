@@ -1,7 +1,7 @@
 package com.hr.service;
 
 import com.common.exception.AppException;
-import com.hr.dto.common.PagingResponse;
+import com.common.pagination.PageResponse;
 import com.hr.dto.employee.EmployeeRequest;
 import com.hr.dto.employee.EmployeeResponse;
 import com.hr.entity.Department;
@@ -11,11 +11,11 @@ import com.hr.exception.ErrorCode;
 import com.hr.mapper.EmployeeMapper;
 import com.hr.repository.DepartmentRepository;
 import com.hr.repository.EmployeeRepository;
+import com.hr.repository.EmployeeSpecifications;
 import com.hr.repository.PositionRepository;
+import java.util.List;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,19 +59,23 @@ public class EmployeeService {
     }
 
     @Transactional(readOnly = true)
-    public PagingResponse<EmployeeResponse> getAll(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<EmployeeResponse> resultPage = employeeRepository.findAll(pageable).map(employeeMapper::toResponse);
-
-        return new PagingResponse<>(
-                resultPage.getContent(),
-                resultPage.getNumber(),
-                resultPage.getSize(),
-                resultPage.getTotalElements(),
-                resultPage.getTotalPages(),
-                resultPage.hasNext(),
-                resultPage.hasPrevious()
-        );
+    public PageResponse<EmployeeResponse> search(
+            String keyword,
+            Long departmentId,
+            Long positionId,
+            String status,
+            Pageable pageable) {
+        var spec = EmployeeSpecifications.matches(keyword, departmentId, positionId, status);
+        Page<Employee> slice = employeeRepository.findAll(spec, pageable);
+        List<EmployeeResponse> content = slice.getContent().stream()
+                .map(employeeMapper::toResponse)
+                .toList();
+        return new PageResponse<>(
+                content,
+                slice.getTotalElements(),
+                slice.getTotalPages(),
+                slice.getNumber(),
+                slice.getSize());
     }
 
     @Transactional(readOnly = true)
@@ -118,8 +122,6 @@ public class EmployeeService {
         Employee saved = employeeRepository.save(employee);
         return employeeMapper.toResponse(saved);
     }
-
-
 
     private Department resolveDepartment(Long departmentId) {
         if (departmentId == null) {
