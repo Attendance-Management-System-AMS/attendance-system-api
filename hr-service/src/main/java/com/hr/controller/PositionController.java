@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/hr/positions")
+@RequestMapping("/api/positions")
 @Tag(name = "HR - Chức vụ", description = "Quản lý chức vụ nhân sự")
 public class PositionController {
 

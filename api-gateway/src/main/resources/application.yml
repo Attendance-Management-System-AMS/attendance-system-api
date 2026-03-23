@@ -10,11 +10,6 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: hr-service-docs
-          uri: lb://hr-service
-          predicates:
-            - Path=/api/hr/v3/api-docs
-
         - id: attendance-service-docs
           uri: lb://attendance-service
           predicates:
@@ -28,7 +23,7 @@ spring:
         - id: hr-service
           uri: lb://hr-service
           predicates:
-            - Path=/api/hr/**
+            - Path=/api/employees/**,/api/departments/**,/api/positions/**,/api/leaves/**,/api/hr/v3/api-docs,/api/hr/swagger-ui.html
           # filters:
           #   - JwtAuthenticationFilter
 
@@ -65,7 +60,6 @@ springdoc:
         name: Attendance Service
       - url: /api/auth/v3/api-docs
         name: Auth Service
-    path: /swagger-ui/index.html
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"

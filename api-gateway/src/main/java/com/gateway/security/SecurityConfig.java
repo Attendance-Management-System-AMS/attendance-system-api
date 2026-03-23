@@ -29,7 +29,13 @@ public class SecurityConfig {
                         .pathMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/webjars/**")
                         .permitAll()
                         .pathMatchers("/api/auth/**").permitAll()
-                        .pathMatchers("/api/hr/**").permitAll() // mở public cho hr-service
+                        .pathMatchers(
+                                "/api/employees/**",
+                                "/api/departments/**",
+                                "/api/positions/**",
+                                "/api/leaves/**",
+                                "/api/hr/**")
+                                .permitAll()
                         .pathMatchers("/api/*/v3/api-docs").permitAll()
                         .anyExchange().permitAll());
         return http.build();

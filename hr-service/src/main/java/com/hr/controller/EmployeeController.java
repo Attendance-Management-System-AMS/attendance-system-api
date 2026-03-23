@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/hr/employees")
+@RequestMapping("/api/employees")
 @Tag(name = "HR - Nhân viên", description = "Quản lý hồ sơ nhân viên")
 public class EmployeeController {
 

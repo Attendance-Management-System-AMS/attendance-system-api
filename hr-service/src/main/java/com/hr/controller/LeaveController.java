@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/hr/leaves")
+@RequestMapping("/api/leaves")
 @Tag(name = "HR - Nghỉ phép", description = "Quản lý đơn nghỉ phép của nhân viên")
 public class LeaveController {
 
