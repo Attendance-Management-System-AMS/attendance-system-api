@@ -1,14 +1,17 @@
 package com.hr.service;
 
 import com.common.exception.AppException;
+import com.common.pagination.PageResponse;
 import com.hr.dto.department.DepartmentRequest;
 import com.hr.dto.department.DepartmentResponse;
 import com.hr.entity.Department;
 import com.hr.exception.ErrorCode;
 import com.hr.mapper.DepartmentMapper;
 import com.hr.repository.DepartmentRepository;
+import com.hr.repository.DepartmentSpecifications;
 import java.util.List;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,10 +38,18 @@ public class DepartmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<DepartmentResponse> getAll() {
-        return departmentRepository.findAll(Sort.by(Sort.Direction.ASC, "name")).stream()
+    public PageResponse<DepartmentResponse> search(String keyword, Pageable pageable) {
+        var spec = DepartmentSpecifications.matches(keyword);
+        Page<Department> page = departmentRepository.findAll(spec, pageable);
+        List<DepartmentResponse> content = page.getContent().stream()
                 .map(departmentMapper::toResponse)
                 .toList();
+        return new PageResponse<>(
+                content,
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.getNumber(),
+                page.getSize());
     }
 
     public DepartmentResponse getById(Long id) {

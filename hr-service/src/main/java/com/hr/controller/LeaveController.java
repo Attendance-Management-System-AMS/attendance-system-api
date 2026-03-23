@@ -1,6 +1,7 @@
 package com.hr.controller;
 
 import com.common.dto.ApiResponse;
+import com.common.pagination.PageResponse;
 import com.hr.dto.leave.LeaveRequestRecord;
 import com.hr.dto.leave.LeaveResponse;
 import com.hr.service.LeaveService;
@@ -8,7 +9,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,11 +42,16 @@ public class LeaveController {
     }
 
     @GetMapping
-    @Operation(summary = "Lấy tất cả đơn nghỉ", description = "Lọc theo trạng thái: PENDING, APPROVED, REJECTED")
-    public ApiResponse<List<LeaveResponse>> getAll(
+    @Operation(summary = "Lấy danh sách đơn nghỉ (phân trang, lọc)",
+            description = "Lọc theo keyword (loại nghỉ, lý do, tên NV), employeeId, status: PENDING, APPROVED, REJECTED")
+    public ApiResponse<PageResponse<LeaveResponse>> getAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long employeeId,
             @Parameter(description = "Trạng thái đơn (không bắt buộc)")
-            @RequestParam(required = false) String status) {
-        return ApiResponse.success(leaveService.getAll(status));
+            @RequestParam(required = false) String status,
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ApiResponse.success(leaveService.search(keyword, employeeId, status, pageable));
     }
 
     @GetMapping("/{id}")
@@ -53,10 +62,12 @@ public class LeaveController {
     }
 
     @GetMapping("/employee/{employeeId}")
-    @Operation(summary = "Lấy danh sách đơn nghỉ theo nhân viên")
-    public ApiResponse<List<LeaveResponse>> getByEmployee(
-            @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
-        return ApiResponse.success(leaveService.getByEmployee(employeeId));
+    @Operation(summary = "Lấy danh sách đơn nghỉ theo nhân viên (phân trang)")
+    public ApiResponse<PageResponse<LeaveResponse>> getByEmployee(
+            @Parameter(description = "ID nhân viên") @PathVariable Long employeeId,
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ApiResponse.success(leaveService.searchByEmployee(employeeId, pageable));
     }
 
     @PutMapping("/{id}/approve")

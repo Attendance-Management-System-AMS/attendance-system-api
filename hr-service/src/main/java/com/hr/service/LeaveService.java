@@ -1,6 +1,7 @@
 package com.hr.service;
 
 import com.common.exception.AppException;
+import com.common.pagination.PageResponse;
 import com.hr.dto.leave.LeaveRequestRecord;
 import com.hr.dto.leave.LeaveResponse;
 import com.hr.entity.Employee;
@@ -9,9 +10,11 @@ import com.hr.exception.ErrorCode;
 import com.hr.mapper.LeaveMapper;
 import com.hr.repository.EmployeeRepository;
 import com.hr.repository.LeaveRequestRepository;
+import com.hr.repository.LeaveSpecifications;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,18 +57,23 @@ public class LeaveService {
     }
 
     @Transactional(readOnly = true)
-    public List<LeaveResponse> getByEmployee(Long employeeId) {
-        return leaveRequestRepository.findByEmployeeId(employeeId).stream()
-                .map(leaveMapper::toResponse)
-                .toList();
+    public PageResponse<LeaveResponse> searchByEmployee(Long employeeId, Pageable pageable) {
+        return search(null, employeeId, null, pageable);
     }
 
     @Transactional(readOnly = true)
-    public List<LeaveResponse> getAll(String status) {
-        List<LeaveRequest> leaves = (status != null && !status.isBlank())
-                ? leaveRequestRepository.findByStatus(status.toUpperCase())
-                : leaveRequestRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
-        return leaves.stream().map(leaveMapper::toResponse).toList();
+    public PageResponse<LeaveResponse> search(String keyword, Long employeeId, String status, Pageable pageable) {
+        var spec = LeaveSpecifications.matches(keyword, employeeId, status);
+        Page<LeaveRequest> page = leaveRequestRepository.findAll(spec, pageable);
+        List<LeaveResponse> content = page.getContent().stream()
+                .map(leaveMapper::toResponse)
+                .toList();
+        return new PageResponse<>(
+                content,
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.getNumber(),
+                page.getSize());
     }
 
     @Transactional(readOnly = true)

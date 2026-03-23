@@ -1,6 +1,7 @@
 package com.hr.service;
 
 import com.common.exception.AppException;
+import com.common.pagination.PageResponse;
 import com.hr.dto.position.PositionRequest;
 import com.hr.dto.position.PositionResponse;
 import com.hr.entity.Department;
@@ -9,8 +10,10 @@ import com.hr.exception.ErrorCode;
 import com.hr.mapper.PositionMapper;
 import com.hr.repository.DepartmentRepository;
 import com.hr.repository.PositionRepository;
+import com.hr.repository.PositionSpecifications;
 import java.util.List;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,17 +46,18 @@ public class PositionService {
     }
 
     @Transactional(readOnly = true)
-    public List<PositionResponse> getAll(Long departmentId) {
-        List<Position> positions;
-        if (departmentId == null) {
-            positions = positionRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
-        } else {
-            positions = positionRepository.findByDepartmentId(departmentId).stream()
-                    .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
-                    .toList();
-        }
-
-        return positions.stream().map(positionMapper::toResponse).toList();
+    public PageResponse<PositionResponse> search(String keyword, Long departmentId, Pageable pageable) {
+        var spec = PositionSpecifications.matches(keyword, departmentId);
+        Page<Position> page = positionRepository.findAll(spec, pageable);
+        List<PositionResponse> content = page.getContent().stream()
+                .map(positionMapper::toResponse)
+                .toList();
+        return new PageResponse<>(
+                content,
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.getNumber(),
+                page.getSize());
     }
 
     @Transactional(readOnly = true)

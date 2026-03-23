@@ -1,6 +1,7 @@
 package com.hr.controller;
 
 import com.common.dto.ApiResponse;
+import com.common.pagination.PageResponse;
 import com.hr.dto.position.PositionRequest;
 import com.hr.dto.position.PositionResponse;
 import com.hr.service.PositionService;
@@ -8,7 +9,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,10 +35,14 @@ public class PositionController {
     }
 
     @GetMapping
-    @Operation(summary = "Lấy danh sách chức vụ", description = "Có thể lọc theo phòng ban thông qua departmentId")
-    public ApiResponse<List<PositionResponse>> getPositions(
-            @Parameter(description = "ID phòng ban (không bắt buộc)") @RequestParam(required = false) Long departmentId) {
-        return ApiResponse.success(positionService.getAll(departmentId));
+    @Operation(summary = "Lấy danh sách chức vụ (phân trang, lọc)",
+            description = "Lọc theo từ khoá tên và/hoặc departmentId")
+    public ApiResponse<PageResponse<PositionResponse>> getPositions(
+            @RequestParam(required = false) String keyword,
+            @Parameter(description = "ID phòng ban (không bắt buộc)") @RequestParam(required = false) Long departmentId,
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ApiResponse.success(positionService.search(keyword, departmentId, pageable));
     }
 
     @GetMapping("/{id}")
