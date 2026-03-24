@@ -2,24 +2,14 @@ package com.hr.mapper;
 
 import com.hr.dto.leave.LeaveResponse;
 import com.hr.entity.LeaveRequest;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-public class LeaveMapper {
+@Mapper(config = MapStructConfig.class)
+public interface LeaveMapper {
 
-    public LeaveResponse toResponse(LeaveRequest request) {
-        return new LeaveResponse(
-                request.getId(),
-                request.getEmployee().getId(),
-                request.getEmployee().getFullName(),
-                request.getLeaveType(),
-                request.getFromDate(),
-                request.getToDate(),
-                request.getTotalDays(),
-                request.getReason(),
-                request.getStatus(),
-                request.getApprovedBy() != null ? request.getApprovedBy().getId() : null,
-                request.getCreatedAt()
-        );
-    }
+    @Mapping(source = "employee.id", target = "employeeId")
+    @Mapping(source = "employee.fullName", target = "employeeName")
+    @Mapping(source = "approvedBy.id", target = "approvedBy")
+    LeaveResponse toResponse(LeaveRequest leaveRequest);
 }

@@ -3,24 +3,20 @@ package com.hr.mapper;
 import com.hr.dto.department.DepartmentRequest;
 import com.hr.dto.department.DepartmentResponse;
 import com.hr.entity.Department;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
-@Component
-public class DepartmentMapper {
+@Mapper(config = MapStructConfig.class)
+public interface DepartmentMapper {
 
-    public Department toEntity(DepartmentRequest request) {
-        Department department = new Department();
-        department.setName(request.name().trim());
-        department.setDescription(request.description());
-        return department;
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    Department toEntity(DepartmentRequest request);
 
-    public DepartmentResponse toResponse(Department department) {
-        return new DepartmentResponse(
-                department.getId(),
-                department.getName(),
-                department.getDescription(),
-                department.getCreatedAt()
-        );
-    }
+    DepartmentResponse toResponse(Department department);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    void updateEntity(DepartmentRequest request, @MappingTarget Department department);
 }

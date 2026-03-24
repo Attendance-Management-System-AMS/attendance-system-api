@@ -9,35 +9,72 @@ spring:
       enabled: always
   cloud:
     gateway:
-      routes:
-        - id: attendance-service-docs
-          uri: lb://attendance-service
-          predicates:
-            - Path=/api/attendance/v3/api-docs
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            maxAge: 3600
 
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+
+      routes:
+        # === AUTH SERVICE DOCS ===
         - id: auth-service-docs
           uri: lb://auth-service
+          order: 0
           predicates:
             - Path=/api/auth/v3/api-docs
-
-        - id: hr-service
-          uri: lb://hr-service
-          predicates:
-            - Path=/api/employees/**,/api/departments/**,/api/positions/**,/api/leaves/**,/api/hr/v3/api-docs,/api/hr/swagger-ui.html
-          # filters:
-          #   - JwtAuthenticationFilter
-
-        - id: attendance-service
-          uri: lb://attendance-service
-          predicates:
-            - Path=/api/attendance/**
           filters:
-            - JwtAuthenticationFilter
+            - SetPath=/api/auth/v3/api-docs
 
+        # === AUTH SERVICE ===
         - id: auth-service
           uri: lb://auth-service
+          order: 100
           predicates:
             - Path=/api/auth/**
+
+        # === HR SERVICE DOCS ===
+        - id: hr-service-docs
+          uri: lb://hr-service
+          order: 0
+          predicates:
+            - Path=/api/hr/v3/api-docs
+          filters:
+            - SetPath=/api/hr/v3/api-docs
+
+        # === HR SERVICE ===
+        - id: hr-service
+          uri: lb://hr-service
+          order: 100
+          predicates:
+            - Path=/api/employees/**,/api/departments/**,/api/positions/**,/api/leaves/**
+
+        # === ATTENDANCE SERVICE DOCS ===
+        - id: attendance-service-docs
+          uri: lb://attendance-service
+          order: 0
+          predicates:
+            - Path=/api/attendance/v3/api-docs
+          filters:
+            - SetPath=/api/attendance/v3/api-docs
+
+        # === ATTENDANCE SERVICE ===
+        - id: attendance-service
+          uri: lb://attendance-service
+          order: 100
+          predicates:
+            - Path=/api/attendance/**
 
 eureka:
   client:
@@ -60,9 +97,19 @@ springdoc:
         name: Attendance Service
       - url: /api/auth/v3/api-docs
         name: Auth Service
+
 logging:
+  level:
+    "[org.springframework.cloud.gateway]": ${GATEWAY_LOG_LEVEL:INFO}
+    "[org.springframework.http.server.reactive]": ${GATEWAY_HTTP_LOG_LEVEL:WARN}
+    "[org.springframework.web.reactive]": ${GATEWAY_WEB_LOG_LEVEL:WARN}
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
 
 jwt:
   secret: ${JWT_SECRET:AMS_DEFAULT_SECRET_KEY_PLEASE_CHANGE_IN_PROD_32CHARS}
+
+app:
+  gateway:
+    security:
+      enabled: ${GATEWAY_SECURITY_ENABLED:true}

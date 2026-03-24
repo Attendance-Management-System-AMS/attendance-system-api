@@ -17,7 +17,12 @@ spring:
     password: ${DB_PASSWORD:npg_0NfvBHSXDru8}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+    show-sql: ${ATTENDANCE_SHOW_SQL:false}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
   # LoadBalancer + Eureka: Feign @FeignClient(name = "hr-service") gọi trực tiếp instance HR (không qua gateway)
   cloud:
     openfeign:

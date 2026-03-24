@@ -5,50 +5,41 @@ import com.hr.dto.employee.EmployeeResponse;
 import com.hr.entity.Department;
 import com.hr.entity.Employee;
 import com.hr.entity.Position;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 
-@Component
-public class EmployeeMapper {
+@Mapper(config = MapStructConfig.class)
+public interface EmployeeMapper {
 
-    public Employee toEntity(EmployeeRequest request) {
-        Employee employee = new Employee();
-        employee.setEmployeeCode(request.employeeCode() == null ? null : request.employeeCode().trim());
-        employee.setFullName(request.fullName() == null ? null : request.fullName().trim());
-        employee.setGender(request.gender());
-        employee.setEmail(request.email());
-        employee.setStatus(request.status());
-        employee.setBiometricHash(request.biometricHash());
-        employee.setJoinDate(request.joinDate());
-        return employee;
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "department", ignore = true)
+    @Mapping(target = "position", ignore = true)
+    @Mapping(target = "manager", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    Employee toEntity(EmployeeRequest request);
 
-    public void updateRelations(Employee employee, Department department, Position position, Employee manager) {
+    @Mapping(source = "department.id", target = "departmentId")
+    @Mapping(source = "department.name", target = "departmentName")
+    @Mapping(source = "position.id", target = "positionId")
+    @Mapping(source = "position.name", target = "positionName")
+    @Mapping(source = "manager.id", target = "managerId")
+    @Mapping(source = "manager.fullName", target = "managerName")
+    EmployeeResponse toResponse(Employee employee);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "department", ignore = true)
+    @Mapping(target = "position", ignore = true)
+    @Mapping(target = "manager", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    void updateEntity(EmployeeRequest request, @MappingTarget Employee employee);
+
+    default void updateRelations(Employee employee, Department department, Position position, Employee manager) {
         employee.setDepartment(department);
         employee.setPosition(position);
         employee.setManager(manager);
-    }
-
-    public EmployeeResponse toResponse(Employee employee) {
-        Department department = employee.getDepartment();
-        Position position = employee.getPosition();
-        Employee manager = employee.getManager();
-
-        return new EmployeeResponse(
-                employee.getId(),
-                employee.getEmployeeCode(),
-                employee.getFullName(),
-                employee.getGender(),
-                employee.getEmail(),
-                department != null ? department.getId() : null,
-                department != null ? department.getName() : null,
-                position != null ? position.getId() : null,
-                position != null ? position.getName() : null,
-                manager != null ? manager.getId() : null,
-                manager != null ? manager.getFullName() : null,
-                employee.getStatus(),
-                employee.getBiometricHash(),
-                employee.getJoinDate(),
-                employee.getCreatedAt()
-        );
     }
 }
