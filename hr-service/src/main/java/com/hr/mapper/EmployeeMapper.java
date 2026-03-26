@@ -8,7 +8,6 @@ import com.hr.entity.Position;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
 
 @Mapper(config = MapStructConfig.class)
 public interface EmployeeMapper {

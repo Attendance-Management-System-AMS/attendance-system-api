@@ -112,4 +112,5 @@ jwt:
 app:
   gateway:
     security:
-      enabled: ${GATEWAY_SECURITY_ENABLED:true}
+      # Default off; set GATEWAY_SECURITY_ENABLED=true when ready for JWT at gateway
+      enabled: ${GATEWAY_SECURITY_ENABLED:false}
