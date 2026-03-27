@@ -8,9 +8,13 @@ import com.attendance.exception.ErrorCode;
 import com.attendance.feign.HrClient;
 import com.attendance.mapper.AttendanceMapper;
 import com.attendance.repository.AttendanceRepository;
+import com.attendance.repository.AttendanceSpecifications;
 import com.attendance.repository.EmployeeScheduleRepository;
 import com.common.exception.AppException;
 import feign.FeignException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -85,7 +89,9 @@ public class AttendanceService {
     }
 
     public List<AttendanceResponse> getByEmployee(Long employeeId) {
-        return attendanceRepository.findByEmployeeIdOrderByWorkDateDesc(employeeId)
+        return attendanceRepository.findAll(
+                        AttendanceSpecifications.matches(employeeId, null, null, null, null),
+                        Sort.by(Sort.Direction.DESC, "workDate"))
                 .stream()
                 .map(attendanceMapper::toResponse)
                 .toList();
@@ -95,6 +101,28 @@ public class AttendanceService {
         return attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
                 .map(attendanceMapper::toResponse)
                 .orElse(null);
+    }
+
+    public List<AttendanceResponse> getAttendancesByDate(LocalDate date) {
+        LocalDate workDate = (date != null) ? date : LocalDate.now();
+        return attendanceRepository.findAll(
+                        AttendanceSpecifications.matches(null, workDate, null, null, null),
+                        Sort.by(Sort.Direction.ASC, "employeeId"))
+                .stream()
+                .map(attendanceMapper::toResponse)
+                .toList();
+    }
+
+    public Page<AttendanceResponse> search(
+            Long employeeId,
+            LocalDate date,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String status,
+            Pageable pageable) {
+        return attendanceRepository
+                .findAll(AttendanceSpecifications.matches(employeeId, date, fromDate, toDate, status), pageable)
+                .map(attendanceMapper::toResponse);
     }
 
     private void validateEmployee(Long employeeId) {

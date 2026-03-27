@@ -1,5 +1,5 @@
 server:
-  port: ${ATTENDANCE_SERVICE_PORT:9002}
+  port: ${ATTENDANCE_SERVICE_PORT}
   forward-headers-strategy: framework
 
 gateway:

@@ -8,8 +8,12 @@ import com.attendance.entity.Shift;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.EmployeeScheduleMapper;
 import com.attendance.repository.EmployeeScheduleRepository;
+import com.attendance.repository.EmployeeScheduleSpecifications;
 import com.attendance.repository.ShiftRepository;
+import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +54,22 @@ public class ScheduleService {
                 .stream()
                 .map(employeeScheduleMapper::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<EmployeeScheduleResponse> search(
+            Long employeeId,
+            Integer dayOfWeek,
+            Boolean isActive,
+            LocalDate effectiveFromOnOrBefore,
+            Long shiftId,
+            Pageable pageable) {
+        return employeeScheduleRepository
+                .findAll(
+                        EmployeeScheduleSpecifications.matches(
+                                employeeId, dayOfWeek, isActive, effectiveFromOnOrBefore, shiftId),
+                        pageable)
+                .map(employeeScheduleMapper::toResponse);
     }
 
     @Transactional

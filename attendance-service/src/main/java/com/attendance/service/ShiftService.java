@@ -7,7 +7,10 @@ import com.attendance.entity.Shift;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.ShiftMapper;
 import com.attendance.repository.ShiftRepository;
+import com.attendance.repository.ShiftSpecifications;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -42,6 +45,11 @@ public class ShiftService {
                 .stream()
                 .map(shiftMapper::toResponse)
                 .toList();
+    }
+
+    public Page<ShiftResponse> search(String keyword, Pageable pageable) {
+        return shiftRepository.findAll(ShiftSpecifications.matches(keyword), pageable)
+                .map(shiftMapper::toResponse);
     }
 
     public ShiftResponse getById(Long id) {

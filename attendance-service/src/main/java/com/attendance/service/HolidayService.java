@@ -7,7 +7,11 @@ import com.attendance.entity.Holiday;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.HolidayMapper;
 import com.attendance.repository.HolidayRepository;
+import com.attendance.repository.HolidaySpecifications;
+import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +44,17 @@ public class HolidayService {
                 .stream()
                 .map(holidayMapper::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<HolidayResponse> search(
+            String keyword,
+            Boolean isPaid,
+            LocalDate fromDate,
+            LocalDate toDate,
+            Pageable pageable) {
+        return holidayRepository.findAll(HolidaySpecifications.matches(keyword, isPaid, fromDate, toDate), pageable)
+                .map(holidayMapper::toResponse);
     }
 
     @Transactional(readOnly = true)
