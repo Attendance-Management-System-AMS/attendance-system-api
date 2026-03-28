@@ -1,5 +1,7 @@
 package com.attendance.service;
 
+import com.common.dto.face.FaceDescriptorRequest;
+import com.common.dto.face.FaceMatchResponse;
 import com.attendance.dto.response.AttendanceResponse;
 import com.attendance.entity.Attendance;
 import com.attendance.entity.EmployeeSchedule;
@@ -10,6 +12,7 @@ import com.attendance.mapper.AttendanceMapper;
 import com.attendance.repository.AttendanceRepository;
 import com.attendance.repository.AttendanceSpecifications;
 import com.attendance.repository.EmployeeScheduleRepository;
+import com.common.dto.ApiResponse;
 import com.common.exception.AppException;
 import feign.FeignException;
 import org.springframework.data.domain.Page;
@@ -64,6 +67,25 @@ public class AttendanceService {
                 .status(status)
                 .build();
         return attendanceMapper.toResponse(attendanceRepository.save(attendance));
+    }
+
+    /**
+     * Nhận descriptor face-api.js từ FE, HR so khớp → {@link #checkIn(Long)}.
+     */
+    @Transactional
+    public AttendanceResponse checkInByFace(FaceDescriptorRequest request) {
+        FaceMatchResponse match;
+        try {
+            ApiResponse<FaceMatchResponse> api = hrClient.matchFace(request);
+            match = api.getResult();
+        } catch (FeignException e) {
+            log.error("Lỗi khi so khớp khuôn mặt (HR): {}", e.getMessage());
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không nhận diện được nhân viên");
+        }
+        if (match == null || match.employeeId() == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không nhận diện được nhân viên");
+        }
+        return checkIn(match.employeeId());
     }
 
     @Transactional

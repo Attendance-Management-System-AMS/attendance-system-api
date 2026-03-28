@@ -26,6 +26,7 @@ public interface EmployeeMapper {
     @Mapping(source = "position.name", target = "positionName")
     @Mapping(source = "manager.id", target = "managerId")
     @Mapping(source = "manager.fullName", target = "managerName")
+    @Mapping(target = "faceRegistered", expression = "java(employee.getFaceEmbedding() != null && !employee.getFaceEmbedding().isBlank())")
     EmployeeResponse toResponse(Employee employee);
 
     @Mapping(target = "id", ignore = true)

@@ -51,6 +51,11 @@ logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
 
+# Ngưỡng Euclidean (giống face-api.js): nhỏ hơn = giống hơn; thử 0.45–0.6 tùy camera/ánh sáng
+app:
+  face-match:
+    distance-threshold: ${FACE_MATCH_DISTANCE_THRESHOLD:0.55}
+
 springdoc:
   api-docs:
     path: /api/hr/v3/api-docs

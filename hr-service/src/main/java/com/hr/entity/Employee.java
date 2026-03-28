@@ -58,6 +58,9 @@ public class Employee {
     @Column(name = "biometric_hash", length = 512)
     private String biometricHash;
 
+    @Column(name = "face_embedding", columnDefinition = "TEXT")
+    private String faceEmbedding;
+
     @Column(name = "join_date")
     private LocalDate joinDate;
 

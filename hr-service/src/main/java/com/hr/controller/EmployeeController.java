@@ -1,6 +1,8 @@
 package com.hr.controller;
 
 import com.common.dto.ApiResponse;
+import com.common.dto.face.FaceDescriptorRequest;
+import com.common.dto.face.FaceMatchResponse;
 import com.common.pagination.PageResponse;
 import com.hr.dto.employee.EmployeeRequest;
 import com.hr.dto.employee.EmployeeResponse;
@@ -66,6 +68,20 @@ public class EmployeeController {
                                                         @Valid @RequestBody EmployeeRequest request) {
         EmployeeResponse response = employeeService.update(id, request);
         return ApiResponse.success(200, "Cập nhật nhân viên thành công", response);
+    }
+
+    @PutMapping("/{id}/face-descriptor")
+    @Operation(summary = "Đăng ký / cập nhật descriptor khuôn mặt (face-api.js, 128 float)")
+    public ApiResponse<EmployeeResponse> registerFaceDescriptor(
+            @PathVariable Long id,
+            @Valid @RequestBody FaceDescriptorRequest request) {
+        return ApiResponse.success(200, "Đăng ký khuôn mặt thành công", employeeService.registerFaceEmbedding(id, request));
+    }
+
+    @PostMapping("/match-face")
+    @Operation(summary = "So khớp descriptor với nhân viên đã đăng ký (Euclidean, ngưỡng cấu hình app.face-match)")
+    public ApiResponse<FaceMatchResponse> matchFace(@Valid @RequestBody FaceDescriptorRequest request) {
+        return ApiResponse.success("Khớp khuôn mặt", employeeService.matchFace(request));
     }
 
     @DeleteMapping("/{id}")

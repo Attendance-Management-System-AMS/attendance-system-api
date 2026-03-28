@@ -1,7 +1,11 @@
 package com.hr.service;
 
+import com.common.dto.face.FaceDescriptorRequest;
+import com.common.dto.face.FaceMatchResponse;
 import com.common.exception.AppException;
 import com.common.pagination.PageResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hr.dto.employee.EmployeeRequest;
 import com.hr.dto.employee.EmployeeResponse;
 import com.hr.entity.Department;
@@ -13,7 +17,9 @@ import com.hr.repository.DepartmentRepository;
 import com.hr.repository.EmployeeRepository;
 import com.hr.repository.EmployeeSpecifications;
 import com.hr.repository.PositionRepository;
+import com.hr.util.FaceEmbeddingUtils;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,15 +32,21 @@ public class EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final EmployeeMapper employeeMapper;
+    private final ObjectMapper objectMapper;
+    private final double faceMatchDistanceThreshold;
 
     public EmployeeService(EmployeeRepository employeeRepository,
                            DepartmentRepository departmentRepository,
                            PositionRepository positionRepository,
-                           EmployeeMapper employeeMapper) {
+                           EmployeeMapper employeeMapper,
+                           ObjectMapper objectMapper,
+                           @Value("${app.face-match.distance-threshold:0.55}") double faceMatchDistanceThreshold) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.positionRepository = positionRepository;
         this.employeeMapper = employeeMapper;
+        this.objectMapper = objectMapper;
+        this.faceMatchDistanceThreshold = faceMatchDistanceThreshold;
     }
 
     @Transactional
@@ -156,5 +168,61 @@ public class EmployeeService {
                 .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
         employee.setStatus("INACTIVE");
         employeeRepository.save(employee);
+    }
+
+    /**
+     * Lưu descriptor face-api.js (128 float JSON) cho nhân viên — dùng khi đăng ký khuôn mặt từ FE.
+     */
+    @Transactional
+    public EmployeeResponse registerFaceEmbedding(Long id, FaceDescriptorRequest request) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        double[] probe = FaceEmbeddingUtils.toDoubleArray(request.descriptor());
+        if (probe.length != FaceEmbeddingUtils.FACE_DESCRIPTOR_LENGTH) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "descriptor phải có đúng 128 phần tử");
+        }
+        try {
+            employee.setFaceEmbedding(objectMapper.writeValueAsString(request.descriptor()));
+        } catch (JsonProcessingException e) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không lưu được descriptor");
+        }
+        return employeeMapper.toResponse(employeeRepository.save(employee));
+    }
+
+    /**
+     * So khớp với nhân viên ACTIVE đã có face_embedding; Euclidean distance nhỏ hơn ngưỡng thì khớp
+     * (cùng metric với {@code faceapi.euclideanDistance} trong face-api.js).
+     */
+    @Transactional(readOnly = true)
+    public FaceMatchResponse matchFace(FaceDescriptorRequest request) {
+        double[] probe = FaceEmbeddingUtils.toDoubleArray(request.descriptor());
+        if (probe.length != FaceEmbeddingUtils.FACE_DESCRIPTOR_LENGTH) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "descriptor phải có đúng 128 phần tử");
+        }
+        List<Employee> candidates = employeeRepository.findByStatusAndFaceEmbeddingIsNotNull("ACTIVE");
+        if (candidates.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Chưa có nhân viên nào đăng ký khuôn mặt");
+        }
+        double best = Double.MAX_VALUE;
+        Employee bestEmp = null;
+        for (Employee e : candidates) {
+            try {
+                double[] stored = FaceEmbeddingUtils.fromJson(e.getFaceEmbedding(), objectMapper);
+                if (stored.length != FaceEmbeddingUtils.FACE_DESCRIPTOR_LENGTH) {
+                    continue;
+                }
+                double d = FaceEmbeddingUtils.euclideanDistance(probe, stored);
+                if (d < best) {
+                    best = d;
+                    bestEmp = e;
+                }
+            } catch (JsonProcessingException ex) {
+                // bỏ qua bản ghi không parse được
+            }
+        }
+        if (bestEmp == null || best > faceMatchDistanceThreshold) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không nhận diện được nhân viên (khoảng cách vượt ngưỡng)");
+        }
+        return new FaceMatchResponse(bestEmp.getId(), best);
     }
 }

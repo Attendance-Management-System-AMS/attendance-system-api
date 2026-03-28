@@ -1,5 +1,6 @@
 package com.attendance.controller;
 
+import com.common.dto.face.FaceDescriptorRequest;
 import com.attendance.dto.response.AttendanceResponse;
 import com.attendance.service.AttendanceService;
 import com.common.dto.ApiResponse;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -31,6 +33,13 @@ public class AttendanceController {
             @Parameter(description = "ID nhân viên")
             @PathVariable Long employeeId) {
         return ApiResponse.success("Check-in thành công", attendanceService.checkIn(employeeId));
+    }
+
+    /** Đặt tên path tránh trùng với {@code /check-in/{employeeId}} (segment {@code face} không bị hiểu là ID). */
+    @PostMapping("/check-in-by-face")
+    @Operation(summary = "Check-in bằng descriptor khuôn mặt (face-api.js 128 float)")
+    public ApiResponse<AttendanceResponse> checkInByFace(@Valid @RequestBody FaceDescriptorRequest request) {
+        return ApiResponse.success("Check-in thành công", attendanceService.checkInByFace(request));
     }
 
     @PostMapping("/check-out/{employeeId}")

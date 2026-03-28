@@ -17,6 +17,7 @@ public record EmployeeResponse(
         String managerName,
         String status,
         String biometricHash,
+        Boolean faceRegistered,
         LocalDate joinDate,
         LocalDateTime createdAt
 ) {

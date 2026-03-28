@@ -13,6 +13,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSpecificationExecutor<Employee> {
 
+    List<Employee> findByStatusAndFaceEmbeddingIsNotNull(String status);
+
     @EntityGraph(attributePaths = {"department", "position", "manager"})
     @Override
     List<Employee> findAll(Specification<Employee> spec, Sort sort);
