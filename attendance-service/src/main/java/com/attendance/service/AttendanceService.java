@@ -1,8 +1,10 @@
 package com.attendance.service;
 
+import com.attendance.dto.client.HrEmployeeSnapshot;
+import com.attendance.dto.response.AttendanceEmployeeBrief;
+import com.attendance.dto.response.AttendanceResponse;
 import com.common.dto.face.FaceDescriptorRequest;
 import com.common.dto.face.FaceMatchResponse;
-import com.attendance.dto.response.AttendanceResponse;
 import com.attendance.entity.Attendance;
 import com.attendance.entity.EmployeeSchedule;
 import com.attendance.entity.Shift;
@@ -41,8 +43,52 @@ public class AttendanceService {
 
     @Transactional
     public AttendanceResponse checkIn(Long employeeId) {
-        validateEmployee(employeeId);
+        requireEmployee(employeeId);
+        return performCheckIn(employeeId);
+    }
 
+    /**
+     * Nhận descriptor face-api.js từ FE, HR so khớp → check-in và trả kèm snapshot nhân viên (một lần gọi HR lấy profile).
+     */
+    @Transactional
+    public AttendanceResponse checkInByFace(FaceDescriptorRequest request) {
+        FaceMatchResponse match;
+        try {
+            ApiResponse<FaceMatchResponse> api = hrClient.matchFace(request);
+            match = api.getResult();
+        } catch (FeignException e) {
+            log.error("Lỗi khi so khớp khuôn mặt (HR): {}", e.getMessage());
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không nhận diện được nhân viên");
+        }
+        if (match == null || match.employeeId() == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không nhận diện được nhân viên");
+        }
+        Long employeeId = match.employeeId();
+        HrEmployeeSnapshot hr = requireEmployee(employeeId);
+        AttendanceResponse base = performCheckIn(employeeId);
+        return withEmployeeBrief(base, hr);
+    }
+
+    private static AttendanceResponse withEmployeeBrief(AttendanceResponse base, HrEmployeeSnapshot hr) {
+        if (hr == null) {
+            return base;
+        }
+        return new AttendanceResponse(
+                base.id(),
+                base.employeeId(),
+                base.checkInTime(),
+                base.checkOutTime(),
+                base.workDate(),
+                base.status(),
+                base.createdAt(),
+                new AttendanceEmployeeBrief(
+                        hr.fullName(),
+                        hr.employeeCode(),
+                        hr.departmentName(),
+                        hr.positionName()));
+    }
+
+    private AttendanceResponse performCheckIn(Long employeeId) {
         LocalDate today = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
@@ -67,25 +113,6 @@ public class AttendanceService {
                 .status(status)
                 .build();
         return attendanceMapper.toResponse(attendanceRepository.save(attendance));
-    }
-
-    /**
-     * Nhận descriptor face-api.js từ FE, HR so khớp → {@link #checkIn(Long)}.
-     */
-    @Transactional
-    public AttendanceResponse checkInByFace(FaceDescriptorRequest request) {
-        FaceMatchResponse match;
-        try {
-            ApiResponse<FaceMatchResponse> api = hrClient.matchFace(request);
-            match = api.getResult();
-        } catch (FeignException e) {
-            log.error("Lỗi khi so khớp khuôn mặt (HR): {}", e.getMessage());
-            throw new AppException(ErrorCode.INVALID_INPUT, "Không nhận diện được nhân viên");
-        }
-        if (match == null || match.employeeId() == null) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Không nhận diện được nhân viên");
-        }
-        return checkIn(match.employeeId());
     }
 
     @Transactional
@@ -147,9 +174,14 @@ public class AttendanceService {
                 .map(attendanceMapper::toResponse);
     }
 
-    private void validateEmployee(Long employeeId) {
+    private HrEmployeeSnapshot requireEmployee(Long employeeId) {
         try {
-            hrClient.getEmployeeById(employeeId);
+            ApiResponse<HrEmployeeSnapshot> api = hrClient.getEmployeeById(employeeId);
+            HrEmployeeSnapshot result = api != null ? api.getResult() : null;
+            if (result == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT, "Nhân viên không tồn tại trong hệ thống HR");
+            }
+            return result;
         } catch (FeignException e) {
             log.error("Lỗi khi xác thực nhân viên: {}", e.getMessage());
             throw new AppException(ErrorCode.INVALID_INPUT, "Nhân viên không tồn tại trong hệ thống HR");

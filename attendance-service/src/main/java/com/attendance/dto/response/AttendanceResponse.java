@@ -10,6 +10,8 @@ public record AttendanceResponse(
         LocalDateTime checkOutTime,
         LocalDate workDate,
         String status,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        /** Khi check-in bằng mặt: snapshot từ HR; các API khác có thể null. */
+        AttendanceEmployeeBrief employee
 ) {
 }
