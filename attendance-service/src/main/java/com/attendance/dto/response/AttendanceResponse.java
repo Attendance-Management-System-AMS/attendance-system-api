@@ -11,7 +11,9 @@ public record AttendanceResponse(
         LocalDate workDate,
         String status,
         LocalDateTime createdAt,
-        /** Khi check-in bằng mặt: snapshot từ HR; các API khác có thể null. */
-        AttendanceEmployeeBrief employee
+        String employeeFullName,
+        String employeeSnapshotCode,
+        String employeeSnapshotDepartmentName,
+        String employeeSnapshotPositionName
 ) {
 }
