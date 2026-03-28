@@ -8,6 +8,9 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface AttendanceMapper {
 
-    @Mapping(target = "employee", ignore = true)
+    @Mapping(target = "employeeFullName", ignore = true)
+    @Mapping(target = "employeeSnapshotCode", ignore = true)
+    @Mapping(target = "employeeSnapshotDepartmentName", ignore = true)
+    @Mapping(target = "employeeSnapshotPositionName", ignore = true)
     AttendanceResponse toResponse(Attendance attendance);
 }

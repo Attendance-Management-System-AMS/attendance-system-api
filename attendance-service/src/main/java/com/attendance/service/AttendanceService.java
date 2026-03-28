@@ -1,7 +1,6 @@
 package com.attendance.service;
 
 import com.attendance.dto.client.HrEmployeeSnapshot;
-import com.attendance.dto.response.AttendanceEmployeeBrief;
 import com.attendance.dto.response.AttendanceResponse;
 import com.common.dto.face.FaceDescriptorRequest;
 import com.common.dto.face.FaceMatchResponse;
@@ -81,11 +80,10 @@ public class AttendanceService {
                 base.workDate(),
                 base.status(),
                 base.createdAt(),
-                new AttendanceEmployeeBrief(
-                        hr.fullName(),
-                        hr.employeeCode(),
-                        hr.departmentName(),
-                        hr.positionName()));
+                hr.fullName(),
+                hr.employeeCode(),
+                hr.departmentName(),
+                hr.positionName());
     }
 
     private AttendanceResponse performCheckIn(Long employeeId) {
