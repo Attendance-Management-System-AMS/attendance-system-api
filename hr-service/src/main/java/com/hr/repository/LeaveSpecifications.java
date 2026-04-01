@@ -2,6 +2,7 @@ package com.hr.repository;
 
 import com.hr.entity.Employee;
 import com.hr.entity.LeaveRequest;
+import com.hr.entity.LeaveType;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
@@ -18,14 +19,18 @@ public final class LeaveSpecifications {
             List<Predicate> predicates = new ArrayList<>();
 
             Join<LeaveRequest, Employee> employeeJoin = null;
+            Join<LeaveRequest, LeaveType> leaveTypeJoin = null;
+            
             if (StringUtils.hasText(keyword)) {
                 employeeJoin = root.join("employee");
+                leaveTypeJoin = root.join("leaveType");
             }
 
             if (StringUtils.hasText(keyword)) {
                 String pattern = "%" + keyword.trim().toLowerCase() + "%";
                 predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("leaveType")), pattern),
+                        cb.like(cb.lower(leaveTypeJoin.get("name")), pattern),
+                        cb.like(cb.lower(leaveTypeJoin.get("code")), pattern),
                         cb.and(
                                 cb.isNotNull(root.get("reason")),
                                 cb.like(cb.lower(root.get("reason")), pattern)),

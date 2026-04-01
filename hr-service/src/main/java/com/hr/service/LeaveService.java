@@ -4,13 +4,17 @@ import com.common.exception.AppException;
 import com.common.pagination.PageResponse;
 import com.hr.dto.leave.LeaveRequestRecord;
 import com.hr.dto.leave.LeaveResponse;
+import com.hr.dto.leave.LeaveTypeResponse;
 import com.hr.entity.Employee;
 import com.hr.entity.LeaveRequest;
+import com.hr.entity.LeaveType;
 import com.hr.exception.ErrorCode;
 import com.hr.mapper.LeaveMapper;
+import com.hr.mapper.LeaveTypeMapper;
 import com.hr.repository.EmployeeRepository;
 import com.hr.repository.LeaveRequestRepository;
 import com.hr.repository.LeaveSpecifications;
+import com.hr.repository.LeaveTypeRepository;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -23,14 +27,20 @@ public class LeaveService {
 
     private final LeaveRequestRepository leaveRequestRepository;
     private final EmployeeRepository employeeRepository;
+    private final LeaveTypeRepository leaveTypeRepository;
     private final LeaveMapper leaveMapper;
+    private final LeaveTypeMapper leaveTypeMapper;
 
     public LeaveService(LeaveRequestRepository leaveRequestRepository,
                         EmployeeRepository employeeRepository,
-                        LeaveMapper leaveMapper) {
+                        LeaveTypeRepository leaveTypeRepository,
+                        LeaveMapper leaveMapper,
+                        LeaveTypeMapper leaveTypeMapper) {
         this.leaveRequestRepository = leaveRequestRepository;
         this.employeeRepository = employeeRepository;
+        this.leaveTypeRepository = leaveTypeRepository;
         this.leaveMapper = leaveMapper;
+        this.leaveTypeMapper = leaveTypeMapper;
     }
 
     @Transactional
@@ -38,13 +48,16 @@ public class LeaveService {
         Employee employee = employeeRepository.findById(request.employeeId())
                 .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
 
+        LeaveType leaveType = leaveTypeRepository.findByCode(request.leaveTypeCode())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_INPUT, "Loại nghỉ không hợp lệ"));
+
         if (request.toDate().isBefore(request.fromDate())) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Ngày kết thúc phải sau ngày bắt đầu");
         }
 
         LeaveRequest leaveRequest = new LeaveRequest();
         leaveRequest.setEmployee(employee);
-        leaveRequest.setLeaveType(request.leaveType());
+        leaveRequest.setLeaveType(leaveType);
         leaveRequest.setFromDate(request.fromDate());
         leaveRequest.setToDate(request.toDate());
         leaveRequest.setReason(request.reason());
@@ -123,4 +136,13 @@ public class LeaveService {
 
         leaveRequestRepository.delete(leaveRequest);
     }
+
+    @Transactional(readOnly = true)
+    public List<LeaveTypeResponse> getAllLeaveTypes() {
+        return leaveTypeRepository.findByIsActive(true)
+                .stream()
+                .map(leaveTypeMapper::toResponse)
+                .toList();
+    }
 }
+

@@ -30,7 +30,9 @@ public class ShiftService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Tên ca làm đã tồn tại");
         }
 
-        if (!request.endTime().isAfter(request.startTime())) {
+        // Kiểm tra: endTime sau startTime HOẶC endTime trước startTime (ca qua nửa đêm)
+        if (!request.endTime().isAfter(request.startTime()) && 
+            !request.endTime().isBefore(request.startTime())) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Giờ kết thúc phải sau giờ bắt đầu");
         }
 
@@ -68,7 +70,9 @@ public class ShiftService {
                     throw new AppException(ErrorCode.INVALID_INPUT, "Tên ca làm đã tồn tại");
                 });
 
-        if (!request.endTime().isAfter(request.startTime())) {
+        // Kiểm tra: endTime sau startTime HOẶC endTime trước startTime (ca qua nửa đêm)
+        if (!request.endTime().isAfter(request.startTime()) && 
+            !request.endTime().isBefore(request.startTime())) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Giờ kết thúc phải sau giờ bắt đầu");
         }
 

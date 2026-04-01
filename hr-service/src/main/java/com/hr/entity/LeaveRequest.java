@@ -29,8 +29,9 @@ public class LeaveRequest {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    @Column(name = "leave_type", nullable = false, length = 50)
-    private String leaveType; // ANNUAL, SICK, UNPAID
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "leave_type_id", nullable = false)
+    private LeaveType leaveType;
 
     @Column(name = "from_date", nullable = false)
     private LocalDate fromDate;

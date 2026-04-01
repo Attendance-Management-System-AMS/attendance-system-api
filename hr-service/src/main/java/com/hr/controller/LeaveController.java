@@ -4,11 +4,13 @@ import com.common.dto.ApiResponse;
 import com.common.pagination.PageResponse;
 import com.hr.dto.leave.LeaveRequestRecord;
 import com.hr.dto.leave.LeaveResponse;
+import com.hr.dto.leave.LeaveTypeResponse;
 import com.hr.service.LeaveService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -70,6 +72,12 @@ public class LeaveController {
         return ApiResponse.success(leaveService.searchByEmployee(employeeId, pageable));
     }
 
+    @GetMapping("/types")
+    @Operation(summary = "Lấy danh sách loại nghỉ có sẵn")
+    public ApiResponse<List<LeaveTypeResponse>> getAllLeaveTypes() {
+        return ApiResponse.success(leaveService.getAllLeaveTypes());
+    }
+
     @PutMapping("/{id}/approve")
     @Operation(summary = "Phê duyệt đơn nghỉ")
     public ApiResponse<LeaveResponse> approve(
@@ -94,3 +102,4 @@ public class LeaveController {
         return ApiResponse.success(200, "Huỷ đơn nghỉ thành công", null);
     }
 }
+

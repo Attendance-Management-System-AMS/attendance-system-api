@@ -7,7 +7,7 @@ public record LeaveResponse(
         Long id,
         Long employeeId,
         String employeeName,
-        String leaveType,
+        LeaveTypeResponse leaveType,
         LocalDate fromDate,
         LocalDate toDate,
         Double totalDays,

@@ -10,9 +10,9 @@ public record LeaveRequestRecord(
         @NotNull(message = "Mã nhân viên là bắt buộc")
         Long employeeId,
 
-        @Schema(description = "Loại nghỉ", example = "ANNUAL")
-        @NotBlank(message = "Loại nghỉ là bắt buộc")
-        String leaveType,
+        @Schema(description = "Mã loại nghỉ", example = "AL")
+        @NotBlank(message = "Mã loại nghỉ là bắt buộc")
+        String leaveTypeCode,
 
         @Schema(description = "Ngày bắt đầu", example = "2026-03-20")
         @NotNull(message = "Ngày bắt đầu là bắt buộc")
