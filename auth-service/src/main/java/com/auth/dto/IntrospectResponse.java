@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -14,9 +15,10 @@ import java.time.Instant;
 public class IntrospectResponse {
     private boolean valid;
     private String username;
-    private String roles;
+    private List<String> roles;
     private Instant expiresAt;
 
+    // Tạo response mặc định khi token không hợp lệ.
     public static IntrospectResponse invalid() {
         return IntrospectResponse.builder().valid(false).build();
     }

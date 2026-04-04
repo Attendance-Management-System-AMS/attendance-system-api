@@ -16,48 +16,68 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@Tag(name = "Xac thuc", description = "Dang ky, dang nhap, refresh token va dang xuat")
+@Tag(name = "Xác thực", description = "Đăng nhập, refresh token, đăng xuất và hồ sơ người dùng")
 public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/register")
-    @Operation(summary = "Dang ky tai khoan")
-    public ApiResponse<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ApiResponse.success(201, "Dang ky tai khoan thanh cong", authService.register(request));
-    }
-
+    // Đăng nhập bằng username hoặc email và trả về cặp token.
     @PostMapping("/login")
-    @Operation(summary = "Dang nhap")
+    @Operation(summary = "Đăng nhập")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.success(200, "Dang nhap thanh cong", authService.login(request));
+        return ApiResponse.success(200, "Đăng nhập thành công", authService.login(request));
     }
 
-    @PostMapping("/introspect")
-    @Operation(summary = "Kiem tra token noi bo")
-    public ApiResponse<IntrospectResponse> introspect(@Valid @RequestBody IntrospectRequest request) {
-        return ApiResponse.success(200, "Kiem tra token thanh cong", authService.introspect(request));
-    }
-
+    // Đổi refresh token cũ lấy access token mới.
     @PostMapping("/refresh")
-    @Operation(summary = "Lay token moi bang refresh token")
+    @Operation(summary = "Lấy token mới bằng refresh token")
     public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ApiResponse.success(200, "Lam moi token thanh cong", authService.refresh(request));
+        return ApiResponse.success(200, "Làm mới token thành công", authService.refresh(request));
     }
 
+    // Đăng xuất bằng cách đưa token hiện tại vào blacklist.
     @PostMapping("/logout")
-    @Operation(summary = "Dang xuat", security = {@SecurityRequirement(name = "BearerAuth")})
+    @Operation(summary = "Đăng xuất", security = {@SecurityRequirement(name = "BearerAuth")})
     public ApiResponse<String> logout(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
         String token = extractToken(authHeader);
         if (token == null || token.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Thieu Authorization header theo dinh dang Bearer <token>");
+                    "Thiếu Authorization header theo định dạng Bearer <token>");
         }
         authService.logout(token);
-        return ApiResponse.success(200, "Dang xuat thanh cong", "OK");
+        return ApiResponse.success(200, "Đăng xuất thành công", "OK");
     }
 
+    // Lấy thông tin tài khoản đang đăng nhập.
+    @GetMapping("/me")
+    @Operation(summary = "Lấy thông tin người dùng hiện tại", security = {@SecurityRequirement(name = "BearerAuth")})
+    public ApiResponse<UserProfileResponse> me(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
+        String token = extractToken(authHeader);
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Thiếu Authorization header theo định dạng Bearer <token>");
+        }
+        return ApiResponse.success(200, "Lấy thông tin người dùng thành công", authService.getCurrentUser(token));
+    }
+
+    // Đổi mật khẩu cho tài khoản hiện tại.
+    @PostMapping("/change-password")
+    @Operation(summary = "Đổi mật khẩu", security = {@SecurityRequirement(name = "BearerAuth")})
+    public ApiResponse<String> changePassword(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        String token = extractToken(authHeader);
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Thiếu Authorization header theo định dạng Bearer <token>");
+        }
+        authService.changePassword(token, request);
+        return ApiResponse.success(200, "Đổi mật khẩu thành công", "OK");
+    }
+
+    // Tách token Bearer ra khỏi header Authorization.
     private String extractToken(String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
             return null;

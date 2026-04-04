@@ -21,11 +21,13 @@ public class DepartmentService {
     private final DepartmentRepository departmentRepository;
     private final DepartmentMapper departmentMapper;
 
+    // Khởi tạo service với repository và mapper của phòng ban.
     public DepartmentService(DepartmentRepository departmentRepository, DepartmentMapper departmentMapper) {
         this.departmentRepository = departmentRepository;
         this.departmentMapper = departmentMapper;
     }
 
+    // Tạo mới phòng ban sau khi kiểm tra trùng tên.
     public DepartmentResponse create(DepartmentRequest request) {
         if (departmentRepository.existsByName(request.name())) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Tên phòng ban đã tồn tại");
@@ -37,6 +39,7 @@ public class DepartmentService {
         return departmentMapper.toResponse(saved);
     }
 
+    // Tìm kiếm phòng ban theo từ khoá và phân trang.
     @Transactional(readOnly = true)
     public PageResponse<DepartmentResponse> search(String keyword, Pageable pageable) {
         var spec = DepartmentSpecifications.matches(keyword);
@@ -52,12 +55,14 @@ public class DepartmentService {
                 page.getSize());
     }
 
+    // Lấy phòng ban theo ID.
     public DepartmentResponse getById(Long id) {
         Department department = departmentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
         return departmentMapper.toResponse(department);
     }
 
+    // Cập nhật thông tin phòng ban hiện có.
     public DepartmentResponse update(Long id, DepartmentRequest request) {
         Department department = departmentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
@@ -73,6 +78,7 @@ public class DepartmentService {
         return departmentMapper.toResponse(departmentRepository.save(department));
     }
 
+    // Xóa phòng ban theo ID.
     public void delete(Long id) {
         Department department = departmentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));

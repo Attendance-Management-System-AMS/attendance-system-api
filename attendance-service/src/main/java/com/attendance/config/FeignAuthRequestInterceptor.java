@@ -12,6 +12,7 @@ public class FeignAuthRequestInterceptor implements RequestInterceptor {
 
     private static final String AUTHORIZATION = "Authorization";
 
+    // Sao chép header Authorization sang các request Feign nội bộ.
     @Override
     public void apply(RequestTemplate template) {
         ServletRequestAttributes attributes =

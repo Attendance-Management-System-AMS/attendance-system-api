@@ -31,6 +31,7 @@ public class LeaveService {
     private final LeaveMapper leaveMapper;
     private final LeaveTypeMapper leaveTypeMapper;
 
+    // Khởi tạo service với repository và mapper cho đơn nghỉ.
     public LeaveService(LeaveRequestRepository leaveRequestRepository,
                         EmployeeRepository employeeRepository,
                         LeaveTypeRepository leaveTypeRepository,
@@ -43,6 +44,7 @@ public class LeaveService {
         this.leaveTypeMapper = leaveTypeMapper;
     }
 
+    // Tạo đơn xin nghỉ mới cho nhân viên.
     @Transactional
     public LeaveResponse createRequest(LeaveRequestRecord request) {
         Employee employee = employeeRepository.findById(request.employeeId())
@@ -69,11 +71,13 @@ public class LeaveService {
         return leaveMapper.toResponse(saved);
     }
 
+    // Lấy danh sách đơn nghỉ của riêng một nhân viên.
     @Transactional(readOnly = true)
     public PageResponse<LeaveResponse> searchByEmployee(Long employeeId, Pageable pageable) {
         return search(null, employeeId, null, pageable);
     }
 
+    // Tìm kiếm đơn nghỉ theo từ khoá, nhân viên và trạng thái.
     @Transactional(readOnly = true)
     public PageResponse<LeaveResponse> search(String keyword, Long employeeId, String status, Pageable pageable) {
         var spec = LeaveSpecifications.matches(keyword, employeeId, status);
@@ -89,6 +93,7 @@ public class LeaveService {
                 page.getSize());
     }
 
+    // Lấy chi tiết đơn nghỉ theo ID.
     @Transactional(readOnly = true)
     public LeaveResponse getById(Long id) {
         LeaveRequest leaveRequest = leaveRequestRepository.findById(id)
@@ -96,6 +101,7 @@ public class LeaveService {
         return leaveMapper.toResponse(leaveRequest);
     }
 
+    // Phê duyệt đơn nghỉ nếu vẫn đang ở trạng thái PENDING.
     @Transactional
     public LeaveResponse approve(Long id, Long approvedById) {
         LeaveRequest leaveRequest = leaveRequestRepository.findById(id)
@@ -112,6 +118,7 @@ public class LeaveService {
         return leaveMapper.toResponse(leaveRequestRepository.save(leaveRequest));
     }
 
+    // Từ chối đơn nghỉ nếu vẫn đang ở trạng thái PENDING.
     @Transactional
     public LeaveResponse reject(Long id) {
         LeaveRequest leaveRequest = leaveRequestRepository.findById(id)
@@ -125,6 +132,7 @@ public class LeaveService {
         return leaveMapper.toResponse(leaveRequestRepository.save(leaveRequest));
     }
 
+    // Huỷ đơn nghỉ khi chưa được duyệt hoặc từ chối.
     @Transactional
     public void delete(Long id) {
         LeaveRequest leaveRequest = leaveRequestRepository.findById(id)
@@ -137,6 +145,7 @@ public class LeaveService {
         leaveRequestRepository.delete(leaveRequest);
     }
 
+    // Lấy tất cả loại nghỉ đang bật.
     @Transactional(readOnly = true)
     public List<LeaveTypeResponse> getAllLeaveTypes() {
         return leaveTypeRepository.findByIsActive(true)

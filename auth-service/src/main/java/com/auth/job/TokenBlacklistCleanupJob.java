@@ -18,6 +18,7 @@ public class TokenBlacklistCleanupJob {
 
     private final TokenBlacklistRepository tokenBlacklistRepository;
 
+    // Xóa các token đã hết hạn khỏi blacklist theo lịch chạy định kỳ.
     @Scheduled(fixedDelayString = "${auth.blacklist.cleanup-interval-ms:3600000}")
     @Transactional
     public void cleanupExpiredTokens() {

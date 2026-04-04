@@ -12,9 +12,11 @@ import java.util.Objects;
  */
 public final class DotenvLoader {
 
+    // Không cho khởi tạo utility class này.
     private DotenvLoader() {
     }
 
+    // Nạp biến môi trường từ file .env lên system properties nếu chưa có sẵn.
     public static void load() {
         Path dir = Path.of(System.getProperty("user.dir")).toAbsolutePath().normalize();
         for (int depth = 0; depth < 8 && dir != null; depth++) {

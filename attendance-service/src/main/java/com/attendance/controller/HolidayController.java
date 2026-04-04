@@ -34,12 +34,14 @@ public class HolidayController {
 
     private final HolidayService holidayService;
 
+    // Lấy toàn bộ danh sách ngày nghỉ.
     @GetMapping
     @Operation(summary = "Lấy danh sách ngày nghỉ")
     public ApiResponse<List<HolidayResponse>> getHolidays() {
         return ApiResponse.success("Lấy danh sách ngày nghỉ thành công", holidayService.getAll());
     }
 
+    // Tìm kiếm ngày nghỉ theo bộ lọc và phân trang.
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm ngày nghỉ (filter + paging)")
     public ApiResponse<Page<HolidayResponse>> search(
@@ -59,6 +61,7 @@ public class HolidayController {
                 holidayService.search(keyword, isPaid, fromDate, toDate, pageable));
     }
 
+    // Tạo mới một ngày nghỉ.
     @PostMapping
     @Operation(summary = "Tạo ngày nghỉ")
     public ApiResponse<HolidayResponse> createHoliday(@Valid @RequestBody HolidayRequest request) {
@@ -66,6 +69,7 @@ public class HolidayController {
         return ApiResponse.success("Tạo ngày nghỉ thành công", response);
     }
 
+    // Lấy chi tiết ngày nghỉ theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết ngày nghỉ theo ID")
     public ApiResponse<HolidayResponse> getHolidayById(
@@ -73,6 +77,7 @@ public class HolidayController {
         return ApiResponse.success("Lấy ngày nghỉ thành công", holidayService.getById(id));
     }
 
+    // Cập nhật thông tin ngày nghỉ.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật ngày nghỉ")
     public ApiResponse<HolidayResponse> updateHoliday(
@@ -81,6 +86,7 @@ public class HolidayController {
         return ApiResponse.success("Cập nhật ngày nghỉ thành công", holidayService.update(id, request));
     }
 
+    // Xóa ngày nghỉ theo ID.
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa ngày nghỉ")
     public ApiResponse<Void> deleteHoliday(

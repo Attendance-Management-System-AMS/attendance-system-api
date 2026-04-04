@@ -10,6 +10,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableDiscoveryClient
 @EnableFeignClients
 public class HrServiceApplication {
+    // Khởi động HR service và nạp biến môi trường từ file .env.
     public static void main(String[] args) {
         DotenvLoader.load();
         SpringApplication.run(HrServiceApplication.class, args);

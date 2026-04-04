@@ -20,6 +20,7 @@ public class AbsentCheckJob {
     private final AttendanceRepository attendanceRepository;
     private final EmployeeScheduleRepository employeeScheduleRepository;
 
+    // Đánh dấu những nhân viên không có bản ghi chấm công thành vắng mặt vào cuối ngày.
     @Scheduled(cron = "0 55 23 * * ?") // Chạy vào lúc 23:55 mỗi ngày
     public void markAbsentEmployees() {
         log.info("Bắt đầu chạy Cron Job đánh dấu nhân viên vắng mặt...");

@@ -4,9 +4,9 @@ import com.auth.dto.*;
 import com.auth.entity.Role;
 import com.auth.entity.TokenBlacklist;
 import com.auth.entity.User;
-import com.auth.repository.RoleRepository;
 import com.auth.repository.TokenBlacklistRepository;
 import com.auth.repository.UserRepository;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -18,149 +18,142 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService {
 
+    public static final String ROLE_ADMIN = "ROLE_ADMIN";
+    public static final String ROLE_HR = "ROLE_HR";
+    public static final String ROLE_MANAGER = "ROLE_MANAGER";
+    public static final String ROLE_EMPLOYEE = "ROLE_EMPLOYEE";
+
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final TokenBlacklistRepository tokenBlacklistRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    @Transactional
-    public AuthResponse register(RegisterRequest request) {
-        if (request.getUsername() == null || request.getUsername().isBlank()
-                || request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ten dang nhap va mat khau la bat buoc");
-        }
-
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ten dang nhap da ton tai");
-        }
-
-        if (request.getEmail() != null && !request.getEmail().isBlank()
-                && userRepository.existsByEmail(request.getEmail())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email da ton tai");
-        }
-
-        Role userRole = roleRepository.findByRoleName("ROLE_USER")
-                .orElseGet(() -> roleRepository.save(Role.builder()
-                        .roleName("ROLE_USER")
-                        .description("Default user role")
-                        .build()));
-
-        User user = User.builder()
-                .username(request.getUsername().trim())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .email(request.getEmail() == null ? null : request.getEmail().trim())
-                .isEnabled(true)
-                .roles(Set.of(userRole))
-                .build();
-
-        User saved = userRepository.save(user);
-        return buildAuthResponse(saved);
-    }
-
+    // Kiểm tra thông tin đăng nhập và trả về token.
     public AuthResponse login(LoginRequest request) {
-        if (request.getUsername() == null || request.getUsername().isBlank()
-                || request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ten dang nhap va mat khau la bat buoc");
+        String loginIdentifier = firstNonBlank(request.getUsername(), request.getEmail());
+        if (loginIdentifier == null || request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên đăng nhập hoặc email và mật khẩu là bắt buộc");
         }
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sai ten dang nhap hoac mat khau"));
+        String normalizedIdentifier = loginIdentifier.trim();
+        User user = userRepository.findByUsername(normalizedIdentifier)
+                .or(() -> userRepository.findByEmail(normalizedIdentifier))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu"));
 
         if (!user.isEnabled()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tai khoan da bi khoa");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sai ten dang nhap hoac mat khau");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu");
         }
 
         return buildAuthResponse(user);
     }
 
-    public IntrospectResponse introspect(IntrospectRequest request) {
-        try {
-            var claims = jwtService.parseClaims(request.getToken());
-
-            if (tokenBlacklistRepository.existsByTokenJti(claims.getId())) {
-                return IntrospectResponse.invalid();
-            }
-
-            return IntrospectResponse.builder()
-                    .valid(true)
-                    .username(claims.getSubject())
-                    .roles(claims.get("roles", String.class))
-                    .expiresAt(claims.getExpiration().toInstant())
-                    .build();
-        } catch (JwtException | IllegalArgumentException ex) {
-            return IntrospectResponse.invalid();
-        }
-    }
-
+    // Làm mới access token bằng refresh token còn hiệu lực.
     @Transactional
     public AuthResponse refresh(RefreshTokenRequest request) {
         try {
             String refreshToken = request.getRefreshToken();
             if (refreshToken == null || refreshToken.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thieu refresh token");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu refresh token");
             }
 
-            if (!"REFRESH".equals(jwtService.getTokenType(refreshToken))) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token khong phai refresh token");
+            Claims claims = jwtService.parseClaims(refreshToken);
+
+            if (!"REFRESH".equals(claims.get("token_type", String.class))) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token không phải refresh token");
             }
 
-            String jti = jwtService.getJti(refreshToken);
+            String jti = claims.getId();
             if (tokenBlacklistRepository.existsByTokenJti(jti)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token khong con hieu luc");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token không còn hiệu lực");
             }
 
-            String username = jwtService.getUsername(refreshToken);
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nguoi dung khong ton tai"));
+            User user = resolveUserFromClaims(claims);
 
             if (!user.isEnabled()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tai khoan da bi khoa");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
             }
 
             blacklistToken(refreshToken, user.getId());
             return buildAuthResponse(user);
         } catch (JwtException | IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token không hợp lệ");
         }
     }
 
+    // Đưa access hoặc refresh token vào blacklist.
     @Transactional
     public void logout(String token) {
         try {
             if (token == null || token.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thieu token dang xuat");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu token đăng xuất");
             }
 
-            String tokenType = jwtService.getTokenType(token);
+            Claims claims = jwtService.parseClaims(token);
+            String tokenType = claims.get("token_type", String.class);
             if (!"ACCESS".equals(tokenType) && !"REFRESH".equals(tokenType)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loai token khong hop le");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loại token không hợp lệ");
             }
 
-            String username = jwtService.getUsername(token);
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nguoi dung khong ton tai"));
+            User user = resolveUserFromClaims(claims);
 
             blacklistToken(token, user.getId());
         } catch (JwtException | IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token khong hop le");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token không hợp lệ");
         }
     }
 
+    // Lấy thông tin tài khoản đang đăng nhập từ access token.
+    public UserProfileResponse getCurrentUser(String accessToken) {
+        User user = resolveUserFromAccessToken(accessToken);
+        return UserProfileResponse.builder()
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .enabled(user.isEnabled())
+                .roles(String.join(",", user.getRoles().stream().map(Role::getRoleName).toList()))
+                .build();
+    }
+
+    // Đổi mật khẩu cho tài khoản hiện tại sau khi xác thực mật khẩu cũ.
+    @Transactional
+    public void changePassword(String accessToken, ChangePasswordRequest request) {
+        if (request == null
+                || request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()
+                || request.getNewPassword() == null || request.getNewPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại và mật khẩu mới là bắt buộc");
+        }
+
+        if (request.getNewPassword().trim().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải có ít nhất 8 ký tự");
+        }
+
+        User user = resolveUserFromAccessToken(accessToken);
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Mật khẩu hiện tại không đúng");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải khác mật khẩu hiện tại");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
+        userRepository.save(user);
+    }
+
+    // Ghi một token vào blacklist để chặn sử dụng lại.
     private void blacklistToken(String token, Long userId) {
         String jti = jwtService.getJti(token);
         var expiration = jwtService.getExpiration(token);
@@ -174,20 +167,23 @@ public class AuthService {
         try {
             tokenBlacklistRepository.save(blacklistedToken);
         } catch (DataIntegrityViolationException ex) {
-            // Idempotent: token da ton tai trong blacklist
+            // Idempotent: token đã tồn tại trong blacklist
         }
     }
 
+    // Tạo cặp access token và refresh token cho một user.
     private AuthResponse buildAuthResponse(User user) {
-        String roles = user.getRoles().stream()
-                .map(Role::getRoleName)
-                .collect(Collectors.joining(","));
+        List<String> roleNames = user.getRoles().stream().map(Role::getRoleName).toList();
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", roles);
+        claims.put("roles", roleNames);
+        claims.put("username", user.getUsername());
 
-        String accessToken = jwtService.generateAccessToken(user.getUsername(), claims);
-        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+        String accessToken = jwtService.generateAccessToken(String.valueOf(user.getId()), claims);
+        String refreshToken = jwtService.generateRefreshToken(
+            String.valueOf(user.getId()),
+            Map.of("username", user.getUsername())
+        );
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -195,8 +191,73 @@ public class AuthService {
                 .tokenType("Bearer")
                 .accessTokenExpiresIn(jwtService.getAccessTokenExpirationSeconds())
                 .refreshTokenExpiresIn(jwtService.getRefreshTokenExpirationSeconds())
-                .username(user.getUsername())
-                .roles(roles)
                 .build();
     }
+
+    // Kiểm tra access token, blacklist và load lại user từ token.
+    private User resolveUserFromAccessToken(String accessToken) {
+        try {
+            if (accessToken == null || accessToken.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu access token");
+            }
+
+            Claims claims = jwtService.parseClaims(accessToken);
+            String tokenType = claims.get("token_type", String.class);
+            if (!"ACCESS".equals(tokenType)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token không phải access token");
+            }
+
+            String jti = claims.getId();
+            if (tokenBlacklistRepository.existsByTokenJti(jti)) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token đã bị thu hồi");
+            }
+
+            User user = resolveUserFromClaims(claims);
+
+            if (!user.isEnabled()) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
+            }
+
+            return user;
+        } catch (JwtException | IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access token không hợp lệ");
+        }
+    }
+
+    // Tìm user theo subject token kiểu mới hoặc fallback theo username token cũ.
+    private User resolveUserFromClaims(Claims claims) {
+        String subject = claims.getSubject();
+        if (subject == null || subject.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token thiếu subject");
+        }
+
+        boolean numericSubject = subject.chars().allMatch(Character::isDigit);
+        if (numericSubject) {
+            Long userId = Long.parseLong(subject);
+            return userRepository.findById(userId)
+                    .orElseGet(() -> {
+                        String usernameClaim = claims.get("username", String.class);
+                        if (usernameClaim != null && !usernameClaim.isBlank()) {
+                            return userRepository.findByUsername(usernameClaim)
+                                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
+                        }
+                        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại");
+                    });
+        }
+
+        return userRepository.findByUsername(subject)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
+    }
+
+    // Lấy chuỗi đầu tiên không rỗng trong hai giá trị truyền vào.
+    private String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first;
+        }
+        if (second != null && !second.isBlank()) {
+            return second;
+        }
+        return null;
+    }
+
 }

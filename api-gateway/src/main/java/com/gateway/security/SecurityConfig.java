@@ -30,6 +30,7 @@ public class SecurityConfig {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+        // Cấu hình bảo mật gateway, bật/tắt xác thực và JWT theo cờ cấu hình.
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
@@ -62,6 +63,7 @@ public class SecurityConfig {
         return http.build();
     }
 
+        // Cấu hình CORS cho các request đi qua gateway.
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -76,6 +78,7 @@ public class SecurityConfig {
         return source;
     }
 
+        // Giải mã JWT bằng secret key dùng chung của gateway.
     @Bean
     public ReactiveJwtDecoder reactiveJwtDecoder() {
         SecretKey key = new SecretKeySpec(

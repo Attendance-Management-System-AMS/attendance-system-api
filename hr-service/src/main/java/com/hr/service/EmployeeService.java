@@ -35,6 +35,7 @@ public class EmployeeService {
     private final ObjectMapper objectMapper;
     private final double faceMatchDistanceThreshold;
 
+    // Khởi tạo service với các dependency xử lý nhân viên và khuôn mặt.
     public EmployeeService(EmployeeRepository employeeRepository,
                            DepartmentRepository departmentRepository,
                            PositionRepository positionRepository,
@@ -49,6 +50,7 @@ public class EmployeeService {
         this.faceMatchDistanceThreshold = faceMatchDistanceThreshold;
     }
 
+    // Tạo mới hồ sơ nhân viên sau khi kiểm tra trùng mã và email.
     @Transactional
     public EmployeeResponse create(EmployeeRequest request) {
         if (employeeRepository.existsByEmployeeCode(request.employeeCode())) {
@@ -70,6 +72,7 @@ public class EmployeeService {
         return employeeMapper.toResponse(saved);
     }
 
+    // Tìm kiếm nhân viên theo nhiều điều kiện và phân trang.
     @Transactional(readOnly = true)
     public PageResponse<EmployeeResponse> search(
             String keyword,
@@ -90,6 +93,7 @@ public class EmployeeService {
                 slice.getSize());
     }
 
+    // Lấy chi tiết nhân viên theo ID.
     @Transactional(readOnly = true)
     public EmployeeResponse getById(Long id) {
         Employee employee = employeeRepository.findById(id)
@@ -98,6 +102,7 @@ public class EmployeeService {
         return employeeMapper.toResponse(employee);
     }
 
+    // Cập nhật thông tin nhân viên hiện có.
     @Transactional
     public EmployeeResponse update(Long id, EmployeeRequest request) {
         Employee employee = employeeRepository.findById(id)
@@ -135,6 +140,7 @@ public class EmployeeService {
         return employeeMapper.toResponse(saved);
     }
 
+    // Lấy phòng ban theo ID, hoặc trả về null nếu không truyền.
     private Department resolveDepartment(Long departmentId) {
         if (departmentId == null) {
             return null;
@@ -144,6 +150,7 @@ public class EmployeeService {
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
     }
 
+    // Lấy chức vụ theo ID, hoặc trả về null nếu không truyền.
     private Position resolvePosition(Long positionId) {
         if (positionId == null) {
             return null;
@@ -153,6 +160,7 @@ public class EmployeeService {
                 .orElseThrow(() -> new AppException(ErrorCode.POSITION_NOT_FOUND));
     }
 
+    // Lấy quản lý theo ID, hoặc trả về null nếu không truyền.
     private Employee resolveManager(Long managerId) {
         if (managerId == null) {
             return null;
@@ -162,6 +170,7 @@ public class EmployeeService {
                 .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND, "Không tìm thấy quản lý"));
     }
 
+    // Chuyển trạng thái nhân viên sang INACTIVE thay vì xoá cứng.
     @Transactional
     public void delete(Long id) {
         Employee employee = employeeRepository.findById(id)

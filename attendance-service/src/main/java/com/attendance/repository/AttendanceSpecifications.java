@@ -11,6 +11,7 @@ public final class AttendanceSpecifications {
 
     private AttendanceSpecifications() {}
 
+    // Tạo điều kiện tìm kiếm chấm công theo nhân viên, ngày và trạng thái.
     public static Specification<Attendance> matches(
             Long employeeId,
             LocalDate date,

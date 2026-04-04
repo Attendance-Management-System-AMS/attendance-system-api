@@ -10,6 +10,7 @@ public final class EmployeeScheduleSpecifications {
 
     private EmployeeScheduleSpecifications() {}
 
+    // Tạo điều kiện tìm kiếm lịch làm theo nhân viên, ca làm và trạng thái.
     public static Specification<EmployeeSchedule> matches(
             Long employeeId,
             Integer dayOfWeek,

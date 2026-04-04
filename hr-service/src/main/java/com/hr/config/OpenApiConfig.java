@@ -17,6 +17,7 @@ public class OpenApiConfig {
     @Value("${gateway.url:http://localhost:9000}")
     private String gatewayUrl;
 
+        // Khai báo OpenAPI và hiển thị cả URL gateway lẫn URL trực tiếp.
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()

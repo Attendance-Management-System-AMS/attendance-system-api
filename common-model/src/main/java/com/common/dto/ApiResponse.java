@@ -20,6 +20,7 @@ public class ApiResponse<T> {
         this.timestamp = timestamp;
     }
 
+    // Tạo response thành công mặc định.
     public static <T> ApiResponse<T> success(T result) {
         return new ApiResponse<>(true, 200, "Success", result, Instant.now());
     }
@@ -35,26 +36,32 @@ public class ApiResponse<T> {
         return new ApiResponse<>(true, code, message, result, Instant.now());
     }
 
+    // Tạo response lỗi chuẩn hóa.
     public static <T> ApiResponse<T> error(int code, String message) {
         return new ApiResponse<>(false, code, message, null, Instant.now());
     }
 
+    // Kiểm tra request có thành công hay không.
     public boolean isSuccess() {
         return success;
     }
 
+    // Lấy mã trạng thái nội bộ.
     public int getCode() {
         return code;
     }
 
+    // Lấy thông điệp phản hồi.
     public String getMessage() {
         return message;
     }
 
+    // Lấy dữ liệu trả về.
     public T getResult() {
         return result;
     }
 
+    // Lấy thời điểm tạo response.
     public Instant getTimestamp() {
         return timestamp;
     }

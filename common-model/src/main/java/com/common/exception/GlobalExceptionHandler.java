@@ -17,6 +17,7 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    // Xử lý AppException và trả về response chuẩn hoá.
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<Object>> handleAppException(AppException ex) {
         ErrorCodeContract errorCode = ex.getErrorCode();
@@ -26,6 +27,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(errorCode.getCode(), message));
     }
 
+    // Chuyển ResponseStatusException thành response lỗi thống nhất.
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiResponse<Object>> handleResponseStatusException(ResponseStatusException ex) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
@@ -33,17 +35,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(ApiResponse.error(status.value(), message));
     }
 
+    // Gom lỗi validate của request body thành một thông điệp dễ đọc.
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidation(MethodArgumentNotValidException ex) {
         String message = Objects.requireNonNull(ex.getBindingResult().getFieldError()).getDefaultMessage();
         return ResponseEntity.badRequest().body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), message));
     }
 
+    // Xử lý lỗi vi phạm ràng buộc ở tầng validation.
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleConstraintViolation(ConstraintViolationException ex) {
         return ResponseEntity.badRequest().body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), ex.getMessage()));
     }
 
+    // Bắt các lỗi chưa được xử lý ở nơi khác.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleUnexpected(Exception ex) {
         Throwable root = ex;

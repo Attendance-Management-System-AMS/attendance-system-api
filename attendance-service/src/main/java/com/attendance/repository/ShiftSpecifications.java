@@ -10,6 +10,7 @@ public final class ShiftSpecifications {
 
     private ShiftSpecifications() {}
 
+    // Tạo điều kiện tìm kiếm ca làm theo tên.
     public static Specification<Shift> matches(String keyword) {
         return (root, query, cb) -> {
             if (!StringUtils.hasText(keyword)) {

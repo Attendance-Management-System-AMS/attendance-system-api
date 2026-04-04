@@ -9,8 +9,10 @@ import org.springframework.util.StringUtils;
 
 public final class PositionSpecifications {
 
+    // Không cho khởi tạo vì đây là lớp chứa tiêu chí tìm kiếm tĩnh.
     private PositionSpecifications() {}
 
+    // Tạo điều kiện lọc chức vụ theo từ khoá và phòng ban.
     public static Specification<Position> matches(String keyword, Long departmentId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();

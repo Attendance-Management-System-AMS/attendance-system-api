@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ShiftMapper {
 
+    // Chuyển request tạo ca làm thành entity.
     public Shift toEntity(ShiftRequest request) {
         Shift shift = new Shift();
         shift.setName(request.name().trim());
@@ -19,6 +20,7 @@ public class ShiftMapper {
         return shift;
     }
 
+    // Chuyển entity ca làm sang response.
     public ShiftResponse toResponse(Shift shift) {
         return new ShiftResponse(
                 shift.getId(),

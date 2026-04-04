@@ -11,6 +11,7 @@ public final class HolidaySpecifications {
 
     private HolidaySpecifications() {}
 
+    // Tạo điều kiện tìm kiếm ngày nghỉ theo tên, trạng thái trả lương và khoảng ngày.
     public static Specification<Holiday> matches(
             String keyword,
             Boolean isPaid,

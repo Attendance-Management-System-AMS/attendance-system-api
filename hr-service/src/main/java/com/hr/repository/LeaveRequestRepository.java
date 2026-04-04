@@ -13,11 +13,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long>, JpaSpecificationExecutor<LeaveRequest> {
 
+    // Nạp trước quan hệ nhân viên và người duyệt khi tìm danh sách đơn nghỉ.
     @EntityGraph(attributePaths = {"employee", "approvedBy"})
     @Override
     Page<LeaveRequest> findAll(Specification<LeaveRequest> spec, Pageable pageable);
 
+    // Lấy danh sách đơn nghỉ theo nhân viên.
     List<LeaveRequest> findByEmployeeId(Long employeeId);
 
+    // Lấy danh sách đơn nghỉ theo trạng thái.
     List<LeaveRequest> findByStatus(String status);
 }

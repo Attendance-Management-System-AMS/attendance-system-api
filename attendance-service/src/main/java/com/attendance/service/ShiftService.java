@@ -20,11 +20,13 @@ public class ShiftService {
     private final ShiftRepository shiftRepository;
     private final ShiftMapper shiftMapper;
 
+    // Khởi tạo service xử lý ca làm.
     public ShiftService(ShiftRepository shiftRepository, ShiftMapper shiftMapper) {
         this.shiftRepository = shiftRepository;
         this.shiftMapper = shiftMapper;
     }
 
+    // Tạo mới ca làm và kiểm tra trùng tên.
     public ShiftResponse create(ShiftRequest request) {
         if (shiftRepository.existsByName(request.name())) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Tên ca làm đã tồn tại");
@@ -42,6 +44,7 @@ public class ShiftService {
         return shiftMapper.toResponse(saved);
     }
 
+    // Lấy toàn bộ ca làm theo giờ bắt đầu.
     public List<ShiftResponse> getAll() {
         return shiftRepository.findAll(Sort.by(Sort.Direction.ASC, "startTime"))
                 .stream()
@@ -49,17 +52,20 @@ public class ShiftService {
                 .toList();
     }
 
+    // Tìm kiếm ca làm theo từ khoá.
     public Page<ShiftResponse> search(String keyword, Pageable pageable) {
         return shiftRepository.findAll(ShiftSpecifications.matches(keyword), pageable)
                 .map(shiftMapper::toResponse);
     }
 
+    // Lấy ca làm theo ID.
     public ShiftResponse getById(Long id) {
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
         return shiftMapper.toResponse(shift);
     }
 
+    // Cập nhật thông tin ca làm và kiểm tra hợp lệ.
     public ShiftResponse update(Long id, ShiftRequest request) {
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
@@ -85,6 +91,7 @@ public class ShiftService {
         return shiftMapper.toResponse(shiftRepository.save(shift));
     }
 
+    // Xóa ca làm theo ID.
     public void delete(Long id) {
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));

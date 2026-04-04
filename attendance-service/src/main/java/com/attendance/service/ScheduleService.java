@@ -24,6 +24,7 @@ public class ScheduleService {
     private final ShiftRepository shiftRepository;
     private final EmployeeScheduleMapper employeeScheduleMapper;
 
+    // Khởi tạo service xử lý lịch làm việc.
     public ScheduleService(EmployeeScheduleRepository employeeScheduleRepository,
                            ShiftRepository shiftRepository,
                            EmployeeScheduleMapper employeeScheduleMapper) {
@@ -32,6 +33,7 @@ public class ScheduleService {
         this.employeeScheduleMapper = employeeScheduleMapper;
     }
 
+    // Gán ca làm cho nhân viên.
     @Transactional
     public EmployeeScheduleResponse assignSchedule(EmployeeScheduleRequest request) {
         Shift shift = shiftRepository.findById(request.shiftId())
@@ -48,6 +50,7 @@ public class ScheduleService {
         return employeeScheduleMapper.toResponse(saved);
     }
 
+    // Lấy toàn bộ lịch làm của nhân viên.
     @Transactional(readOnly = true)
     public List<EmployeeScheduleResponse> getByEmployee(Long employeeId) {
         return employeeScheduleRepository.findByEmployeeId(employeeId)
@@ -56,6 +59,7 @@ public class ScheduleService {
                 .toList();
     }
 
+    // Tìm kiếm lịch làm theo bộ lọc và phân trang.
     @Transactional(readOnly = true)
     public Page<EmployeeScheduleResponse> search(
             Long employeeId,
@@ -72,6 +76,7 @@ public class ScheduleService {
                 .map(employeeScheduleMapper::toResponse);
     }
 
+    // Xóa lịch làm theo ID.
     @Transactional
     public void delete(Long id) {
         EmployeeSchedule schedule = employeeScheduleRepository.findById(id)

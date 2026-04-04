@@ -33,6 +33,7 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
 
+    // Gán lịch làm việc cho nhân viên.
     @PostMapping
     @Operation(summary = "Gán lịch làm việc cho nhân viên")
     public ApiResponse<EmployeeScheduleResponse> assignSchedule(@Valid @RequestBody EmployeeScheduleRequest request) {
@@ -40,6 +41,7 @@ public class ScheduleController {
         return ApiResponse.success("Gán ca làm việc thành công", response);
     }
 
+    // Lấy toàn bộ lịch làm việc của một nhân viên.
     @GetMapping("/employee/{employeeId}")
     @Operation(summary = "Lấy lịch làm việc của nhân viên")
     public ApiResponse<List<EmployeeScheduleResponse>> getByEmployee(
@@ -47,6 +49,7 @@ public class ScheduleController {
         return ApiResponse.success("Lấy lịch làm việc thành công", scheduleService.getByEmployee(employeeId));
     }
 
+    // Tìm kiếm lịch làm theo bộ lọc và phân trang.
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm lịch làm (filter + paging)")
     public ApiResponse<Page<EmployeeScheduleResponse>> search(
@@ -67,6 +70,7 @@ public class ScheduleController {
                 scheduleService.search(employeeId, dayOfWeek, isActive, effectiveFromOnOrBefore, shiftId, pageable));
     }
 
+    // Xóa lịch làm việc theo ID.
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa lịch làm việc")
     public ApiResponse<Void> deleteSchedule(

@@ -12,6 +12,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableFeignClients
 @EnableScheduling
 public class AuthServiceApplication {
+
+    // Khởi động auth-service và nạp .env trước khi chạy Spring Boot.
     public static void main(String[] args) {
         DotenvLoader.load();
         SpringApplication.run(AuthServiceApplication.class, args);

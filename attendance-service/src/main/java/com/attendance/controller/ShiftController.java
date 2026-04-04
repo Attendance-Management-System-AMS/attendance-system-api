@@ -32,6 +32,7 @@ public class ShiftController {
 
     private final ShiftService shiftService;
 
+    // Tạo mới một ca làm việc.
     @PostMapping
     @Operation(summary = "Tạo mới ca làm")
     public ApiResponse<ShiftResponse> createShift(@Valid @RequestBody ShiftRequest request) {
@@ -39,12 +40,14 @@ public class ShiftController {
         return ApiResponse.success("Tạo ca làm thành công", response);
     }
 
+    // Lấy toàn bộ danh sách ca làm.
     @GetMapping
     @Operation(summary = "Lấy danh sách ca làm")
     public ApiResponse<List<ShiftResponse>> getShifts() {
         return ApiResponse.success("Lấy danh sách ca làm thành công", shiftService.getAll());
     }
 
+    // Tìm kiếm ca làm theo từ khoá và phân trang.
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm ca làm (filter + paging)")
     public ApiResponse<Page<ShiftResponse>> search(
@@ -54,6 +57,7 @@ public class ShiftController {
         return ApiResponse.success("Tìm kiếm ca làm thành công", shiftService.search(keyword, pageable));
     }
 
+    // Lấy chi tiết ca làm theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết ca làm theo ID")
     public ApiResponse<ShiftResponse> getShiftById(
@@ -61,6 +65,7 @@ public class ShiftController {
         return ApiResponse.success("Lấy ca làm thành công", shiftService.getById(id));
     }
 
+    // Cập nhật thông tin ca làm.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật ca làm")
     public ApiResponse<ShiftResponse> updateShift(
@@ -69,6 +74,7 @@ public class ShiftController {
         return ApiResponse.success("Cập nhật ca làm thành công", shiftService.update(id, request));
     }
 
+    // Xóa ca làm theo ID.
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa ca làm")
     public ApiResponse<Void> deleteShift(

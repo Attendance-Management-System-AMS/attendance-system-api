@@ -45,9 +45,6 @@ logging:
 springdoc:
   api-docs:
     path: /api/auth/v3/api-docs
-  servers:
-    - url: http://localhost:9000
-      description: API Gateway
 
 jwt:
   secret: ${JWT_SECRET:AMS_DEFAULT_SECRET_KEY_PLEASE_CHANGE_IN_PROD_32CHARS}
@@ -58,3 +55,7 @@ jwt:
 auth:
   blacklist:
     cleanup-interval-ms: ${AUTH_BLACKLIST_CLEANUP_INTERVAL_MS:3600000}
+
+app:
+  gateway:
+    base-url: ${GATEWAY_BASE_URL:http://localhost:9000}

@@ -25,20 +25,24 @@ public enum ErrorCode implements ErrorCodeContract {
     private final String message;
     private final HttpStatus status;
 
+    // Khởi tạo từng mã lỗi với code, message và HTTP status.
     ErrorCode(int code, String message, HttpStatus status) {
         this.code = code;
         this.message = message;
         this.status = status;
     }
 
+    // Lấy mã số nội bộ của lỗi.
     public int getCode() {
         return code;
     }
 
+    // Lấy thông điệp mặc định của lỗi.
     public String getMessage() {
         return message;
     }
 
+    // Lấy HTTP status tương ứng với lỗi.
     public HttpStatus getStatus() {
         return status;
     }

@@ -12,8 +12,10 @@ import org.springframework.util.StringUtils;
 
 public final class LeaveSpecifications {
 
+    // Không cho khởi tạo vì đây là lớp chứa tiêu chí tìm kiếm tĩnh.
     private LeaveSpecifications() {}
 
+    // Tạo điều kiện lọc đơn nghỉ theo từ khoá, nhân viên và trạng thái.
     public static Specification<LeaveRequest> matches(String keyword, Long employeeId, String status) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();

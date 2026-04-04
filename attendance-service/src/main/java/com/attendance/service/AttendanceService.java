@@ -40,6 +40,7 @@ public class AttendanceService {
     private final HrClient hrClient;
     private final AttendanceMapper attendanceMapper;
 
+    // Check-in nhân viên theo ID và xác thực nhân viên tồn tại trong HR.
     @Transactional
     public AttendanceResponse checkIn(Long employeeId) {
         requireEmployee(employeeId);
@@ -49,6 +50,7 @@ public class AttendanceService {
     /**
      * Nhận descriptor face-api.js từ FE, HR so khớp → check-in và trả kèm snapshot nhân viên (một lần gọi HR lấy profile).
      */
+    // Check-in bằng khuôn mặt sau khi HR xác nhận danh tính.
     @Transactional
     public AttendanceResponse checkInByFace(FaceDescriptorRequest request) {
         FaceMatchResponse match;
@@ -68,6 +70,7 @@ public class AttendanceService {
         return withEmployeeBrief(base, hr);
     }
 
+    // Ghép thêm thông tin nhân viên từ HR vào response chấm công.
     private static AttendanceResponse withEmployeeBrief(AttendanceResponse base, HrEmployeeSnapshot hr) {
         if (hr == null) {
             return base;
@@ -86,6 +89,7 @@ public class AttendanceService {
                 hr.positionName());
     }
 
+    // Tạo bản ghi check-in cho ngày hiện tại và xác định trạng thái đi làm.
     private AttendanceResponse performCheckIn(Long employeeId) {
         LocalDate today = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
@@ -113,6 +117,7 @@ public class AttendanceService {
         return attendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
+    // Check-out nhân viên trong ngày hiện tại.
     @Transactional
     public AttendanceResponse checkOut(Long employeeId) {
         LocalDate today = LocalDate.now();
@@ -135,6 +140,7 @@ public class AttendanceService {
         return attendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
+    // Lấy toàn bộ lịch sử chấm công của nhân viên.
     public List<AttendanceResponse> getByEmployee(Long employeeId) {
         return attendanceRepository.findAll(
                         AttendanceSpecifications.matches(employeeId, null, null, null, null),
@@ -144,12 +150,14 @@ public class AttendanceService {
                 .toList();
     }
 
+    // Lấy bản ghi chấm công của nhân viên trong ngày hôm nay.
     public AttendanceResponse getTodayByEmployee(Long employeeId) {
         return attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
                 .map(attendanceMapper::toResponse)
                 .orElse(null);
     }
 
+    // Lấy danh sách chấm công theo ngày được yêu cầu hoặc ngày hiện tại.
     public List<AttendanceResponse> getAttendancesByDate(LocalDate date) {
         LocalDate workDate = (date != null) ? date : LocalDate.now();
         return attendanceRepository.findAll(
@@ -160,6 +168,7 @@ public class AttendanceService {
                 .toList();
     }
 
+    // Tìm kiếm chấm công theo bộ lọc và phân trang.
     public Page<AttendanceResponse> search(
             Long employeeId,
             LocalDate date,
@@ -172,6 +181,7 @@ public class AttendanceService {
                 .map(attendanceMapper::toResponse);
     }
 
+    // Kiểm tra nhân viên có tồn tại trong HR và lấy thông tin tóm tắt.
     private HrEmployeeSnapshot requireEmployee(Long employeeId) {
         try {
             ApiResponse<HrEmployeeSnapshot> api = hrClient.getEmployeeById(employeeId);
@@ -186,6 +196,7 @@ public class AttendanceService {
         }
     }
 
+    // Lấy ca làm trong ngày hiện tại của nhân viên.
     private Shift getTodayShift(Long employeeId, LocalDate date) {
         int dayOfWeek = date.getDayOfWeek().getValue();
         return employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqual(employeeId, date)

@@ -32,10 +32,12 @@ public class EmployeeController {
 
     private final EmployeeService employeeService;
 
+    // Khởi tạo controller với service xử lý nhân viên.
     public EmployeeController(EmployeeService employeeService) {
         this.employeeService = employeeService;
     }
 
+    // Tạo mới một hồ sơ nhân viên.
     @PostMapping
     @Operation(summary = "Tạo mới nhân viên")
     public ApiResponse<EmployeeResponse> createEmployee(@Valid @RequestBody EmployeeRequest request) {
@@ -43,6 +45,7 @@ public class EmployeeController {
         return ApiResponse.success(201, "Tạo nhân viên thành công", response);
     }
 
+    // Lấy danh sách nhân viên theo phân trang và bộ lọc.
     @GetMapping
     @Operation(summary = "Lấy danh sách nhân viên (phân trang, lọc)")
     public ApiResponse<PageResponse<EmployeeResponse>> getEmployees(
@@ -56,12 +59,14 @@ public class EmployeeController {
                 employeeService.search(keyword, departmentId, positionId, status, pageable));
     }
 
+    // Lấy chi tiết nhân viên theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết nhân viên theo ID")
     public ApiResponse<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
         return ApiResponse.success(employeeService.getById(id));
     }
 
+    // Cập nhật thông tin nhân viên.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật thông tin nhân viên")
     public ApiResponse<EmployeeResponse> updateEmployee(@PathVariable Long id,
@@ -70,6 +75,7 @@ public class EmployeeController {
         return ApiResponse.success(200, "Cập nhật nhân viên thành công", response);
     }
 
+    // Lưu descriptor khuôn mặt của nhân viên.
     @PutMapping("/{id}/face-descriptor")
     @Operation(summary = "Đăng ký / cập nhật descriptor khuôn mặt (face-api.js, 128 float)")
     public ApiResponse<EmployeeResponse> registerFaceDescriptor(
@@ -78,12 +84,14 @@ public class EmployeeController {
         return ApiResponse.success(200, "Đăng ký khuôn mặt thành công", employeeService.registerFaceEmbedding(id, request));
     }
 
+    // So khớp khuôn mặt với nhân viên đã đăng ký.
     @PostMapping("/match-face")
     @Operation(summary = "So khớp descriptor với nhân viên đã đăng ký (Euclidean, ngưỡng cấu hình app.face-match)")
     public ApiResponse<FaceMatchResponse> matchFace(@Valid @RequestBody FaceDescriptorRequest request) {
         return ApiResponse.success("Khớp khuôn mặt", employeeService.matchFace(request));
     }
 
+    // Vô hiệu hoá nhân viên thay vì xoá cứng.
     @DeleteMapping("/{id}")
     @Operation(summary = "Vô hiệu hoá nhân viên", description = "Đặt trạng thái nhân viên thành INACTIVE")
     public ApiResponse<Void> deleteEmployee(

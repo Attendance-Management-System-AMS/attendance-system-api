@@ -8,6 +8,7 @@ import org.mapstruct.Mapping;
 @Mapper(config = MapStructConfig.class, uses = {LeaveTypeMapper.class})
 public interface LeaveMapper {
 
+    // Chuyển entity đơn nghỉ sang response.
     @Mapping(source = "employee.id", target = "employeeId")
     @Mapping(source = "employee.fullName", target = "employeeName")
     @Mapping(source = "leaveType", target = "leaveType")

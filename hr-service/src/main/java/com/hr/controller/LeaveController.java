@@ -32,10 +32,12 @@ public class LeaveController {
 
     private final LeaveService leaveService;
 
+    // Khởi tạo controller với service xử lý đơn nghỉ.
     public LeaveController(LeaveService leaveService) {
         this.leaveService = leaveService;
     }
 
+    // Tạo mới đơn xin nghỉ cho nhân viên.
     @PostMapping
     @Operation(summary = "Tạo đơn xin nghỉ")
     public ApiResponse<LeaveResponse> createRequest(@Valid @RequestBody LeaveRequestRecord request) {
@@ -43,6 +45,7 @@ public class LeaveController {
         return ApiResponse.success(201, "Gửi đơn xin nghỉ thành công", response);
     }
 
+    // Lấy danh sách đơn nghỉ theo bộ lọc và phân trang.
     @GetMapping
     @Operation(summary = "Lấy danh sách đơn nghỉ (phân trang, lọc)",
             description = "Lọc theo keyword (loại nghỉ, lý do, tên NV), employeeId, status: PENDING, APPROVED, REJECTED")
@@ -56,6 +59,7 @@ public class LeaveController {
         return ApiResponse.success(leaveService.search(keyword, employeeId, status, pageable));
     }
 
+    // Lấy chi tiết một đơn nghỉ theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết đơn nghỉ")
     public ApiResponse<LeaveResponse> getById(
@@ -63,6 +67,7 @@ public class LeaveController {
         return ApiResponse.success(leaveService.getById(id));
     }
 
+    // Lấy danh sách đơn nghỉ của riêng một nhân viên.
     @GetMapping("/employee/{employeeId}")
     @Operation(summary = "Lấy danh sách đơn nghỉ theo nhân viên (phân trang)")
     public ApiResponse<PageResponse<LeaveResponse>> getByEmployee(
@@ -72,12 +77,14 @@ public class LeaveController {
         return ApiResponse.success(leaveService.searchByEmployee(employeeId, pageable));
     }
 
+    // Lấy danh sách các loại nghỉ đang dùng.
     @GetMapping("/types")
     @Operation(summary = "Lấy danh sách loại nghỉ có sẵn")
     public ApiResponse<List<LeaveTypeResponse>> getAllLeaveTypes() {
         return ApiResponse.success(leaveService.getAllLeaveTypes());
     }
 
+    // Phê duyệt một đơn nghỉ đang chờ xử lý.
     @PutMapping("/{id}/approve")
     @Operation(summary = "Phê duyệt đơn nghỉ")
     public ApiResponse<LeaveResponse> approve(
@@ -87,6 +94,7 @@ public class LeaveController {
         return ApiResponse.success(200, "Phê duyệt đơn nghỉ thành công", leaveService.approve(id, approvedById));
     }
 
+    // Từ chối một đơn nghỉ đang chờ xử lý.
     @PutMapping("/{id}/reject")
     @Operation(summary = "Từ chối đơn nghỉ")
     public ApiResponse<LeaveResponse> reject(
@@ -94,6 +102,7 @@ public class LeaveController {
         return ApiResponse.success(200, "Từ chối đơn nghỉ thành công", leaveService.reject(id));
     }
 
+    // Huỷ một đơn nghỉ nếu vẫn còn ở trạng thái PENDING.
     @DeleteMapping("/{id}")
     @Operation(summary = "Huỷ đơn nghỉ", description = "Chỉ huỷ đơn đang ở trạng thái PENDING")
     public ApiResponse<Void> delete(

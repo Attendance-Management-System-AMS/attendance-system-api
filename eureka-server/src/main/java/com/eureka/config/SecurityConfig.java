@@ -22,11 +22,13 @@ public class SecurityConfig {
     @Value("${eureka.dashboard.password:eureka123}")
     private String password;
 
+    // Tạo encoder để mã hóa mật khẩu dashboard Eureka.
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // Cấu hình user nội bộ dùng để đăng nhập dashboard Eureka.
     @Bean
     public UserDetailsService userDetailsService(PasswordEncoder encoder) {
         var user = User.builder()
@@ -37,6 +39,7 @@ public class SecurityConfig {
         return new InMemoryUserDetailsManager(user);
     }
 
+    // Bảo vệ dashboard Eureka bằng xác thực cơ bản.
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http

@@ -11,6 +11,7 @@ import java.util.List;
 @Configuration
 public class CorsDeduplicationFilter {
 
+    // Loại bỏ header CORS bị lặp do nhiều lớp filter cùng thêm vào.
     @Bean
     public GlobalFilter deduplicateCorsFilter() {
         return (exchange, chain) -> chain.filter(exchange).then(Mono.fromRunnable(() -> {

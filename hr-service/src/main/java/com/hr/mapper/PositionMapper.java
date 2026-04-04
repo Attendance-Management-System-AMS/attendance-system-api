@@ -12,6 +12,7 @@ import org.mapstruct.Named;
 @Mapper(config = MapStructConfig.class)
 public interface PositionMapper {
 
+    // Chuyển request tạo chức vụ sang entity.
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "parentPosition", ignore = true)
     @Mapping(target = "department", source = "department")
@@ -19,22 +20,26 @@ public interface PositionMapper {
     @Mapping(target = "name", source = "request.name")
     Position toEntity(PositionRequest request, Department department);
 
+    // Chuyển entity chức vụ sang response.
     @Mapping(source = "department.id", target = "departmentId")
     @Mapping(source = "department.name", target = "departmentName")
     @Mapping(source = "level", target = "level", qualifiedByName = "stringToInt")
     PositionResponse toResponse(Position position);
 
+    // Cập nhật entity chức vụ từ request.
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "parentPosition", ignore = true)
     @Mapping(target = "department", ignore = true)
     @Mapping(target = "level", source = "level", qualifiedByName = "intToString")
     void updateEntity(PositionRequest request, @MappingTarget Position position);
 
+    // Đổi level số nguyên sang chuỗi.
     @Named("intToString")
     default String intToString(Integer value) {
         return value == null ? null : String.valueOf(value);
     }
 
+    // Đổi level chuỗi sang số nguyên.
     @Named("stringToInt")
     default Integer stringToInt(String value) {
         if (value == null || value.isBlank()) return null;

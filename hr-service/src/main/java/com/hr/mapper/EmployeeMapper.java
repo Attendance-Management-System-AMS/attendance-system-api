@@ -12,6 +12,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(config = MapStructConfig.class)
 public interface EmployeeMapper {
 
+    // Chuyển request tạo nhân viên sang entity.
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "department", ignore = true)
@@ -20,6 +21,7 @@ public interface EmployeeMapper {
     @Mapping(target = "createdAt", ignore = true)
     Employee toEntity(EmployeeRequest request);
 
+    // Chuyển entity nhân viên sang response đầy đủ quan hệ.
     @Mapping(source = "department.id", target = "departmentId")
     @Mapping(source = "department.name", target = "departmentName")
     @Mapping(source = "position.id", target = "positionId")
@@ -29,6 +31,7 @@ public interface EmployeeMapper {
     @Mapping(target = "faceRegistered", expression = "java(employee.getFaceEmbedding() != null && !employee.getFaceEmbedding().isBlank())")
     EmployeeResponse toResponse(Employee employee);
 
+    // Cập nhật entity nhân viên từ request.
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userId", ignore = true)
     @Mapping(target = "department", ignore = true)
@@ -37,6 +40,7 @@ public interface EmployeeMapper {
     @Mapping(target = "createdAt", ignore = true)
     void updateEntity(EmployeeRequest request, @MappingTarget Employee employee);
 
+    // Gán quan hệ phòng ban, chức vụ và quản lý cho nhân viên.
     default void updateRelations(Employee employee, Department department, Position position, Employee manager) {
         employee.setDepartment(department);
         employee.setPosition(position);

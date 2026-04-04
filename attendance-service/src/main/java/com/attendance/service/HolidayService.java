@@ -22,11 +22,13 @@ public class HolidayService {
     private final HolidayRepository holidayRepository;
     private final HolidayMapper holidayMapper;
 
+    // Khởi tạo service xử lý ngày nghỉ.
     public HolidayService(HolidayRepository holidayRepository, HolidayMapper holidayMapper) {
         this.holidayRepository = holidayRepository;
         this.holidayMapper = holidayMapper;
     }
 
+    // Tạo mới ngày nghỉ và kiểm tra ngày hợp lệ.
     @Transactional
     public HolidayResponse create(HolidayRequest request) {
         if (request.toDate().isBefore(request.fromDate())) {
@@ -38,6 +40,7 @@ public class HolidayService {
         return holidayMapper.toResponse(saved);
     }
 
+    // Lấy toàn bộ danh sách ngày nghỉ.
     @Transactional(readOnly = true)
     public List<HolidayResponse> getAll() {
         return holidayRepository.findAll(Sort.by(Sort.Direction.ASC, "fromDate"))
@@ -46,6 +49,7 @@ public class HolidayService {
                 .toList();
     }
 
+    // Tìm kiếm ngày nghỉ theo bộ lọc và phân trang.
     @Transactional(readOnly = true)
     public Page<HolidayResponse> search(
             String keyword,
@@ -57,6 +61,7 @@ public class HolidayService {
                 .map(holidayMapper::toResponse);
     }
 
+    // Lấy ngày nghỉ theo ID.
     @Transactional(readOnly = true)
     public HolidayResponse getById(Long id) {
         Holiday holiday = holidayRepository.findById(id)
@@ -64,6 +69,7 @@ public class HolidayService {
         return holidayMapper.toResponse(holiday);
     }
 
+    // Cập nhật thông tin ngày nghỉ.
     @Transactional
     public HolidayResponse update(Long id, HolidayRequest request) {
         Holiday holiday = holidayRepository.findById(id)
@@ -80,6 +86,7 @@ public class HolidayService {
         return holidayMapper.toResponse(holidayRepository.save(holiday));
     }
 
+    // Xóa ngày nghỉ theo ID.
     @Transactional
     public void delete(Long id) {
         Holiday holiday = holidayRepository.findById(id)

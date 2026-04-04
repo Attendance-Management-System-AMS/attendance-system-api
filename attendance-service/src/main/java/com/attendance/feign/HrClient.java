@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FeignClient(name = "hr-service", path = "/api")
 public interface HrClient {
 
+    // Lấy thông tin nhân viên từ HR theo ID.
     @GetMapping("/employees/{id}")
     ApiResponse<HrEmployeeSnapshot> getEmployeeById(@PathVariable("id") Long id);
 
+    // So khớp khuôn mặt với dữ liệu HR để nhận diện nhân viên.
     @PostMapping("/employees/match-face")
     ApiResponse<FaceMatchResponse> matchFace(@RequestBody FaceDescriptorRequest request);
 }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class EmployeeScheduleMapper {
 
+    // Chuyển lịch làm sang response hiển thị.
     public EmployeeScheduleResponse toResponse(EmployeeSchedule schedule) {
         Shift shift = schedule.getShift();
 

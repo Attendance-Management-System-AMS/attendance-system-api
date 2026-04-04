@@ -17,6 +17,7 @@ public class OpenApiConfig {
     @Value("${gateway.url:http://localhost:9000}")
     private String gatewayUrl;
 
+        // Khai báo Swagger/OpenAPI và trỏ server về API Gateway.
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()

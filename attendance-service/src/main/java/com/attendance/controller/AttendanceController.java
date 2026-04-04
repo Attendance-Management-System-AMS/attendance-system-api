@@ -27,6 +27,7 @@ public class AttendanceController {
 
     private final AttendanceService attendanceService;
 
+    // Ghi nhận check-in cho nhân viên theo ID.
     @PostMapping("/check-in/{employeeId}")
     @Operation(summary = "Check-in nhân viên")
     public ApiResponse<AttendanceResponse> checkIn(
@@ -36,12 +37,14 @@ public class AttendanceController {
     }
 
     /** Đặt tên path tránh trùng với {@code /check-in/{employeeId}} (segment {@code face} không bị hiểu là ID). */
+    // Ghi nhận check-in bằng khuôn mặt.
     @PostMapping("/check-in-by-face")
     @Operation(summary = "Check-in bằng descriptor khuôn mặt (face-api.js 128 float)")
     public ApiResponse<AttendanceResponse> checkInByFace(@Valid @RequestBody FaceDescriptorRequest request) {
         return ApiResponse.success("Check-in thành công", attendanceService.checkInByFace(request));
     }
 
+    // Ghi nhận check-out cho nhân viên theo ID.
     @PostMapping("/check-out/{employeeId}")
     @Operation(summary = "Check-out nhân viên")
     public ApiResponse<AttendanceResponse> checkOut(
@@ -50,6 +53,7 @@ public class AttendanceController {
         return ApiResponse.success("Check-out thành công", attendanceService.checkOut(employeeId));
     }
 
+    // Lấy toàn bộ lịch sử chấm công của một nhân viên.
     @GetMapping("/employee/{employeeId}")
     @Operation(summary = "Lịch sử chấm công của nhân viên", description = "Trả về danh sách bản ghi chấm công sắp xếp theo ngày giảm dần")
     public ApiResponse<List<AttendanceResponse>> getByEmployee(
@@ -58,6 +62,7 @@ public class AttendanceController {
         return ApiResponse.success("Lấy lịch sử chấm công thành công", attendanceService.getByEmployee(employeeId));
     }
 
+    // Lấy bản ghi chấm công của nhân viên trong ngày hôm nay.
     @GetMapping("/employee/{employeeId}/today")
     @Operation(summary = "Chấm công hôm nay của nhân viên")
     public ApiResponse<AttendanceResponse> getTodayAttendance(
@@ -66,6 +71,7 @@ public class AttendanceController {
         return ApiResponse.success("Lấy chấm công hôm nay thành công", attendanceService.getTodayByEmployee(employeeId));
     }
 
+    // Lấy danh sách chấm công theo ngày được truyền vào hoặc ngày hiện tại.
     @GetMapping("/today")
     @Operation(summary = "Danh sách chấm công hôm nay")
     public ApiResponse<List<AttendanceResponse>> getTodayAttendances(
@@ -75,6 +81,7 @@ public class AttendanceController {
         return ApiResponse.success("Lấy danh sách chấm công thành công", attendanceService.getAttendancesByDate(date));
     }
 
+    // Tìm kiếm chấm công theo bộ lọc và phân trang.
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm chấm công (filter + paging)")
     public ApiResponse<Page<AttendanceResponse>> search(

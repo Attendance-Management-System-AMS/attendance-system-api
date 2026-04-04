@@ -15,6 +15,4 @@ public class AuthResponse {
     private String tokenType;
     private long accessTokenExpiresIn;
     private long refreshTokenExpiresIn;
-    private String username;
-    private String roles;
 }

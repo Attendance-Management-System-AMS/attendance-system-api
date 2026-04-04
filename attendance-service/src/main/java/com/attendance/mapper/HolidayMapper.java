@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class HolidayMapper {
 
+    // Chuyển request ngày nghỉ thành entity.
     public Holiday toEntity(HolidayRequest request) {
         Holiday holiday = new Holiday();
         holiday.setHolidayName(request.holidayName().trim());
@@ -17,6 +18,7 @@ public class HolidayMapper {
         return holiday;
     }
 
+    // Chuyển entity ngày nghỉ sang response.
     public HolidayResponse toResponse(Holiday holiday) {
         return new HolidayResponse(
                 holiday.getId(),

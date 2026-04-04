@@ -30,10 +30,12 @@ public class DepartmentController {
 
     private final DepartmentService departmentService;
 
+    // Khởi tạo controller với service xử lý phòng ban.
     public DepartmentController(DepartmentService departmentService) {
         this.departmentService = departmentService;
     }
 
+    // Tạo mới một phòng ban.
     @PostMapping
     @Operation(summary = "Tạo mới phòng ban")
     public ApiResponse<DepartmentResponse> createDepartment(@Valid @RequestBody DepartmentRequest request) {
@@ -41,6 +43,7 @@ public class DepartmentController {
         return ApiResponse.success(201, "Tạo phòng ban thành công", response);
     }
 
+    // Lấy danh sách phòng ban theo phân trang và từ khoá.
     @GetMapping
     @Operation(summary = "Lấy danh sách phòng ban (phân trang, lọc)")
     public ApiResponse<PageResponse<DepartmentResponse>> getDepartments(
@@ -50,6 +53,7 @@ public class DepartmentController {
         return ApiResponse.success(departmentService.search(keyword, pageable));
     }
 
+    // Lấy chi tiết phòng ban theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết phòng ban theo ID")
     public ApiResponse<DepartmentResponse> getDepartmentById(
@@ -57,6 +61,7 @@ public class DepartmentController {
         return ApiResponse.success(departmentService.getById(id));
     }
 
+    // Cập nhật thông tin phòng ban.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật phòng ban")
     public ApiResponse<DepartmentResponse> updateDepartment(
@@ -66,6 +71,7 @@ public class DepartmentController {
         return ApiResponse.success(200, "Cập nhật phòng ban thành công", response);
     }
 
+    // Xóa phòng ban theo ID.
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa phòng ban")
     public ApiResponse<Void> deleteDepartment(

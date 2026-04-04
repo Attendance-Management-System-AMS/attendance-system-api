@@ -9,8 +9,10 @@ import org.springframework.util.StringUtils;
 
 public final class EmployeeSpecifications {
 
+    // Không cho khởi tạo vì đây là lớp chứa tiêu chí tìm kiếm tĩnh.
     private EmployeeSpecifications() {}
 
+    // Tạo điều kiện lọc nhân viên theo nhiều tham số.
     public static Specification<Employee> matches(
             String keyword, Long departmentId, Long positionId, String status) {
         return (root, query, cb) -> {
