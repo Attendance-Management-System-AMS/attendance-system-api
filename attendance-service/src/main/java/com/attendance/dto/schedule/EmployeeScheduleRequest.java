@@ -27,6 +27,9 @@ public record EmployeeScheduleRequest(
 
         @Schema(description = "Ngày bắt đầu áp dụng", example = "2026-03-18")
         @NotNull(message = "Ngày hiệu lực là bắt buộc")
-        LocalDate effectiveFrom
+        LocalDate effectiveFrom,
+
+        @Schema(description = "Có bắt buộc gán ca hay không (nếu true sẽ ghi đè ca cũ bị trùng)", example = "false")
+        Boolean force
 ) {
 }

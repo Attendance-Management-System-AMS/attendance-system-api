@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
         String message = ex.getMessage() != null ? ex.getMessage() : errorCode.getMessage();
 
         return ResponseEntity.status(errorCode.getStatus())
-                .body(ApiResponse.error(errorCode.getCode(), message));
+                .body(ApiResponse.error(errorCode.getCode(), message, ex.getData()));
     }
 
     // Chuyển ResponseStatusException thành response lỗi thống nhất.

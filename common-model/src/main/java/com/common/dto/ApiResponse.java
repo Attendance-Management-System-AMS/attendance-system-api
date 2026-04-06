@@ -38,7 +38,12 @@ public class ApiResponse<T> {
 
     // Tạo response lỗi chuẩn hóa.
     public static <T> ApiResponse<T> error(int code, String message) {
-        return new ApiResponse<>(false, code, message, null, Instant.now());
+        return error(code, message, null);
+    }
+
+    // Tạo response lỗi kèm dữ liệu bổ sung.
+    public static <T> ApiResponse<T> error(int code, String message, T result) {
+        return new ApiResponse<>(false, code, message, result, Instant.now());
     }
 
     // Kiểm tra request có thành công hay không.

@@ -14,7 +14,8 @@ public enum ErrorCode implements ErrorCodeContract {
 
     SHIFT_NOT_FOUND(2004, "Không tìm thấy ca làm", HttpStatus.NOT_FOUND),
     SCHEDULE_NOT_FOUND(2005, "Không tìm thấy lịch làm", HttpStatus.NOT_FOUND),
-    HOLIDAY_NOT_FOUND(2006, "Không tìm thấy ngày nghỉ", HttpStatus.NOT_FOUND);
+    HOLIDAY_NOT_FOUND(2006, "Không tìm thấy ngày nghỉ", HttpStatus.NOT_FOUND),
+    SCHEDULE_TEMPLATE_NOT_FOUND(2007, "Không tìm thấy mẫu lịch làm việc", HttpStatus.NOT_FOUND);
 
     private final int code;
     private final String message;

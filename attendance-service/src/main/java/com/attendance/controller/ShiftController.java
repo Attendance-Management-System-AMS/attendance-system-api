@@ -47,7 +47,7 @@ public class ShiftController {
     }
 
     // Tìm kiếm ca làm theo từ khoá và phân trang.
-    @GetMapping()
+    @GetMapping("/search")
     @Operation(summary = "Tìm kiếm ca làm (filter + paging)")
     public ApiResponse<PageResponse<ShiftResponse>> search(
             @RequestParam(defaultValue = "0") int page,

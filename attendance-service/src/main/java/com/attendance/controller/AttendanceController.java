@@ -79,7 +79,7 @@ public class AttendanceController {
     }
 
     // Tìm kiếm chấm công theo bộ lọc và phân trang.
-    @GetMapping()
+    @GetMapping("/search")
     @Operation(summary = "Tìm kiếm chấm công (filter + paging)")
     public ApiResponse<PageResponse<AttendanceResponse>> search(
             @RequestParam(defaultValue = "0") int page,

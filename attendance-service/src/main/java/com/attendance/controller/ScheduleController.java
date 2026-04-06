@@ -1,6 +1,8 @@
 package com.attendance.controller;
 
 import com.common.dto.ApiResponse;
+import com.attendance.dto.schedule.ApplyTemplateRequest;
+import com.attendance.dto.schedule.BulkScheduleRequest;
 import com.attendance.dto.schedule.EmployeeScheduleRequest;
 import com.attendance.dto.schedule.EmployeeScheduleResponse;
 import com.attendance.service.ScheduleService;
@@ -38,6 +40,20 @@ public class ScheduleController {
     public ApiResponse<EmployeeScheduleResponse> assignSchedule(@Valid @RequestBody EmployeeScheduleRequest request) {
         EmployeeScheduleResponse response = scheduleService.assignSchedule(request);
         return ApiResponse.success("Gán ca làm việc thành công", response);
+    }
+
+    // Gán lịch làm hàng loạt.
+    @PostMapping("/bulk")
+    @Operation(summary = "Gán ca làm hàng loạt cho nhiều người, nhiều ngày")
+    public ApiResponse<List<EmployeeScheduleResponse>> bulkAssign(@Valid @RequestBody BulkScheduleRequest request) {
+        return ApiResponse.success("Gán ca làm hàng loạt thành công", scheduleService.bulkAssign(request));
+    }
+
+    // Áp dụng mẫu lịch.
+    @PostMapping("/apply-template")
+    @Operation(summary = "Áp dụng mẫu lịch (template) cho nhân viên")
+    public ApiResponse<List<EmployeeScheduleResponse>> applyTemplate(@Valid @RequestBody ApplyTemplateRequest request) {
+        return ApiResponse.success("Áp dụng mẫu lịch thành công", scheduleService.applyTemplate(request));
     }
 
     // Lấy toàn bộ lịch làm việc của một nhân viên.
