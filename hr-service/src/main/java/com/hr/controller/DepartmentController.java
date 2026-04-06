@@ -9,10 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,9 +45,12 @@ public class DepartmentController {
     @GetMapping
     @Operation(summary = "Lấy danh sách phòng ban (phân trang, lọc)")
     public ApiResponse<PageResponse<DepartmentResponse>> getDepartments(
-            @RequestParam(required = false) String keyword,
-            @ParameterObject
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String keyword) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
         return ApiResponse.success(departmentService.search(keyword, pageable));
     }
 

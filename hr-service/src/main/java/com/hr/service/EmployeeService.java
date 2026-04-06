@@ -82,15 +82,7 @@ public class EmployeeService {
             Pageable pageable) {
         var spec = EmployeeSpecifications.matches(keyword, departmentId, positionId, status);
         Page<Employee> slice = employeeRepository.findAll(spec, pageable);
-        List<EmployeeResponse> content = slice.getContent().stream()
-                .map(employeeMapper::toResponse)
-                .toList();
-        return new PageResponse<>(
-                content,
-                slice.getTotalElements(),
-                slice.getTotalPages(),
-                slice.getNumber(),
-                slice.getSize());
+        return PageResponse.of(slice.map(employeeMapper::toResponse));
     }
 
     // Lấy chi tiết nhân viên theo ID.

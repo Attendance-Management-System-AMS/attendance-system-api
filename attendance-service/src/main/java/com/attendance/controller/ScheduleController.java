@@ -11,10 +11,9 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.common.pagination.PageResponse;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,21 +49,19 @@ public class ScheduleController {
     }
 
     // Tìm kiếm lịch làm theo bộ lọc và phân trang.
-    @GetMapping("/search")
+    @GetMapping()
     @Operation(summary = "Tìm kiếm lịch làm (filter + paging)")
-    public ApiResponse<Page<EmployeeScheduleResponse>> search(
-            @Parameter(description = "ID nhân viên")
-            @RequestParam(value = "employeeId", required = false) Long employeeId,
-            @Parameter(description = "Thứ trong tuần (1-7)")
-            @RequestParam(value = "dayOfWeek", required = false) Integer dayOfWeek,
-            @Parameter(description = "Đang hoạt động hay không")
-            @RequestParam(value = "isActive", required = false) Boolean isActive,
-            @Parameter(description = "Ngày hiệu lực <= (yyyy-MM-dd)")
-            @RequestParam(value = "effectiveFromOnOrBefore", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromOnOrBefore,
-            @Parameter(description = "ID ca làm")
-            @RequestParam(value = "shiftId", required = false) Long shiftId,
-            @PageableDefault(size = 20, sort = "effectiveFrom", direction = Sort.Direction.DESC) Pageable pageable) {
+    public ApiResponse<PageResponse<EmployeeScheduleResponse>> search(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "effectiveFrom") String sort,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @Parameter(description = "ID nhân viên") @RequestParam(value = "employeeId", required = false) Long employeeId,
+            @Parameter(description = "Thứ trong tuần (1-7)") @RequestParam(value = "dayOfWeek", required = false) Integer dayOfWeek,
+            @Parameter(description = "Đang hoạt động hay không") @RequestParam(value = "isActive", required = false) Boolean isActive,
+            @Parameter(description = "Ngày hiệu lực <= (yyyy-MM-dd)") @RequestParam(value = "effectiveFromOnOrBefore", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromOnOrBefore,
+            @Parameter(description = "ID ca làm") @RequestParam(value = "shiftId", required = false) Long shiftId) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
         return ApiResponse.success(
                 "Tìm kiếm lịch làm thành công",
                 scheduleService.search(employeeId, dayOfWeek, isActive, effectiveFromOnOrBefore, shiftId, pageable));

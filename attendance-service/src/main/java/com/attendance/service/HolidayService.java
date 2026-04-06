@@ -1,5 +1,6 @@
 package com.attendance.service;
 
+import com.common.pagination.PageResponse;
 import com.common.exception.AppException;
 import com.attendance.dto.holiday.HolidayRequest;
 import com.attendance.dto.holiday.HolidayResponse;
@@ -51,14 +52,14 @@ public class HolidayService {
 
     // Tìm kiếm ngày nghỉ theo bộ lọc và phân trang.
     @Transactional(readOnly = true)
-    public Page<HolidayResponse> search(
+    public PageResponse<HolidayResponse> search(
             String keyword,
             Boolean isPaid,
             LocalDate fromDate,
             LocalDate toDate,
             Pageable pageable) {
-        return holidayRepository.findAll(HolidaySpecifications.matches(keyword, isPaid, fromDate, toDate), pageable)
-                .map(holidayMapper::toResponse);
+        Page<Holiday> page = holidayRepository.findAll(HolidaySpecifications.matches(keyword, isPaid, fromDate, toDate), pageable);
+        return PageResponse.of(page.map(holidayMapper::toResponse));
     }
 
     // Lấy ngày nghỉ theo ID.

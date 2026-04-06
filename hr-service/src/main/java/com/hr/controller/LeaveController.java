@@ -11,10 +11,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,12 +48,15 @@ public class LeaveController {
     @Operation(summary = "Lấy danh sách đơn nghỉ (phân trang, lọc)",
             description = "Lọc theo keyword (loại nghỉ, lý do, tên NV), employeeId, status: PENDING, APPROVED, REJECTED")
     public ApiResponse<PageResponse<LeaveResponse>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long employeeId,
             @Parameter(description = "Trạng thái đơn (không bắt buộc)")
-            @RequestParam(required = false) String status,
-            @ParameterObject
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @RequestParam(required = false) String status) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
         return ApiResponse.success(leaveService.search(keyword, employeeId, status, pageable));
     }
 
@@ -71,9 +72,12 @@ public class LeaveController {
     @GetMapping("/employee/{employeeId}")
     @Operation(summary = "Lấy danh sách đơn nghỉ theo nhân viên (phân trang)")
     public ApiResponse<PageResponse<LeaveResponse>> getByEmployee(
-            @Parameter(description = "ID nhân viên") @PathVariable Long employeeId,
-            @ParameterObject
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
         return ApiResponse.success(leaveService.searchByEmployee(employeeId, pageable));
     }
 

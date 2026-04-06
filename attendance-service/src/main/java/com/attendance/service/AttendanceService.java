@@ -2,6 +2,7 @@ package com.attendance.service;
 
 import com.attendance.dto.client.HrEmployeeSnapshot;
 import com.attendance.dto.response.AttendanceResponse;
+import com.common.pagination.PageResponse;
 import com.common.dto.face.FaceDescriptorRequest;
 import com.common.dto.face.FaceMatchResponse;
 import com.attendance.entity.Attendance;
@@ -169,16 +170,16 @@ public class AttendanceService {
     }
 
     // Tìm kiếm chấm công theo bộ lọc và phân trang.
-    public Page<AttendanceResponse> search(
+    public PageResponse<AttendanceResponse> search(
             Long employeeId,
             LocalDate date,
             LocalDate fromDate,
             LocalDate toDate,
             String status,
             Pageable pageable) {
-        return attendanceRepository
-                .findAll(AttendanceSpecifications.matches(employeeId, date, fromDate, toDate, status), pageable)
-                .map(attendanceMapper::toResponse);
+        Page<Attendance> page = attendanceRepository.findAll(
+                AttendanceSpecifications.matches(employeeId, date, fromDate, toDate, status), pageable);
+        return PageResponse.of(page.map(attendanceMapper::toResponse));
     }
 
     // Kiểm tra nhân viên có tồn tại trong HR và lấy thông tin tóm tắt.

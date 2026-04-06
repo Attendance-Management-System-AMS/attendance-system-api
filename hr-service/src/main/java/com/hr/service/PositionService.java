@@ -11,7 +11,6 @@ import com.hr.mapper.PositionMapper;
 import com.hr.repository.DepartmentRepository;
 import com.hr.repository.PositionRepository;
 import com.hr.repository.PositionSpecifications;
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -52,15 +51,7 @@ public class PositionService {
     public PageResponse<PositionResponse> search(String keyword, Long departmentId, Pageable pageable) {
         var spec = PositionSpecifications.matches(keyword, departmentId);
         Page<Position> page = positionRepository.findAll(spec, pageable);
-        List<PositionResponse> content = page.getContent().stream()
-                .map(positionMapper::toResponse)
-                .toList();
-        return new PageResponse<>(
-                content,
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.getNumber(),
-                page.getSize());
+        return PageResponse.of(page.map(positionMapper::toResponse));
     }
 
     // Lấy chức vụ theo ID.

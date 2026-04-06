@@ -9,10 +9,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,10 +38,13 @@ public class PositionController {
     @Operation(summary = "Lấy danh sách chức vụ (phân trang, lọc)",
             description = "Lọc theo từ khoá tên và/hoặc departmentId")
     public ApiResponse<PageResponse<PositionResponse>> getPositions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(required = false) String keyword,
-            @Parameter(description = "ID phòng ban (không bắt buộc)") @RequestParam(required = false) Long departmentId,
-            @ParameterObject
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable) {
+            @Parameter(description = "ID phòng ban (không bắt buộc)") @RequestParam(required = false) Long departmentId) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
         return ApiResponse.success(positionService.search(keyword, departmentId, pageable));
     }
 

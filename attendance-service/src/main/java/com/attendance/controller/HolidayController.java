@@ -11,10 +11,9 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.common.pagination.PageResponse;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,18 +43,16 @@ public class HolidayController {
     // Tìm kiếm ngày nghỉ theo bộ lọc và phân trang.
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm ngày nghỉ (filter + paging)")
-    public ApiResponse<Page<HolidayResponse>> search(
-            @Parameter(description = "Từ khoá theo tên ngày nghỉ")
-            @RequestParam(value = "keyword", required = false) String keyword,
-            @Parameter(description = "Có hưởng lương hay không")
-            @RequestParam(value = "isPaid", required = false) Boolean isPaid,
-            @Parameter(description = "Từ ngày (yyyy-MM-dd)")
-            @RequestParam(value = "fromDate", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @Parameter(description = "Đến ngày (yyyy-MM-dd)")
-            @RequestParam(value = "toDate", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @PageableDefault(size = 20, sort = "fromDate", direction = Sort.Direction.ASC) Pageable pageable) {
+    public ApiResponse<PageResponse<HolidayResponse>> search(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "fromDate") String sort,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @Parameter(description = "Từ khoá theo tên ngày nghỉ") @RequestParam(value = "keyword", required = false) String keyword,
+            @Parameter(description = "Có hưởng lương hay không") @RequestParam(value = "isPaid", required = false) Boolean isPaid,
+            @Parameter(description = "Từ ngày (yyyy-MM-dd)") @RequestParam(value = "fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @Parameter(description = "Đến ngày (yyyy-MM-dd)") @RequestParam(value = "toDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
         return ApiResponse.success(
                 "Tìm kiếm ngày nghỉ thành công",
                 holidayService.search(keyword, isPaid, fromDate, toDate, pageable));

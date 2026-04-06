@@ -9,7 +9,6 @@ import com.hr.exception.ErrorCode;
 import com.hr.mapper.DepartmentMapper;
 import com.hr.repository.DepartmentRepository;
 import com.hr.repository.DepartmentSpecifications;
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,15 +43,7 @@ public class DepartmentService {
     public PageResponse<DepartmentResponse> search(String keyword, Pageable pageable) {
         var spec = DepartmentSpecifications.matches(keyword);
         Page<Department> page = departmentRepository.findAll(spec, pageable);
-        List<DepartmentResponse> content = page.getContent().stream()
-                .map(departmentMapper::toResponse)
-                .toList();
-        return new PageResponse<>(
-                content,
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.getNumber(),
-                page.getSize());
+        return PageResponse.of(page.map(departmentMapper::toResponse));
     }
 
     // Lấy phòng ban theo ID.

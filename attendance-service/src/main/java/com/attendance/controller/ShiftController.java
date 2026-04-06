@@ -10,10 +10,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.common.pagination.PageResponse;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,12 +47,15 @@ public class ShiftController {
     }
 
     // Tìm kiếm ca làm theo từ khoá và phân trang.
-    @GetMapping("/search")
+    @GetMapping()
     @Operation(summary = "Tìm kiếm ca làm (filter + paging)")
-    public ApiResponse<Page<ShiftResponse>> search(
-            @Parameter(description = "Từ khoá theo tên ca làm")
-            @RequestParam(value = "keyword", required = false) String keyword,
-            @PageableDefault(size = 20, sort = "startTime", direction = Sort.Direction.ASC) Pageable pageable) {
+    public ApiResponse<PageResponse<ShiftResponse>> search(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "startTime") String sort,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @Parameter(description = "Từ khoá theo tên ca làm") @RequestParam(value = "keyword", required = false) String keyword) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
         return ApiResponse.success("Tìm kiếm ca làm thành công", shiftService.search(keyword, pageable));
     }
 

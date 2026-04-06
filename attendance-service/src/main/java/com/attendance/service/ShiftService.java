@@ -1,5 +1,7 @@
 package com.attendance.service;
 
+import com.common.pagination.PageResponse;
+
 import com.common.exception.AppException;
 import com.attendance.dto.shift.ShiftRequest;
 import com.attendance.dto.shift.ShiftResponse;
@@ -53,9 +55,9 @@ public class ShiftService {
     }
 
     // Tìm kiếm ca làm theo từ khoá.
-    public Page<ShiftResponse> search(String keyword, Pageable pageable) {
-        return shiftRepository.findAll(ShiftSpecifications.matches(keyword), pageable)
-                .map(shiftMapper::toResponse);
+    public PageResponse<ShiftResponse> search(String keyword, Pageable pageable) {
+        Page<Shift> page = shiftRepository.findAll(ShiftSpecifications.matches(keyword), pageable);
+        return PageResponse.of(page.map(shiftMapper::toResponse));
     }
 
     // Lấy ca làm theo ID.

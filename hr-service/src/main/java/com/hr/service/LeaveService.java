@@ -82,15 +82,7 @@ public class LeaveService {
     public PageResponse<LeaveResponse> search(String keyword, Long employeeId, String status, Pageable pageable) {
         var spec = LeaveSpecifications.matches(keyword, employeeId, status);
         Page<LeaveRequest> page = leaveRequestRepository.findAll(spec, pageable);
-        List<LeaveResponse> content = page.getContent().stream()
-                .map(leaveMapper::toResponse)
-                .toList();
-        return new PageResponse<>(
-                content,
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.getNumber(),
-                page.getSize());
+        return PageResponse.of(page.map(leaveMapper::toResponse));
     }
 
     // Lấy chi tiết đơn nghỉ theo ID.

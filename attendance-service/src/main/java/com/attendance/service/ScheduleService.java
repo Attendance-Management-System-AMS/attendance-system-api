@@ -1,5 +1,7 @@
 package com.attendance.service;
 
+import com.common.pagination.PageResponse;
+
 import com.common.exception.AppException;
 import com.attendance.dto.schedule.EmployeeScheduleRequest;
 import com.attendance.dto.schedule.EmployeeScheduleResponse;
@@ -61,19 +63,19 @@ public class ScheduleService {
 
     // Tìm kiếm lịch làm theo bộ lọc và phân trang.
     @Transactional(readOnly = true)
-    public Page<EmployeeScheduleResponse> search(
+    public PageResponse<EmployeeScheduleResponse> search(
             Long employeeId,
             Integer dayOfWeek,
             Boolean isActive,
             LocalDate effectiveFromOnOrBefore,
             Long shiftId,
             Pageable pageable) {
-        return employeeScheduleRepository
+        Page<EmployeeSchedule> page = employeeScheduleRepository
                 .findAll(
                         EmployeeScheduleSpecifications.matches(
                                 employeeId, dayOfWeek, isActive, effectiveFromOnOrBefore, shiftId),
-                        pageable)
-                .map(employeeScheduleMapper::toResponse);
+                        pageable);
+        return PageResponse.of(page.map(employeeScheduleMapper::toResponse));
     }
 
     // Xóa lịch làm theo ID.
