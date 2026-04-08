@@ -6,8 +6,12 @@ gateway:
   url: ${GATEWAY_URL:http://localhost:9000}
 
 spring:
+  jmx:
+    enabled: false
   application:
     name: attendance-service
+    admin:
+      enabled: false
   output:
     ansi:
       enabled: always

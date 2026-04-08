@@ -2,8 +2,12 @@ server:
   port: ${EUREKA_PORT:8761}
 
 spring:
+  jmx:
+    enabled: false
   application:
     name: eureka-server
+    admin:
+      enabled: false
   security:
     user:
       name: ${EUREKA_USER:eureka}

@@ -6,8 +6,12 @@ gateway:
   url: ${GATEWAY_URL:http://localhost:9000}
 
 spring:
+  jmx:
+    enabled: false
   application:
     name: hr-service
+    admin:
+      enabled: false
   data:
     web:
       pageable:

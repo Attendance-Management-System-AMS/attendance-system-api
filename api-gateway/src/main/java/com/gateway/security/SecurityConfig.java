@@ -30,7 +30,7 @@ public class SecurityConfig {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-        // Cấu hình bảo mật gateway, bật/tắt xác thực và JWT theo cờ cấu hình.
+    // Cấu hình bảo mật gateway, bật/tắt xác thực và JWT theo cờ cấu hình.
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
@@ -54,16 +54,15 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                "/actuator/**"
-                        ).permitAll()
-                        .anyExchange().authenticated()
-                )
+                                "/actuator/**")
+                        .permitAll()
+                        .anyExchange().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()));
 
         return http.build();
     }
 
-        // Cấu hình CORS cho các request đi qua gateway.
+    // Cấu hình CORS cho các request đi qua gateway.
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -71,6 +70,7 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -78,12 +78,11 @@ public class SecurityConfig {
         return source;
     }
 
-        // Giải mã JWT bằng secret key dùng chung của gateway.
+    // Giải mã JWT bằng secret key dùng chung của gateway.
     @Bean
     public ReactiveJwtDecoder reactiveJwtDecoder() {
         SecretKey key = new SecretKeySpec(
-                jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"
-        );
+                jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         return NimbusReactiveJwtDecoder.withSecretKey(key)
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();

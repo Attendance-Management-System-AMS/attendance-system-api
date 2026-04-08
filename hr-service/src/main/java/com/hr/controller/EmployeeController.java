@@ -92,6 +92,19 @@ public class EmployeeController {
         return ApiResponse.success("Khớp khuôn mặt", employeeService.matchFace(request));
     }
 
+    // Lấy thông tin nhân viên (internal) theo userId để phục vụ các service khác (ví dụ: auth-service).
+    @GetMapping("/internal/user/{userId}")
+    @Operation(summary = "Lấy thông tin nhân viên theo userId (Internal call)", hidden = true)
+    public com.common.dto.EmployeeInternalResponse getInternalEmployee(@PathVariable Long userId) {
+        EmployeeResponse employee = employeeService.getByUserId(userId);
+        return com.common.dto.EmployeeInternalResponse.builder()
+                .userId(userId)
+                .fullName(employee.fullName())
+                .departmentName(employee.departmentName())
+                .positionName(employee.positionName())
+                .build();
+    }
+
     // Vô hiệu hoá nhân viên thay vì xoá cứng.
     @DeleteMapping("/{id}")
     @Operation(summary = "Vô hiệu hoá nhân viên", description = "Đặt trạng thái nhân viên thành INACTIVE")

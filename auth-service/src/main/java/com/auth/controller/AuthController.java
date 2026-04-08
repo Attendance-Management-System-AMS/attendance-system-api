@@ -9,9 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -39,53 +37,23 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "Đăng xuất", security = {@SecurityRequirement(name = "BearerAuth")})
     public ApiResponse<String> logout(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
-        String token = extractToken(authHeader);
-        if (token == null || token.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Thiếu Authorization header theo định dạng Bearer <token>");
-        }
-        authService.logout(token);
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+        authService.logout(authHeader);
         return ApiResponse.success(200, "Đăng xuất thành công", "OK");
     }
 
     // Lấy thông tin tài khoản đang đăng nhập.
     @GetMapping("/me")
     @Operation(summary = "Lấy thông tin người dùng hiện tại", security = {@SecurityRequirement(name = "BearerAuth")})
-    public ApiResponse<UserProfileResponse> me(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader) {
-        String token = extractToken(authHeader);
-        if (token == null || token.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Thiếu Authorization header theo định dạng Bearer <token>");
-        }
-        return ApiResponse.success(200, "Lấy thông tin người dùng thành công", authService.getCurrentUser(token));
+    public ApiResponse<UserProfileResponse> me() {
+        return ApiResponse.success(200, "Lấy thông tin người dùng thành công", authService.getCurrentUser());
     }
 
     // Đổi mật khẩu cho tài khoản hiện tại.
     @PostMapping("/change-password")
     @Operation(summary = "Đổi mật khẩu", security = {@SecurityRequirement(name = "BearerAuth")})
-    public ApiResponse<String> changePassword(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
-            @Valid @RequestBody ChangePasswordRequest request) {
-        String token = extractToken(authHeader);
-        if (token == null || token.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Thiếu Authorization header theo định dạng Bearer <token>");
-        }
-        authService.changePassword(token, request);
+    public ApiResponse<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
         return ApiResponse.success(200, "Đổi mật khẩu thành công", "OK");
-    }
-
-    // Tách token Bearer ra khỏi header Authorization.
-    private String extractToken(String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return null;
-        }
-        String value = rawValue.trim();
-        if (!value.regionMatches(true, 0, "Bearer ", 0, 7)) {
-            return null;
-        }
-        return value.substring(7).trim();
     }
 }

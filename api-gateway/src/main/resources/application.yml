@@ -2,8 +2,12 @@ server:
   port: ${GATEWAY_PORT:9000}
 
 spring:
+  jmx:
+    enabled: false
   application:
     name: api-gateway
+    admin:
+      enabled: false
   output:
     ansi:
       enabled: always
@@ -22,6 +26,7 @@ spring:
               - OPTIONS
               - PATCH
             allowedHeaders: "*"
+            allowCredentials: true
             maxAge: 3600
 
       default-filters:

@@ -1,5 +1,6 @@
 package com.auth.service;
 
+import com.auth.client.HrServiceClient;
 import com.auth.dto.*;
 import com.auth.entity.Role;
 import com.auth.entity.TokenBlacklist;
@@ -9,9 +10,12 @@ import com.auth.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -25,6 +29,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class AuthService {
 
     public static final String ROLE_ADMIN = "ROLE_ADMIN";
@@ -95,7 +100,8 @@ public class AuthService {
 
     // Đưa access hoặc refresh token vào blacklist.
     @Transactional
-    public void logout(String token) {
+    public void logout(String authHeader) {
+        String token = extractToken(authHeader);
         try {
             if (token == null || token.isBlank()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu token đăng xuất");
@@ -108,27 +114,43 @@ public class AuthService {
             }
 
             User user = resolveUserFromClaims(claims);
-
             blacklistToken(token, user.getId());
         } catch (JwtException | IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token không hợp lệ");
         }
     }
 
-    // Lấy thông tin tài khoản đang đăng nhập từ access token.
-    public UserProfileResponse getCurrentUser(String accessToken) {
-        User user = resolveUserFromAccessToken(accessToken);
-        return UserProfileResponse.builder()
+    private final HrServiceClient hrServiceClient;
+
+    // Lấy thông tin tài khoản đang đăng nhập từ SecurityContext.
+    public UserProfileResponse getCurrentUser() {
+        User user = getCurrentAuthenticatedUser();
+        
+        UserProfileResponse.UserProfileResponseBuilder builder = UserProfileResponse.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .enabled(user.isEnabled())
-                .roles(String.join(",", user.getRoles().stream().map(Role::getRoleName).toList()))
-                .build();
+                .roles(String.join(",", user.getRoles().stream().map(Role::getRoleName).toList()));
+
+        // Lấy thêm thông tin từ hr-service thông qua userId
+        try {
+            com.common.dto.EmployeeInternalResponse employee = hrServiceClient.getInternalEmployee(user.getId());
+            if (employee != null) {
+                builder.fullName(employee.getFullName())
+                        .departmentName(employee.getDepartmentName())
+                        .positionName(employee.getPositionName());
+            }
+        } catch (Exception e) {
+            // Log lỗi hoặc bỏ qua nếu không tìm thấy thông tin nhân viên (ví dụ tài khoản admin chưa liên kết nhân viên)
+            log.error("Không tìm thấy thông tin nhân viên cho userId: " + user.getId(), e);
+        }
+
+        return builder.build();
     }
 
-    // Đổi mật khẩu cho tài khoản hiện tại sau khi xác thực mật khẩu cũ.
+    // Đổi mật khẩu cho tài khoản hiện tại.
     @Transactional
-    public void changePassword(String accessToken, ChangePasswordRequest request) {
+    public void changePassword(ChangePasswordRequest request) {
         if (request == null
                 || request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()
                 || request.getNewPassword() == null || request.getNewPassword().isBlank()) {
@@ -139,7 +161,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu mới phải có ít nhất 8 ký tự");
         }
 
-        User user = resolveUserFromAccessToken(accessToken);
+        User user = getCurrentAuthenticatedUser();
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Mật khẩu hiện tại không đúng");
@@ -151,6 +173,45 @@ public class AuthService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
         userRepository.save(user);
+    }
+
+    // Lấy User từ SecurityContext.
+    public User getCurrentAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập hoặc token không hợp lệ");
+        }
+        
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof User) {
+            return (User) principal;
+        }
+        
+        if (principal instanceof String) {
+            String subject = (String) principal;
+            return resolveUserFromSubject(subject);
+        }
+        
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Principal không hợp lệ");
+    }
+
+    private User resolveUserFromSubject(String subject) {
+        boolean numericSubject = subject.chars().allMatch(Character::isDigit);
+        if (numericSubject) {
+            Long userId = Long.parseLong(subject);
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
+        }
+        return userRepository.findByUsername(subject)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
+    }
+
+    // Trích xuất token từ chuỗi header Bearer.
+    private String extractToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        return authHeader.substring(7).trim();
     }
 
     // Ghi một token vào blacklist để chặn sử dụng lại.
@@ -193,37 +254,6 @@ public class AuthService {
                 .refreshTokenExpiresIn(jwtService.getRefreshTokenExpirationSeconds())
                 .build();
     }
-
-    // Kiểm tra access token, blacklist và load lại user từ token.
-    private User resolveUserFromAccessToken(String accessToken) {
-        try {
-            if (accessToken == null || accessToken.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu access token");
-            }
-
-            Claims claims = jwtService.parseClaims(accessToken);
-            String tokenType = claims.get("token_type", String.class);
-            if (!"ACCESS".equals(tokenType)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token không phải access token");
-            }
-
-            String jti = claims.getId();
-            if (tokenBlacklistRepository.existsByTokenJti(jti)) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token đã bị thu hồi");
-            }
-
-            User user = resolveUserFromClaims(claims);
-
-            if (!user.isEnabled()) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
-            }
-
-            return user;
-        } catch (JwtException | IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access token không hợp lệ");
-        }
-    }
-
     // Tìm user theo subject token kiểu mới hoặc fallback theo username token cũ.
     private User resolveUserFromClaims(Claims claims) {
         String subject = claims.getSubject();

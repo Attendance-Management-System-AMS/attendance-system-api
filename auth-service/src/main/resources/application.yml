@@ -3,8 +3,12 @@ server:
   forward-headers-strategy: framework
 
 spring:
+  jmx:
+    enabled: false
   application:
     name: auth-service
+    admin:
+      enabled: false
   output:
     ansi:
       enabled: always

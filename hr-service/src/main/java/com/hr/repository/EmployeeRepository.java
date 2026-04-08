@@ -45,4 +45,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
 
     // Kiểm tra email đã tồn tại chưa.
     boolean existsByEmail(String email);
+
+    // Tìm nhân viên theo userId.
+    @EntityGraph(attributePaths = {"department", "position"})
+    Optional<Employee> findByUserId(Long userId);
 }

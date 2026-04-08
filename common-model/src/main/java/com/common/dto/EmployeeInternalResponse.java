@@ -1,4 +1,4 @@
-package com.auth.dto;
+package com.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,12 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserProfileResponse {
-    private String username;
-    private String email;
+public class EmployeeInternalResponse {
+    private Long userId;
     private String fullName;
     private String departmentName;
     private String positionName;
-    private boolean enabled;
-    private String roles;
 }
