@@ -12,6 +12,10 @@ public record DepartmentRequest(
 
         @Schema(description = "Mô tả phòng ban", example = "Quản lý hệ thống phần mềm và hạ tầng")
         @Size(max = 1000, message = "Mô tả tối đa 1000 ký tự")
-        String description
+        String description,
+
+        @Schema(description = "Trạng thái phòng ban", example = "ACTIVE")
+        @Size(max = 40, message = "Trạng thái tối đa 40 ký tự")
+        String status
 ) {
 }

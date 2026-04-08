@@ -40,7 +40,7 @@ public class DepartmentService {
 
     // Tìm kiếm phòng ban theo từ khoá và phân trang.
     @Transactional(readOnly = true)
-    public PageResponse<DepartmentResponse> search(String keyword, Pageable pageable) {
+    public PageResponse<DepartmentResponse> getList(String keyword, Pageable pageable) {
         var spec = DepartmentSpecifications.matches(keyword);
         Page<Department> page = departmentRepository.findAll(spec, pageable);
         return PageResponse.of(page.map(departmentMapper::toResponse));
@@ -66,6 +66,9 @@ public class DepartmentService {
 
         department.setName(request.name().trim());
         department.setDescription(request.description());
+        if (request.status() != null) {
+            department.setStatus(request.status());
+        }
         return departmentMapper.toResponse(departmentRepository.save(department));
     }
 

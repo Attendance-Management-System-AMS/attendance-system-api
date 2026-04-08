@@ -27,6 +27,9 @@ public class Department {
     @Column(length = 1000)
     private String description;
 
+    @Column(length = 40)
+    private String status;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -34,6 +37,9 @@ public class Department {
     void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+        if (status == null) {
+            status = "ACTIVE";
         }
     }
 }

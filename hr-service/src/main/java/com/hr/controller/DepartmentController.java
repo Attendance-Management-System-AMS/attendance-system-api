@@ -51,7 +51,7 @@ public class DepartmentController {
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) String keyword) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
-        return ApiResponse.success(departmentService.search(keyword, pageable));
+        return ApiResponse.success(departmentService.getList(keyword, pageable));
     }
 
     // Lấy chi tiết phòng ban theo ID.
