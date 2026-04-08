@@ -8,8 +8,6 @@ import com.hr.entity.Department;
 import com.hr.exception.ErrorCode;
 import com.hr.mapper.DepartmentMapper;
 import com.hr.repository.DepartmentRepository;
-import com.hr.repository.DepartmentSpecifications;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,19 +36,17 @@ public class DepartmentService {
         return departmentMapper.toResponse(saved);
     }
 
-    // Tìm kiếm phòng ban theo từ khoá và phân trang.
+    // Tìm kiếm phòng ban kèm số lượng nhân viên (sử dụng constructor expression trực tiếp).
     @Transactional(readOnly = true)
     public PageResponse<DepartmentResponse> getList(String keyword, Pageable pageable) {
-        var spec = DepartmentSpecifications.matches(keyword);
-        Page<Department> page = departmentRepository.findAll(spec, pageable);
-        return PageResponse.of(page.map(departmentMapper::toResponse));
+        return PageResponse.of(departmentRepository.findAllWithCount(keyword, pageable));
     }
 
-    // Lấy phòng ban theo ID.
+    // Lấy phòng ban kèm số lượng nhân viên theo ID.
+    @Transactional(readOnly = true)
     public DepartmentResponse getById(Long id) {
-        Department department = departmentRepository.findById(id)
+        return departmentRepository.findByIdWithCount(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
-        return departmentMapper.toResponse(department);
     }
 
     // Cập nhật thông tin phòng ban hiện có.

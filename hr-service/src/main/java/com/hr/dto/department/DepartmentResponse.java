@@ -7,5 +7,6 @@ public record DepartmentResponse(
                 String name,
                 String description,
                 String status,
+                Long totalEmployees,
                 LocalDateTime createdAt) {
 }
