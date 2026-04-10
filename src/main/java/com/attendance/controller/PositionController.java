@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/positions")
-@Tag(name = "HR - Chức vụ", description = "Quản lý chức vụ nhân sự")
+@Tag(name = "Chức vụ", description = "Quản lý chức vụ nhân sự")
 public class PositionController {
 
     private final PositionService positionService;

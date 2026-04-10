@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/attendance/schedule-templates")
 @RequiredArgsConstructor
-@Tag(name = "Chấm công - Mẫu lịch làm việc", description = "Quản lý mẫu lịch tuần để gán cho nhân viên")
+@Tag(name = "Mẫu lịch làm việc", description = "Quản lý mẫu lịch tuần để gán cho nhân viên")
 public class ScheduleTemplateController {
 
     private final ScheduleTemplateService templateService;

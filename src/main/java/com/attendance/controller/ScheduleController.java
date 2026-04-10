@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/attendance/schedules")
 @RequiredArgsConstructor
-@Tag(name = "Chấm công - Lịch làm việc", description = "Gán lịch làm việc cho nhân viên")
+@Tag(name = "Lịch làm việc", description = "Quản lý phân ca và gán lịch làm việc cho nhân viên")
 public class ScheduleController {
 
     private final ScheduleService scheduleService;

@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/attendance/holidays")
 @RequiredArgsConstructor
-@Tag(name = "Chấm công - Ngày nghỉ", description = "Quản lý ngày nghỉ lễ và nghỉ hưởng lương")
+@Tag(name = "Ngày nghỉ", description = "Quản lý ngày nghỉ lễ và nghỉ hưởng lương")
 public class HolidayController {
 
     private final HolidayService holidayService;

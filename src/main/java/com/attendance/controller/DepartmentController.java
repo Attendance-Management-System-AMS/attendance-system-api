@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/departments")
-@Tag(name = "HR - Phòng ban", description = "Quản lý danh mục phòng ban")
+@Tag(name = "Phòng ban", description = "Quản lý danh mục phòng ban")
 public class DepartmentController {
 
     private final DepartmentService departmentService;

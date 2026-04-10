@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/leaves")
-@Tag(name = "HR - Nghỉ phép", description = "Quản lý đơn nghỉ phép của nhân viên")
+@Tag(name = "Đơn từ & Nghỉ phép", description = "Quản lý đơn xin nghỉ và phê duyệt nghỉ phép")
 public class LeaveController {
 
     private final LeaveService leaveService;

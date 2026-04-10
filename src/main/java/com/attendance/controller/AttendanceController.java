@@ -20,7 +20,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/attendance")
 @RequiredArgsConstructor
-@Tag(name = "Chấm công - Check in/out", description = "Ghi nhận chấm công vào và ra")
+@Tag(name = "Chấm công & Bảng công", description = "Quản lý ghi nhận check-in/out và tra cứu lịch sử bảng công nhân viên")
 public class AttendanceController {
 
     private final AttendanceService attendanceService;

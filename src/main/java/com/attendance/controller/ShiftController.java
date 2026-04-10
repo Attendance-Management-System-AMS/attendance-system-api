@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/attendance/shifts")
 @RequiredArgsConstructor
-@Tag(name = "Chấm công - Ca làm", description = "Quản lý danh mục ca làm việc")
+@Tag(name = "Danh mục ca làm", description = "Quản lý các loại ca làm việc trong hệ thống")
 public class ShiftController {
 
     private final ShiftService shiftService;
