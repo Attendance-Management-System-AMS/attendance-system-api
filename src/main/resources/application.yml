@@ -5,6 +5,9 @@ server:
 spring:
   application:
     name: attendance-system
+  output:
+    ansi:
+      enabled: ALWAYS
   datasource:
     url: ${DB_URL:jdbc:postgresql://ep-rapid-thunder-aio4c6y7-pooler.c-4.us-east-1.aws.neon.tech/attendance_db?sslmode=require&channel_binding=require}
     username: ${DB_USERNAME:neondb_owner}

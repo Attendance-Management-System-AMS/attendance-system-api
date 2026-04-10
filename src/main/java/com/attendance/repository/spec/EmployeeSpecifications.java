@@ -1,4 +1,4 @@
-package com.attendance.repository;
+package com.attendance.repository.spec;
 
 import com.attendance.entity.Employee;
 import jakarta.persistence.criteria.Predicate;
@@ -44,7 +44,3 @@ public final class EmployeeSpecifications {
         };
     }
 }
-
-
-
-

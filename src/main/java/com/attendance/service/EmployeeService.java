@@ -17,7 +17,7 @@ import com.attendance.dto.response.EmployeeInternalResponse;
 import com.attendance.dto.response.HrEmployeeSnapshot;
 import com.attendance.repository.DepartmentRepository;
 import com.attendance.repository.EmployeeRepository;
-import com.attendance.repository.EmployeeSpecifications;
+import com.attendance.repository.spec.EmployeeSpecifications;
 import com.attendance.repository.PositionRepository;
 import com.attendance.util.FaceEmbeddingUtils;
 import java.util.List;

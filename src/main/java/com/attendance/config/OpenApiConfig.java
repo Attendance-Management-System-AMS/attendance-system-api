@@ -3,6 +3,7 @@ package com.attendance.config;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
@@ -23,6 +24,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info().title("Attendance Management System API").version("v1").description("Monolith API for AMS"))
                 .servers(List.of(localServer))
+                .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
                 .components(new Components()
                         .addSecuritySchemes("BearerAuth", new SecurityScheme()
                                 .name("BearerAuth")

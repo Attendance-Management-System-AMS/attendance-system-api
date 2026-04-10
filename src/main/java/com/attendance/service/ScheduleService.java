@@ -14,7 +14,7 @@ import com.attendance.entity.Shift;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.EmployeeScheduleMapper;
 import com.attendance.repository.EmployeeScheduleRepository;
-import com.attendance.repository.EmployeeScheduleSpecifications;
+import com.attendance.repository.spec.EmployeeScheduleSpecifications;
 import com.attendance.repository.ScheduleTemplateRepository;
 import com.attendance.repository.ShiftRepository;
 import com.attendance.util.ShiftUtils;

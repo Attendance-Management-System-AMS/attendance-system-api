@@ -16,7 +16,3 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
     // Lấy toàn bộ role và sắp xếp theo tên tăng dần.
     List<Role> findAllByOrderByRoleNameAsc();
 }
-
-
-
-

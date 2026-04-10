@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import com.attendance.dto.response.PageResponse;
 import org.springframework.data.domain.PageRequest;
@@ -39,24 +38,18 @@ public class ShiftController {
         return ApiResponse.success("Tạo ca làm thành công", response);
     }
 
-    // Lấy toàn bộ danh sách ca làm.
+    // Lấy danh sách ca làm việc (có phân trang và tìm kiếm).
     @GetMapping
-    @Operation(summary = "Lấy danh sách ca làm")
-    public ApiResponse<List<ShiftResponse>> getShifts() {
-        return ApiResponse.success("Lấy danh sách ca làm thành công", shiftService.getAll());
-    }
-
-    // Tìm kiếm ca làm theo từ khoá và phân trang.
-    @GetMapping("/search")
-    @Operation(summary = "Tìm kiếm ca làm (filter + paging)")
-    public ApiResponse<PageResponse<ShiftResponse>> search(
+    @Operation(summary = "Lấy danh sách ca làm (phân trang, lọc)",
+            description = "Lọc theo từ khoá tên. Nếu không truyền page/size sẽ dùng giá trị mặc định.")
+    public ApiResponse<PageResponse<ShiftResponse>> getShifts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "startTime") String sort,
             @RequestParam(defaultValue = "asc") String sortDir,
             @Parameter(description = "Từ khoá theo tên ca làm") @RequestParam(value = "keyword", required = false) String keyword) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
-        return ApiResponse.success("Tìm kiếm ca làm thành công", shiftService.search(keyword, pageable));
+        return ApiResponse.success("Lấy danh sách ca làm thành công", shiftService.search(keyword, pageable));
     }
 
     // Lấy chi tiết ca làm theo ID.

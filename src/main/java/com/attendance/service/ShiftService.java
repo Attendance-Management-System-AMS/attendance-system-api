@@ -9,7 +9,7 @@ import com.attendance.entity.Shift;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.ShiftMapper;
 import com.attendance.repository.ShiftRepository;
-import com.attendance.repository.ShiftSpecifications;
+import com.attendance.repository.spec.ShiftSpecifications;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -13,7 +13,7 @@ import com.attendance.mapper.LeaveMapper;
 import com.attendance.mapper.LeaveTypeMapper;
 import com.attendance.repository.EmployeeRepository;
 import com.attendance.repository.LeaveRequestRepository;
-import com.attendance.repository.LeaveSpecifications;
+import com.attendance.repository.spec.LeaveSpecifications;
 import com.attendance.repository.LeaveTypeRepository;
 import java.time.temporal.ChronoUnit;
 import java.util.List;

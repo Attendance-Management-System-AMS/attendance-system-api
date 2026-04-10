@@ -10,7 +10,7 @@ import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.PositionMapper;
 import com.attendance.repository.DepartmentRepository;
 import com.attendance.repository.PositionRepository;
-import com.attendance.repository.PositionSpecifications;
+import com.attendance.repository.spec.PositionSpecifications;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;

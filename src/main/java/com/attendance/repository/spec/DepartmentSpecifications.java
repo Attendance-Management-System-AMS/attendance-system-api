@@ -1,4 +1,4 @@
-package com.attendance.repository;
+package com.attendance.repository.spec;
 
 import com.attendance.entity.Department;
 import jakarta.persistence.criteria.Predicate;
@@ -33,7 +33,3 @@ public final class DepartmentSpecifications {
         };
     }
 }
-
-
-
-

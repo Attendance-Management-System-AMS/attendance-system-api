@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import com.attendance.dto.response.PageResponse;
 import org.springframework.data.domain.PageRequest;
@@ -33,17 +32,11 @@ public class HolidayController {
 
     private final HolidayService holidayService;
 
-    // Lấy toàn bộ danh sách ngày nghỉ.
+    // Lấy danh sách ngày nghỉ (có phân trang và bộ lọc).
     @GetMapping
-    @Operation(summary = "Lấy danh sách ngày nghỉ")
-    public ApiResponse<List<HolidayResponse>> getHolidays() {
-        return ApiResponse.success("Lấy danh sách ngày nghỉ thành công", holidayService.getAll());
-    }
-
-    // Tìm kiếm ngày nghỉ theo bộ lọc và phân trang.
-    @GetMapping("/search")
-    @Operation(summary = "Tìm kiếm ngày nghỉ (filter + paging)")
-    public ApiResponse<PageResponse<HolidayResponse>> search(
+    @Operation(summary = "Lấy danh sách ngày nghỉ (phân trang, lọc)",
+            description = "Lọc theo tên, trạng thái lương và khoảng thời gian.")
+    public ApiResponse<PageResponse<HolidayResponse>> getHolidays(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "fromDate") String sort,
@@ -54,7 +47,7 @@ public class HolidayController {
             @Parameter(description = "Đến ngày (yyyy-MM-dd)") @RequestParam(value = "toDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
         return ApiResponse.success(
-                "Tìm kiếm ngày nghỉ thành công",
+                "Lấy danh sách ngày nghỉ thành công",
                 holidayService.search(keyword, isPaid, fromDate, toDate, pageable));
     }
 

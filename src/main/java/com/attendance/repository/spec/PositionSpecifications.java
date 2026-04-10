@@ -1,4 +1,4 @@
-package com.attendance.repository;
+package com.attendance.repository.spec;
 
 import com.attendance.entity.Position;
 import jakarta.persistence.criteria.Predicate;
@@ -32,7 +32,3 @@ public final class PositionSpecifications {
         };
     }
 }
-
-
-
-

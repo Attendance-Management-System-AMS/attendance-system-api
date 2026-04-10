@@ -1,4 +1,4 @@
-package com.attendance.repository;
+package com.attendance.repository.spec;
 
 import com.attendance.entity.Employee;
 import com.attendance.entity.LeaveRequest;
@@ -56,7 +56,3 @@ public final class LeaveSpecifications {
         };
     }
 }
-
-
-
-

@@ -1,4 +1,4 @@
-package com.attendance.repository;
+package com.attendance.repository.spec;
 
 import com.attendance.entity.Shift;
 import java.util.ArrayList;
@@ -24,7 +24,3 @@ public final class ShiftSpecifications {
         };
     }
 }
-
-
-
-

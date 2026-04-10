@@ -8,7 +8,7 @@ import com.attendance.entity.Holiday;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.HolidayMapper;
 import com.attendance.repository.HolidayRepository;
-import com.attendance.repository.HolidaySpecifications;
+import com.attendance.repository.spec.HolidaySpecifications;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;

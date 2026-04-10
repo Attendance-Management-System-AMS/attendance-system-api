@@ -11,7 +11,7 @@ import com.attendance.entity.Shift;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.AttendanceMapper;
 import com.attendance.repository.AttendanceRepository;
-import com.attendance.repository.AttendanceSpecifications;
+import com.attendance.repository.spec.AttendanceSpecifications;
 import com.attendance.repository.EmployeeScheduleRepository;
 import com.attendance.exception.AppException;
 import org.springframework.data.domain.Page;

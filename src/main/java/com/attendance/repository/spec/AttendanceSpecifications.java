@@ -1,4 +1,4 @@
-package com.attendance.repository;
+package com.attendance.repository.spec;
 
 import com.attendance.entity.Attendance;
 import java.time.LocalDate;
@@ -47,7 +47,3 @@ public final class AttendanceSpecifications {
         };
     }
 }
-
-
-
-
