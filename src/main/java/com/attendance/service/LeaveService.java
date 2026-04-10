@@ -71,12 +71,6 @@ public class LeaveService {
         return leaveMapper.toResponse(saved);
     }
 
-    // Lấy danh sách đơn nghỉ của riêng một nhân viên.
-    @Transactional(readOnly = true)
-    public PageResponse<LeaveResponse> searchByEmployee(Long employeeId, Pageable pageable) {
-        return search(null, employeeId, null, pageable);
-    }
-
     // Tìm kiếm đơn nghỉ theo từ khoá, nhân viên và trạng thái.
     @Transactional(readOnly = true)
     public PageResponse<LeaveResponse> search(String keyword, Long employeeId, String status, Pageable pageable) {

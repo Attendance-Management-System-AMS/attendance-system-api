@@ -16,7 +16,6 @@ import com.attendance.repository.EmployeeScheduleRepository;
 import com.attendance.exception.AppException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -137,32 +135,11 @@ public class AttendanceService {
         return attendanceMapper.toResponse(attendanceRepository.save(attendance));
     }
 
-    // Lấy toàn bộ lịch sử chấm công của nhân viên.
-    public List<AttendanceResponse> getByEmployee(Long employeeId) {
-        return attendanceRepository.findAll(
-                        AttendanceSpecifications.matches(employeeId, null, null, null, null),
-                        Sort.by(Sort.Direction.DESC, "workDate"))
-                .stream()
-                .map(attendanceMapper::toResponse)
-                .toList();
-    }
-
     // Lấy bản ghi chấm công của nhân viên trong ngày hôm nay.
     public AttendanceResponse getTodayByEmployee(Long employeeId) {
         return attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
                 .map(attendanceMapper::toResponse)
                 .orElse(null);
-    }
-
-    // Lấy danh sách chấm công theo ngày được yêu cầu hoặc ngày hiện tại.
-    public List<AttendanceResponse> getAttendancesByDate(LocalDate date) {
-        LocalDate workDate = (date != null) ? date : LocalDate.now();
-        return attendanceRepository.findAll(
-                        AttendanceSpecifications.matches(null, workDate, null, null, null),
-                        Sort.by(Sort.Direction.ASC, "employeeId"))
-                .stream()
-                .map(attendanceMapper::toResponse)
-                .toList();
     }
 
     // Tìm kiếm chấm công theo bộ lọc và phân trang.

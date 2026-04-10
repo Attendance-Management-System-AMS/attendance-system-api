@@ -33,6 +33,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
+    private final com.attendance.service.EmployeeService employeeService;
+
+    // Lấy lịch làm việc của tôi.
+    @GetMapping("/me")
+    @Operation(summary = "Lịch làm việc của tôi", description = "Lấy toàn bộ lịch làm việc của nhân viên đang đăng nhập")
+    public ApiResponse<List<EmployeeScheduleResponse>> getMySchedule() {
+        Long employeeId = employeeService.getCurrentEmployeeId();
+        return ApiResponse.success("Lấy lịch làm việc của tôi thành công", 
+                scheduleService.getByEmployee(employeeId));
+    }
 
     // Gán lịch làm việc cho nhân viên.
     @PostMapping
@@ -54,14 +64,6 @@ public class ScheduleController {
     @Operation(summary = "Áp dụng mẫu lịch (template) cho nhân viên")
     public ApiResponse<List<EmployeeScheduleResponse>> applyTemplate(@Valid @RequestBody ApplyTemplateRequest request) {
         return ApiResponse.success("Áp dụng mẫu lịch thành công", scheduleService.applyTemplate(request));
-    }
-
-    // Lấy toàn bộ lịch làm việc của một nhân viên.
-    @GetMapping("/employee/{employeeId}")
-    @Operation(summary = "Lấy lịch làm việc của nhân viên")
-    public ApiResponse<List<EmployeeScheduleResponse>> getByEmployee(
-            @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
-        return ApiResponse.success("Lấy lịch làm việc thành công", scheduleService.getByEmployee(employeeId));
     }
 
     // Tìm kiếm lịch làm theo bộ lọc và phân trang.

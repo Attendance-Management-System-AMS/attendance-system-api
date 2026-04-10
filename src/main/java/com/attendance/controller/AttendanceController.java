@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.LocalDate;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.PageRequest;
@@ -53,34 +52,46 @@ public class AttendanceController {
         return ApiResponse.success("Check-out thành công", attendanceService.checkOut(employeeId));
     }
 
-    // Lấy toàn bộ lịch sử chấm công của một nhân viên.
-    @GetMapping("/employee/{employeeId}")
-    @Operation(summary = "Lịch sử chấm công của nhân viên", description = "Trả về danh sách bản ghi chấm công sắp xếp theo ngày giảm dần")
-    public ApiResponse<List<AttendanceResponse>> getByEmployee(
-            @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
-        return ApiResponse.success("Lấy lịch sử chấm công thành công", attendanceService.getByEmployee(employeeId));
+    // Lấy bảng công của tôi (người dùng đang đăng nhập).
+    @GetMapping("/me")
+    @Operation(summary = "Bảng công của tôi", description = "Lấy lịch sử chấm công của nhân viên đang đăng nhập")
+    public ApiResponse<PageResponse<AttendanceResponse>> getMyAttendance(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "workDate") String sort,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @Parameter(description = "Ngày chấm công chính xác (yyyy-MM-dd)") @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @Parameter(description = "Từ ngày (yyyy-MM-dd)") @RequestParam(value = "fromDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @Parameter(description = "Đến ngày (yyyy-MM-dd)") @RequestParam(value = "toDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @Parameter(description = "Trạng thái") @RequestParam(value = "status", required = false) String status) {
+        Long employeeId = employeeService.getCurrentEmployeeId();
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
+        return ApiResponse.success(
+                "Lấy bảng công của tôi thành công",
+                attendanceService.search(employeeId, date, fromDate, toDate, status, pageable));
+    }
+
+    // Lấy chấm công hôm nay của tôi.
+    @GetMapping("/today/me")
+    @Operation(summary = "Chấm công hôm nay của tôi")
+    public ApiResponse<AttendanceResponse> getMyTodayAttendance() {
+        Long employeeId = employeeService.getCurrentEmployeeId();
+        return ApiResponse.success("Lấy chấm công hôm nay thành công",
+                attendanceService.getTodayByEmployee(employeeId));
     }
 
     // Lấy bản ghi chấm công của nhân viên trong ngày hôm nay.
     @GetMapping("/employee/{employeeId}/today")
-    @Operation(summary = "Chấm công hôm nay của nhân viên")
+    @Operation(summary = "Chấm công hôm nay của nhân viên", description = "Vẫn giữ lại để hỗ trợ check nhanh cho admin")
     public ApiResponse<AttendanceResponse> getTodayAttendance(
             @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
         return ApiResponse.success("Lấy chấm công hôm nay thành công",
                 attendanceService.getTodayByEmployee(employeeId));
     }
 
-    // Lấy danh sách chấm công theo ngày được truyền vào hoặc ngày hiện tại.
-    @GetMapping("/today")
-    @Operation(summary = "Danh sách chấm công hôm nay")
-    public ApiResponse<List<AttendanceResponse>> getTodayAttendances(
-            @Parameter(description = "Ngày cần lấy chấm công (yyyy-MM-dd)") @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        return ApiResponse.success("Lấy danh sách chấm công thành công", attendanceService.getAttendancesByDate(date));
-    }
-
     // Tìm kiếm chấm công theo bộ lọc và phân trang.
-    @GetMapping("/search")
-    @Operation(summary = "Tìm kiếm chấm công (filter + paging)")
+    @GetMapping
+    @Operation(summary = "Tìm kiếm chấm công (phân trang, lọc)")
     public ApiResponse<PageResponse<AttendanceResponse>> search(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -96,6 +107,8 @@ public class AttendanceController {
                 "Tìm kiếm chấm công thành công",
                 attendanceService.search(employeeId, date, fromDate, toDate, status, pageable));
     }
+
+    private final com.attendance.service.EmployeeService employeeService;
 }
 
 

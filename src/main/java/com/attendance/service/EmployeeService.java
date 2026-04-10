@@ -11,6 +11,7 @@ import com.attendance.dto.response.EmployeeResponse;
 import com.attendance.entity.Department;
 import com.attendance.entity.Employee;
 import com.attendance.entity.Position;
+import com.attendance.entity.User;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.EmployeeMapper;
 import com.attendance.dto.response.EmployeeInternalResponse;
@@ -19,11 +20,14 @@ import com.attendance.repository.DepartmentRepository;
 import com.attendance.repository.EmployeeRepository;
 import com.attendance.repository.spec.EmployeeSpecifications;
 import com.attendance.repository.PositionRepository;
+import com.attendance.repository.UserRepository;
 import com.attendance.util.FaceEmbeddingUtils;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +37,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
+    private final UserRepository userRepository;
     private final EmployeeMapper employeeMapper;
     private final ObjectMapper objectMapper;
     private final double faceMatchDistanceThreshold;
@@ -41,15 +46,41 @@ public class EmployeeService {
     public EmployeeService(EmployeeRepository employeeRepository,
                            DepartmentRepository departmentRepository,
                            PositionRepository positionRepository,
+                           UserRepository userRepository,
                            EmployeeMapper employeeMapper,
                            ObjectMapper objectMapper,
                            @Value("${app.face-match.distance-threshold:0.55}") double faceMatchDistanceThreshold) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.positionRepository = positionRepository;
+        this.userRepository = userRepository;
         this.employeeMapper = employeeMapper;
         this.objectMapper = objectMapper;
         this.faceMatchDistanceThreshold = faceMatchDistanceThreshold;
+    }
+
+    // Lấy ID nhân viên hiện tại đang đăng nhập.
+    public Long getCurrentEmployeeId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Bạn chưa đăng nhập");
+        }
+
+        String identifier = authentication.getName(); // Đây là ID (subject) hoặc username tùy theo JWT
+        
+        User user;
+        // Kiểm tra xem identifier có phải là ID số không (theo logic trong AuthService)
+        if (identifier.chars().allMatch(Character::isDigit)) {
+            user = userRepository.findById(Long.parseLong(identifier))
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        } else {
+            user = userRepository.findByUsername(identifier)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        }
+
+        return employeeRepository.findByUserId(user.getId())
+                .map(Employee::getId)
+                .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND, "Không tìm thấy hồ sơ nhân viên cho tài khoản này"));
     }
 
     // Tạo mới hồ sơ nhân viên sau khi kiểm tra trùng mã và email.

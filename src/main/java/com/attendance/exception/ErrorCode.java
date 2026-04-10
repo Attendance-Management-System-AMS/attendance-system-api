@@ -10,6 +10,7 @@ public enum ErrorCode implements ErrorCodeContract {
     RESOURCE_NOT_FOUND(1003, "Không tìm thấy dữ liệu", HttpStatus.NOT_FOUND),
     FORBIDDEN(1004, "Không có quyền truy cập", HttpStatus.FORBIDDEN),
     UNAUTHORIZED(1005, "Chưa đăng nhập", HttpStatus.UNAUTHORIZED),
+    USER_NOT_FOUND(1006, "Không tìm thấy tài khoản", HttpStatus.NOT_FOUND),
 
     DEPARTMENT_NOT_FOUND(2001, "Không tìm thấy phòng ban", HttpStatus.NOT_FOUND),
     POSITION_NOT_FOUND(2002, "Không tìm thấy chức vụ", HttpStatus.NOT_FOUND),

@@ -29,18 +29,54 @@ import org.springframework.web.bind.annotation.RestController;
 public class LeaveController {
 
     private final LeaveService leaveService;
+    private final com.attendance.service.EmployeeService employeeService;
 
     // Khởi tạo controller với service xử lý đơn nghỉ.
-    public LeaveController(LeaveService leaveService) {
+    public LeaveController(LeaveService leaveService, com.attendance.service.EmployeeService employeeService) {
         this.leaveService = leaveService;
+        this.employeeService = employeeService;
     }
 
-    // Tạo mới đơn xin nghỉ cho nhân viên.
+    // Lấy danh sách đơn nghỉ của tôi.
+    @GetMapping("/me")
+    @Operation(summary = "Đơn từ của tôi", description = "Lấy lịch sử đơn xin nghỉ của nhân viên đang đăng nhập")
+    public ApiResponse<PageResponse<LeaveResponse>> getMyLeaves(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String keyword,
+            @Parameter(description = "Trạng thái đơn (không bắt buộc)")
+            @RequestParam(required = false) String status) {
+        Long employeeId = employeeService.getCurrentEmployeeId();
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
+        return ApiResponse.success("Lấy đơn từ của tôi thành công", 
+                leaveService.search(keyword, employeeId, status, pageable));
+    }
+
+    // Tạo đơn xin nghỉ cho chính tôi.
+    @PostMapping("/me")
+    @Operation(summary = "Tạo đơn xin nghỉ cho chính mình")
+    public ApiResponse<LeaveResponse> createMyRequest(@Valid @RequestBody LeaveRequestRecord request) {
+        Long employeeId = employeeService.getCurrentEmployeeId();
+        // Ghi đè employeeId trong request bằng ID thực tế của user đang đăng nhập
+        LeaveRequestRecord secureRequest = new LeaveRequestRecord(
+                employeeId,
+                request.leaveTypeCode(),
+                request.fromDate(),
+                request.toDate(),
+                request.totalDays(),
+                request.reason());
+        LeaveResponse response = leaveService.createRequest(secureRequest);
+        return ApiResponse.success(201, "Gửi đơn xin nghỉ thành công", response);
+    }
+
+    // Tạo mới đơn xin nghỉ cho nhân viên (Dành cho HR/Manager).
     @PostMapping
-    @Operation(summary = "Tạo đơn xin nghỉ")
+    @Operation(summary = "Tạo đơn xin nghỉ (HR/Manager)")
     public ApiResponse<LeaveResponse> createRequest(@Valid @RequestBody LeaveRequestRecord request) {
         LeaveResponse response = leaveService.createRequest(request);
-        return ApiResponse.success(201, "Gửi đơn xin nghỉ thành công", response);
+        return ApiResponse.success(201, "Tạo đơn xin nghỉ thành công", response);
     }
 
     // Lấy danh sách đơn nghỉ theo bộ lọc và phân trang.
@@ -66,19 +102,6 @@ public class LeaveController {
     public ApiResponse<LeaveResponse> getById(
             @Parameter(description = "ID đơn nghỉ") @PathVariable Long id) {
         return ApiResponse.success(leaveService.getById(id));
-    }
-
-    // Lấy danh sách đơn nghỉ của riêng một nhân viên.
-    @GetMapping("/employee/{employeeId}")
-    @Operation(summary = "Lấy danh sách đơn nghỉ theo nhân viên (phân trang)")
-    public ApiResponse<PageResponse<LeaveResponse>> getByEmployee(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "createdAt") String sort,
-            @RequestParam(defaultValue = "desc") String sortDir,
-            @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
-        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sort));
-        return ApiResponse.success(leaveService.searchByEmployee(employeeId, pageable));
     }
 
     // Lấy danh sách các loại nghỉ đang dùng.
