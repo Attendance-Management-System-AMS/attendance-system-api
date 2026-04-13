@@ -35,6 +35,8 @@ jwt:
 app:
   face-match:
     distance-threshold: ${FACE_MATCH_DISTANCE_THRESHOLD:0.55}
+  attendance:
+    min-checkout-after-minutes: ${MIN_CHECKOUT_AFTER_MINUTES:30}
 
 springdoc:
   api-docs:
