@@ -21,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,9 @@ public class AttendanceService {
     private final AttendanceLogRepository attendanceLogRepository;
     private final EmployeeService employeeService;
     private final AttendanceMapper attendanceMapper;
+
+    @Value("${app.attendance.min-checkout-after-minutes:30}")
+    private long minCheckoutAfterMinutes;
 
     // Check-in nhân viên theo ID và xác thực nhân viên tồn tại trong HR.
     @Transactional
@@ -72,7 +76,11 @@ public class AttendanceService {
         } else if (existing.getCheckInTime() == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Hôm nay không có lượt check-in hợp lệ để check-out");
         } else if (existing.getCheckOutTime() == null) {
-            base = performCheckOut(employeeId);
+            if (isCheckoutTooSoon(existing, LocalDateTime.now())) {
+                base = attendanceMapper.toResponse(existing);
+            } else {
+                base = performCheckOut(employeeId);
+            }
         } else {
             throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đã hoàn tất chấm công hôm nay");
         }
@@ -178,6 +186,12 @@ public class AttendanceService {
         }
 
         LocalDateTime now = LocalDateTime.now();
+        if (isCheckoutTooSoon(attendance, now)) {
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
+                    "Bạn vừa check-in, vui lòng chờ ít nhất " + minCheckoutAfterMinutes + " phút trước khi check-out");
+        }
+
         attendance.setCheckOutTime(now);
 
         Shift shift = getTodayShift(employeeId, today);
@@ -254,6 +268,13 @@ public class AttendanceService {
                 .deviceId("WEB")
                 .build();
         attendanceLogRepository.save(log);
+    }
+
+    private boolean isCheckoutTooSoon(Attendance attendance, LocalDateTime now) {
+        if (minCheckoutAfterMinutes <= 0 || attendance.getCheckInTime() == null) {
+            return false;
+        }
+        return now.isBefore(attendance.getCheckInTime().plusMinutes(minCheckoutAfterMinutes));
     }
 
     private int calculateExpectedMinutes(Shift shift) {
