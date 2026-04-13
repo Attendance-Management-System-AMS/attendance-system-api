@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/departments")
 @Tag(name = "Phòng ban", description = "Quản lý danh mục phòng ban")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class DepartmentController {
 
     private final DepartmentService departmentService;
@@ -81,7 +83,6 @@ public class DepartmentController {
         return ApiResponse.success(200, "Xóa phòng ban thành công", null);
     }
 }
-
 
 
 

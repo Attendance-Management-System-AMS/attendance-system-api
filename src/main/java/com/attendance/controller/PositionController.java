@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/positions")
 @Tag(name = "Chức vụ", description = "Quản lý chức vụ nhân sự")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class PositionController {
 
     private final PositionService positionService;
@@ -83,7 +85,6 @@ public class PositionController {
         return ApiResponse.success(200, "Xóa chức vụ thành công", null);
     }
 }
-
 
 
 

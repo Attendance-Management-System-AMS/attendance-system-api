@@ -1,6 +1,8 @@
 package com.attendance.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
@@ -15,9 +17,9 @@ public record BulkScheduleRequest(
         @NotNull(message = "Mã ca làm là bắt buộc")
         Long shiftId,
 
-        @Schema(description = "Danh sách các thứ trong tuần (2-8, với 8 là Chủ nhật)", example = "[2, 3, 4, 5, 6]")
+        @Schema(description = "Danh sách các thứ trong tuần (1-7, 1=Thứ 2, 7=Chủ nhật)", example = "[1, 2, 3, 4, 5]")
         @NotEmpty(message = "Danh sách ngày trong tuần không được để trống")
-        List<Integer> daysOfWeek,
+        List<@Min(value = 1, message = "Thứ trong tuần phải từ 1 đến 7") @Max(value = 7, message = "Thứ trong tuần phải từ 1 đến 7") Integer> daysOfWeek,
 
         @Schema(description = "Ngày bắt đầu áp dụng", example = "2026-04-01")
         @NotNull(message = "Ngày hiệu lực là bắt buộc")

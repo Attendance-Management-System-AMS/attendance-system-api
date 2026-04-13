@@ -14,6 +14,7 @@ import com.attendance.dto.response.PageResponse;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/attendance/holidays")
 @RequiredArgsConstructor
 @Tag(name = "Ngày nghỉ", description = "Quản lý ngày nghỉ lễ và nghỉ hưởng lương")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class HolidayController {
 
     private final HolidayService holidayService;
@@ -85,6 +87,5 @@ public class HolidayController {
         return ApiResponse.success("Xóa ngày nghỉ thành công", null);
     }
 }
-
 
 

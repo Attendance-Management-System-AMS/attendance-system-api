@@ -42,8 +42,8 @@ public class ShiftUtils {
     }
 
     private static long getMinutesFromWeekStart(Integer dayOfWeek, LocalTime time) {
-        // Quy ước: Thứ 2 (2) là ngày 0, Thứ 3 (3) là ngày 1...
-        return (long)(dayOfWeek - 2) * 1440 + time.getHour() * 60 + time.getMinute();
+        // Quy ước: Thứ 2 (1) là ngày 0, Chủ nhật (7) là ngày 6.
+        return (long)(dayOfWeek - 1) * 1440 + time.getHour() * 60 + time.getMinute();
     }
 
     private static boolean isOvernight(Shift shift) {

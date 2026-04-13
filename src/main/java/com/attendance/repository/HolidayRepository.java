@@ -12,6 +12,8 @@ public interface HolidayRepository extends JpaRepository<Holiday, Long>, JpaSpec
 
     List<Holiday> findByFromDateLessThanEqualAndToDateGreaterThanEqual(LocalDate fromDate, LocalDate toDate);
 
+    boolean existsByFromDateLessThanEqualAndToDateGreaterThanEqual(LocalDate fromDate, LocalDate toDate);
+
     List<Holiday> findByIsPaidTrue();
 }
 

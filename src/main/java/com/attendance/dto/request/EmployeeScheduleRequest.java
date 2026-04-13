@@ -15,10 +15,10 @@ public record EmployeeScheduleRequest(
         @NotNull(message = "Mã ca làm là bắt buộc")
         Long shiftId,
 
-        @Schema(description = "Thứ trong tuần (2-8)", example = "2")
+        @Schema(description = "Thứ trong tuần (1-7, 1=Thứ 2, 7=Chủ nhật)", example = "1")
         @NotNull(message = "Thứ trong tuần là bắt buộc")
-        @Min(value = 2, message = "Thứ trong tuần phải từ 2 đến 8")
-        @Max(value = 8, message = "Thứ trong tuần phải từ 2 đến 8")
+        @Min(value = 1, message = "Thứ trong tuần phải từ 1 đến 7")
+        @Max(value = 7, message = "Thứ trong tuần phải từ 1 đến 7")
         Integer dayOfWeek,
 
         @Schema(description = "Lịch còn hiệu lực hay không", example = "true")

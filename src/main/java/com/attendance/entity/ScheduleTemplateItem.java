@@ -19,7 +19,7 @@ public class ScheduleTemplateItem {
     private ScheduleTemplate template;
 
     @Column(name = "day_of_week", nullable = false)
-    private Integer dayOfWeek; // 2-8, 8 is Sunday
+    private Integer dayOfWeek; // 1-7, 1 is Monday, 7 is Sunday
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shift_id", nullable = false)

@@ -57,6 +57,16 @@ public class LeaveService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Ngày kết thúc phải sau ngày bắt đầu");
         }
 
+        boolean overlapped = leaveRequestRepository
+                .existsByEmployeeIdAndStatusInAndFromDateLessThanEqualAndToDateGreaterThanEqual(
+                        employee.getId(),
+                        List.of("PENDING", "APPROVED"),
+                        request.toDate(),
+                        request.fromDate());
+        if (overlapped) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Khoảng ngày nghỉ bị trùng với đơn đang chờ duyệt hoặc đã duyệt");
+        }
+
         LeaveRequest leaveRequest = new LeaveRequest();
         leaveRequest.setEmployee(employee);
         leaveRequest.setLeaveType(leaveType);
@@ -140,7 +150,6 @@ public class LeaveService {
                 .toList();
     }
 }
-
 
 
 

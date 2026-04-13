@@ -9,12 +9,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/attendance/schedule-templates")
 @RequiredArgsConstructor
 @Tag(name = "Mẫu lịch làm việc", description = "Quản lý mẫu lịch tuần để gán cho nhân viên")
+@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class ScheduleTemplateController {
 
     private final ScheduleTemplateService templateService;
@@ -52,6 +54,5 @@ public class ScheduleTemplateController {
         return ApiResponse.success("Xóa mẫu lịch thành công", null);
     }
 }
-
 
 

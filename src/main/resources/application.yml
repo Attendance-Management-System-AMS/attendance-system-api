@@ -9,9 +9,9 @@ spring:
     ansi:
       enabled: ALWAYS
   datasource:
-    url: ${DB_URL:jdbc:postgresql://ep-rapid-thunder-aio4c6y7-pooler.c-4.us-east-1.aws.neon.tech/attendance_db?sslmode=require&channel_binding=require}
-    username: ${DB_USERNAME:neondb_owner}
-    password: ${DB_PASSWORD:npg_0NfvBHSXDru8}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/attendance_db}
+    username: ${DB_USERNAME:attendance}
+    password: ${DB_PASSWORD:attendance}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -27,7 +27,7 @@ spring:
     out-of-order: true
 
 jwt:
-  secret: ${JWT_SECRET:AMS_DEFAULT_SECRET_KEY_PLEASE_CHANGE_IN_PROD_32CHARS}
+  secret: ${JWT_SECRET:AMS_DEV_ONLY_SECRET_KEY_CHANGE_FOR_DEPLOYMENT_32CHARS}
   expiration: ${JWT_EXPIRATION:86400000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
   issuer: ${JWT_ISSUER:attendance-system}
