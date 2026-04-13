@@ -17,6 +17,9 @@ gen/
 mvnw
 mvnw.cmd
 .mvn/wrapper/maven-wrapper.jar
+!.mvn/
+!.mvn/wrapper/
+!.mvn/wrapper/maven-wrapper.properties
 
 ### Hệ điều hành & Log ###
 bin/
@@ -30,3 +33,4 @@ Thumbs.db
 ### Secrets/Environment ###
 .env
 .env.*
+!.env.example
