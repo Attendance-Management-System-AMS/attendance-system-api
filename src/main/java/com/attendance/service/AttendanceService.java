@@ -58,22 +58,27 @@ public class AttendanceService {
         HrEmployeeSnapshot hr = requireEmployee(employeeId);
         Attendance existing = attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now()).orElse(null);
 
-        AttendanceResponse base;
+        return withEmployeeBrief(resolveScanResult(employeeId, existing), hr);
+    }
+
+    private AttendanceResponse resolveScanResult(Long employeeId, Attendance existing) {
         if (existing == null) {
-            base = performCheckIn(employeeId);
-        } else if (existing.getCheckInTime() == null) {
+            return performCheckIn(employeeId);
+        }
+
+        if (existing.getCheckInTime() == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Hôm nay không có lượt check-in hợp lệ để check-out");
-        } else if (existing.getCheckOutTime() == null) {
-            if (isCheckoutTooSoon(existing, LocalDateTime.now())) {
-                base = attendanceMapper.toResponse(existing);
-            } else {
-                base = performCheckOut(employeeId);
-            }
-        } else {
+        }
+
+        if (existing.getCheckOutTime() != null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đã hoàn tất chấm công hôm nay");
         }
 
-        return withEmployeeBrief(base, hr);
+        if (isCheckoutTooSoon(existing, LocalDateTime.now())) {
+            return attendanceMapper.toResponse(existing);
+        }
+
+        return performCheckOut(employeeId);
     }
 
     private Long matchEmployeeIdByFace(FaceDescriptorRequest request) {
