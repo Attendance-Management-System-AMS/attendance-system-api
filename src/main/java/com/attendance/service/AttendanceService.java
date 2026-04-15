@@ -52,18 +52,6 @@ public class AttendanceService {
         return performCheckIn(employeeId);
     }
 
-    /**
-     * Nhận descriptor face-api.js từ FE, HR so khớp → check-in và trả kèm snapshot nhân viên (một lần gọi HR lấy profile).
-     */
-    // Check-in bằng khuôn mặt sau khi HR xác nhận danh tính.
-    @Transactional
-    public AttendanceResponse checkInByFace(FaceDescriptorRequest request) {
-        Long employeeId = matchEmployeeIdByFace(request);
-        HrEmployeeSnapshot hr = requireEmployee(employeeId);
-        AttendanceResponse base = performCheckIn(employeeId);
-        return withEmployeeBrief(base, hr);
-    }
-
     @Transactional
     public AttendanceResponse scanByFace(FaceDescriptorRequest request) {
         Long employeeId = matchEmployeeIdByFace(request);

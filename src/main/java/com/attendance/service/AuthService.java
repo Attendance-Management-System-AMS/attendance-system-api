@@ -124,8 +124,13 @@ public class AuthService {
     // Lấy thông tin tài khoản đang đăng nhập từ SecurityContext.
     public UserProfileResponse getCurrentUser() {
         User user = getCurrentAuthenticatedUser();
-        
+
+        return buildUserProfile(user);
+    }
+
+    private UserProfileResponse buildUserProfile(User user) {
         UserProfileResponse.UserProfileResponseBuilder builder = UserProfileResponse.builder()
+                .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .enabled(user.isEnabled())
@@ -250,6 +255,7 @@ public class AuthService {
                 .tokenType("Bearer")
                 .accessTokenExpiresIn(jwtService.getAccessTokenExpirationSeconds())
                 .refreshTokenExpiresIn(jwtService.getRefreshTokenExpirationSeconds())
+                .user(buildUserProfile(user))
                 .build();
     }
     // Tìm user theo subject token kiểu mới hoặc fallback theo username token cũ.

@@ -35,18 +35,6 @@ public class AttendanceController {
         return ApiResponse.success("Check-in thành công", attendanceService.checkIn(employeeId));
     }
 
-    /**
-     * Đặt tên path tránh trùng với {@code /check-in/{employeeId}} (segment
-     * {@code face} không bị hiểu là ID).
-     */
-    // Ghi nhận check-in bằng khuôn mặt.
-    @PostMapping("/check-in-by-face")
-    @Operation(summary = "Check-in bằng descriptor khuôn mặt (face-api.js 128 float)")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER','ROLE_EMPLOYEE')")
-    public ApiResponse<AttendanceResponse> checkInByFace(@Valid @RequestBody FaceDescriptorRequest request) {
-        return ApiResponse.success("Check-in thành công", attendanceService.checkInByFace(request));
-    }
-
     @PostMapping("/scan-by-face")
     @Operation(summary = "Quét khuôn mặt để tự động check-in hoặc check-out")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER','ROLE_EMPLOYEE')")

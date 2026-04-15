@@ -83,26 +83,6 @@ public class EmployeeController {
         return ApiResponse.success(200, "Đăng ký khuôn mặt thành công", employeeService.registerFaceEmbedding(id, request));
     }
 
-    // So khớp khuôn mặt với nhân viên đã đăng ký.
-    @PostMapping("/match-face")
-    @Operation(summary = "So khớp descriptor với nhân viên đã đăng ký (Euclidean, ngưỡng cấu hình app.face-match)")
-    public ApiResponse<FaceMatchResponse> matchFace(@Valid @RequestBody FaceDescriptorRequest request) {
-        return ApiResponse.success("Khớp khuôn mặt", employeeService.matchFace(request));
-    }
-
-    // Lấy thông tin nhân viên (internal) theo userId để phục vụ các service khác (ví dụ: auth-service).
-    @GetMapping("/internal/user/{userId}")
-    @Operation(summary = "Lấy thông tin nhân viên theo userId (Internal call)", hidden = true)
-    public EmployeeInternalResponse getInternalEmployee(@PathVariable Long userId) {
-        EmployeeResponse employee = employeeService.getByUserId(userId);
-        return EmployeeInternalResponse.builder()
-                .userId(userId)
-                .fullName(employee.fullName())
-                .departmentName(employee.departmentName())
-                .positionName(employee.positionName())
-                .build();
-    }
-
     // Vô hiệu hoá nhân viên thay vì xoá cứng.
     @DeleteMapping("/{id}")
     @Operation(summary = "Vô hiệu hoá nhân viên", description = "Đặt trạng thái nhân viên thành INACTIVE")

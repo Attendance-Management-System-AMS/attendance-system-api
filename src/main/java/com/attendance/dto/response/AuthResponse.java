@@ -15,6 +15,7 @@ public class AuthResponse {
     private String tokenType;
     private long accessTokenExpiresIn;
     private long refreshTokenExpiresIn;
+    private UserProfileResponse user;
 }
 
 

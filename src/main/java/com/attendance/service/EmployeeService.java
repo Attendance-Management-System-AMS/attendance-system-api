@@ -127,15 +127,6 @@ public class EmployeeService {
         return employeeMapper.toResponse(employee);
     }
 
-    // Lấy chi tiết nhân viên theo userId.
-    @Transactional(readOnly = true)
-    public EmployeeResponse getByUserId(Long userId) {
-        Employee employee = employeeRepository.findByUserId(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
-
-        return employeeMapper.toResponse(employee);
-    }
-
     // Phuong thuc moi cho Auth module goi truc tiep
     @Transactional(readOnly = true)
     public EmployeeInternalResponse getInternalEmployee(Long userId) {
