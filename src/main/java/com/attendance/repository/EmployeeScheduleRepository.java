@@ -16,6 +16,10 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
 
     List<EmployeeSchedule> findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqual(Long employeeId, LocalDate date);
 
+    List<EmployeeSchedule> findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(
+            Long employeeId,
+            LocalDate date);
+
     List<EmployeeSchedule> findByDayOfWeekAndIsActiveTrue(Integer dayOfWeek);
 
     List<EmployeeSchedule> findByEffectiveFromLessThanEqual(LocalDate date);

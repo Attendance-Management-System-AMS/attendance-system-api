@@ -8,6 +8,7 @@ import com.attendance.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.core.annotation.Order;
@@ -19,6 +20,7 @@ import java.util.Set;
 @Component
 @Order(1)
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "app.seed", name = "default-users", havingValue = "true")
 public class AuthDataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;

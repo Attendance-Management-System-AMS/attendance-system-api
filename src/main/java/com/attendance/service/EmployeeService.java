@@ -99,6 +99,9 @@ public class EmployeeService {
         Employee manager = resolveManager(request.managerId());
 
         Employee employee = employeeMapper.toEntity(request);
+        if (employee.getStatus() == null || employee.getStatus().isBlank()) {
+            employee.setStatus("ACTIVE");
+        }
         employeeMapper.updateRelations(employee, department, position, manager);
 
         Employee saved = employeeRepository.save(employee);
@@ -184,8 +187,8 @@ public class EmployeeService {
         employee.setEmployeeCode(request.employeeCode() == null ? null : request.employeeCode().trim());
         employee.setFullName(request.fullName() == null ? null : request.fullName().trim());
         employee.setGender(request.gender());
-        employee.setEmail(request.email());
-        employee.setStatus(request.status());
+        employee.setEmail(request.email() == null ? null : request.email().trim());
+        employee.setStatus(request.status() == null || request.status().isBlank() ? "ACTIVE" : request.status().trim());
         employee.setBiometricHash(request.biometricHash());
         employee.setJoinDate(request.joinDate());
         employeeMapper.updateRelations(employee, department, position, manager);

@@ -47,10 +47,14 @@ public class LeaveService {
     // Tạo đơn xin nghỉ mới cho nhân viên.
     @Transactional
     public LeaveResponse createRequest(LeaveRequestRecord request) {
+        if (request.employeeId() == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Mã nhân viên là bắt buộc");
+        }
+
         Employee employee = employeeRepository.findById(request.employeeId())
                 .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
 
-        LeaveType leaveType = leaveTypeRepository.findByCode(request.leaveTypeCode())
+        LeaveType leaveType = leaveTypeRepository.findByCode(request.leaveTypeCode().trim())
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_INPUT, "Loại nghỉ không hợp lệ"));
 
         if (request.toDate().isBefore(request.fromDate())) {

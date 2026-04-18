@@ -146,8 +146,9 @@ public class ScheduleService {
             // Kiểm tra chồng lấn thời gian (xuyên ngày được xử lý trong ShiftUtils)
             if (ShiftUtils.isOverlapping(dayOfWeek, newShift, existing.getDayOfWeek(), existing.getShift())) {
                 if (force) {
-                    // Nếu bắt buộc gán, ta xóa bản ghi cũ bị trùng
-                    employeeScheduleRepository.delete(existing);
+                    // Giữ lịch sử phân ca, chỉ ngưng hiệu lực bản ghi đang trùng.
+                    existing.setIsActive(false);
+                    employeeScheduleRepository.save(existing);
                 } else {
                     // Nếu không bắt buộc, báo lỗi
                     conflicts.add(new ScheduleConflictDetail(

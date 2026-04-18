@@ -5,6 +5,7 @@ import com.attendance.dto.response.PageResponse;
 import com.attendance.dto.request.LeaveRequestRecord;
 import com.attendance.dto.response.LeaveResponse;
 import com.attendance.dto.response.LeaveTypeResponse;
+import com.attendance.exception.AppException;
 import com.attendance.service.LeaveService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -123,9 +124,13 @@ public class LeaveController {
     @Operation(summary = "Phê duyệt đơn nghỉ")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
     public ApiResponse<LeaveResponse> approve(
-            @Parameter(description = "ID đơn nghỉ") @PathVariable Long id,
-            @Parameter(description = "ID người phê duyệt (không bắt buộc)")
-            @RequestParam(required = false) Long approvedById) {
+            @Parameter(description = "ID đơn nghỉ") @PathVariable Long id) {
+        Long approvedById = null;
+        try {
+            approvedById = employeeService.getCurrentEmployeeId();
+        } catch (AppException ignored) {
+            // Tài khoản quản trị hệ thống có thể không gắn hồ sơ nhân viên.
+        }
         return ApiResponse.success(200, "Phê duyệt đơn nghỉ thành công", leaveService.approve(id, approvedById));
     }
 

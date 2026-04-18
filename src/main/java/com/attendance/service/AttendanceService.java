@@ -169,9 +169,12 @@ public class AttendanceService {
 
     private AttendanceResponse performCheckOut(Long employeeId) {
         LocalDate today = LocalDate.now();
-        LocalTime nowTime = LocalTime.now();
 
-        Attendance attendance = attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, today)
+        Attendance attendance = attendanceRepository
+                .findFirstByEmployeeIdAndCheckOutTimeIsNullAndWorkDateBetweenOrderByWorkDateDesc(
+                        employeeId,
+                        today.minusDays(1),
+                        today)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_INPUT, "Bạn chưa check-in hôm nay"));
 
         if (attendance.getCheckOutTime() != null) {
@@ -187,10 +190,11 @@ public class AttendanceService {
 
         attendance.setCheckOutTime(now);
 
-        Shift shift = getTodayShift(employeeId, today);
+        Shift shift = getTodayShift(employeeId, attendance.getWorkDate());
         int earlyLeaveMinutes = 0;
-        if (shift != null && nowTime.isBefore(shift.getEndTime())) {
-            earlyLeaveMinutes = Math.toIntExact(Duration.between(nowTime, shift.getEndTime()).toMinutes());
+        LocalDateTime scheduledEnd = shift == null ? null : resolveShiftEnd(attendance.getWorkDate(), shift);
+        if (scheduledEnd != null && now.isBefore(scheduledEnd)) {
+            earlyLeaveMinutes = Math.toIntExact(Duration.between(now, scheduledEnd).toMinutes());
             if ("PRESENT".equals(attendance.getStatus())) {
                 attendance.setStatus("EARLY_LEAVE");
             } else if ("LATE".equals(attendance.getStatus())) {
@@ -245,7 +249,7 @@ public class AttendanceService {
     // Lấy ca làm trong ngày hiện tại của nhân viên.
     private Shift getTodayShift(Long employeeId, LocalDate date) {
         int dayOfWeek = date.getDayOfWeek().getValue();
-        return employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqual(employeeId, date)
+        return employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(employeeId, date)
                 .stream()
                 .filter(schedule -> schedule.getDayOfWeek() == dayOfWeek)
                 .map(EmployeeSchedule::getShift)
@@ -282,10 +286,37 @@ public class AttendanceService {
     private int calculateWorkedMinutes(LocalDateTime checkIn, LocalDateTime checkOut, Shift shift) {
         long total = Duration.between(checkIn, checkOut).toMinutes();
         if (shift != null && shift.getBreakStart() != null && shift.getBreakEnd() != null) {
-            int breakMinutes = minutesBetween(shift.getBreakStart(), shift.getBreakEnd());
-            total -= breakMinutes;
+            total -= calculateBreakOverlapMinutes(checkIn, checkOut, shift);
         }
         return Math.toIntExact(Math.max(0, total));
+    }
+
+    private int calculateBreakOverlapMinutes(LocalDateTime checkIn, LocalDateTime checkOut, Shift shift) {
+        LocalDate workDate = checkIn.toLocalDate();
+        LocalDateTime breakStart = workDate.atTime(shift.getBreakStart());
+        LocalDateTime breakEnd = workDate.atTime(shift.getBreakEnd());
+        if (shift.getBreakEnd().isBefore(shift.getBreakStart())) {
+            breakEnd = breakEnd.plusDays(1);
+        }
+        if (shift.getBreakStart().isBefore(shift.getStartTime())) {
+            breakStart = breakStart.plusDays(1);
+            breakEnd = breakEnd.plusDays(1);
+        }
+
+        LocalDateTime overlapStart = checkIn.isAfter(breakStart) ? checkIn : breakStart;
+        LocalDateTime overlapEnd = checkOut.isBefore(breakEnd) ? checkOut : breakEnd;
+        if (!overlapEnd.isAfter(overlapStart)) {
+            return 0;
+        }
+        return Math.toIntExact(Duration.between(overlapStart, overlapEnd).toMinutes());
+    }
+
+    private LocalDateTime resolveShiftEnd(LocalDate workDate, Shift shift) {
+        LocalDateTime end = workDate.atTime(shift.getEndTime());
+        if (shift.getEndTime().isBefore(shift.getStartTime()) || shift.getEndTime().equals(shift.getStartTime())) {
+            end = end.plusDays(1);
+        }
+        return end;
     }
 
     private int minutesBetween(LocalTime start, LocalTime end) {

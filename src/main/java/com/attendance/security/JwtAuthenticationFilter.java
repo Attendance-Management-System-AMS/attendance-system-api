@@ -63,25 +63,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String userSubject = claims.getSubject();
 
             if (userSubject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Ưu tiên lấy roles trực tiếp từ JWT claims
-                List<?> roles = claims.get("roles", List.class);
-                List<SimpleGrantedAuthority> authorities;
-                
-                if (roles != null) {
-                    authorities = roles.stream()
-                            .map(r -> new SimpleGrantedAuthority(r.toString()))
-                            .collect(Collectors.toList());
-                } else {
-                    // Fallback load user từ database (EAGER roles)
-                    User user = resolveUserFromClaims(claims);
-                    if (user == null || !user.isEnabled()) {
-                        filterChain.doFilter(request, response);
-                        return;
-                    }
-                    authorities = user.getRoles().stream()
-                            .map(role -> new SimpleGrantedAuthority(role.getRoleName()))
-                            .collect(Collectors.toList());
+                User user = resolveUserFromClaims(claims);
+                if (user == null || !user.isEnabled()) {
+                    filterChain.doFilter(request, response);
+                    return;
                 }
+                List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
+                        .map(role -> new SimpleGrantedAuthority(role.getRoleName()))
+                        .collect(Collectors.toList());
 
                 // Tạo Authentication object
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

@@ -13,6 +13,11 @@ import java.util.Optional;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long>, JpaSpecificationExecutor<Attendance> {
     Optional<Attendance> findByEmployeeIdAndWorkDate(Long employeeId, LocalDate workDate);
 
+    Optional<Attendance> findFirstByEmployeeIdAndCheckOutTimeIsNullAndWorkDateBetweenOrderByWorkDateDesc(
+            Long employeeId,
+            LocalDate fromDate,
+            LocalDate workDate);
+
     List<Attendance> findByEmployeeIdOrderByWorkDateDesc(Long employeeId);
 
     List<Attendance> findByWorkDateOrderByEmployeeIdAsc(LocalDate workDate);
