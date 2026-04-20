@@ -78,7 +78,7 @@ public class PositionService {
 
         existing.setName(request.name().trim());
         existing.setDepartment(department);
-        existing.setLevel(String.valueOf(request.level()));
+        existing.setLevel(positionMapper.normalizeLevel(request.level()));
 
         Position saved = positionRepository.save(existing);
         return positionMapper.toResponse(saved);

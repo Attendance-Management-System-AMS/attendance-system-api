@@ -37,7 +37,7 @@ public class AttendanceController {
 
     @PostMapping("/scan-by-face")
     @Operation(summary = "Quét khuôn mặt để tự động check-in hoặc check-out")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER','ROLE_EMPLOYEE')")
+    @PreAuthorize("permitAll()")
     public ApiResponse<AttendanceResponse> scanByFace(@Valid @RequestBody FaceDescriptorRequest request) {
         return ApiResponse.success("Chấm công thành công", attendanceService.scanByFace(request));
     }

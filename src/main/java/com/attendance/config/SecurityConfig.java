@@ -42,7 +42,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/attendance/scan-by-face").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         
                         // Role boundaries at the filter chain level. Method security below remains the final guard.
@@ -61,7 +61,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/attendance/schedules/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
                         .requestMatchers("/api/leaves/me", "/api/leaves/types", "/api/attendance/me", "/api/attendance/today/me",
-                                "/api/attendance/schedules/me", "/api/attendance/scan-by-face")
+                                "/api/attendance/schedules/me")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER", "ROLE_EMPLOYEE")
                         .requestMatchers("/api/leaves/**", "/api/reports/**", "/api/attendance/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER")
