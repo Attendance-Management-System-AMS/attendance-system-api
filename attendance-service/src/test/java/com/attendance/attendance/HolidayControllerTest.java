@@ -1,22 +1,19 @@
-package com.attendance.controller;
+package com.attendance.attendance;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.attendance.dto.request.EmployeeRequest;
-import com.attendance.dto.request.FaceDescriptorRequest;
-import com.attendance.dto.response.EmployeeResponse;
+import com.attendance.controller.HolidayController;
+import com.attendance.dto.request.HolidayRequest;
+import com.attendance.dto.response.HolidayResponse;
 import com.attendance.exception.GlobalExceptionHandler;
-import com.attendance.service.EmployeeService;
+import com.attendance.service.HolidayService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,61 +25,46 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @ExtendWith(MockitoExtension.class)
-class EmployeeControllerTest {
+class HolidayControllerTest {
 
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @Mock
-    private EmployeeService employeeService;
+    private HolidayService holidayService;
 
     @InjectMocks
-    private EmployeeController employeeController;
+    private HolidayController holidayController;
 
     @BeforeEach
     void setUp() {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mockMvc = MockMvcBuilders.standaloneSetup(employeeController)
+        mockMvc = MockMvcBuilders.standaloneSetup(holidayController)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
                 .build();
     }
 
     @Test
-    void createEmployeeReturnsCreatedPayload() throws Exception {
-        EmployeeRequest request = new EmployeeRequest(
-                "EMP-QA-01",
-                "Nguyen Van QA",
-                "MALE",
-                "qa@company.com",
-                3L,
-                4L,
-                3L,
-                "ACTIVE",
-                null,
-                LocalDate.of(2026, 4, 1));
+    void createHolidayReturnsCreatedPayload() throws Exception {
+        HolidayRequest request = new HolidayRequest("Giỗ Tổ", LocalDate.of(2026, 4, 18), LocalDate.of(2026, 4, 18), true);
+        HolidayResponse response = new HolidayResponse(1L, "Giỗ Tổ", LocalDate.of(2026, 4, 18), LocalDate.of(2026, 4, 18), true);
 
-        EmployeeResponse response = new EmployeeResponse(
-                11L, null, "EMP-QA-01", "Nguyen Van QA", "MALE", "qa@company.com",
-                3L, "Phòng IT", 4L, "Tester", 3L, "Le Van Manager",
-                "ACTIVE", false, LocalDate.of(2026, 4, 1), LocalDateTime.now());
+        when(holidayService.create(any(HolidayRequest.class))).thenReturn(response);
 
-        when(employeeService.create(any(EmployeeRequest.class))).thenReturn(response);
-
-        mockMvc.perform(post("/api/employees")
+        mockMvc.perform(post("/api/attendance/holidays")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(201))
-                .andExpect(jsonPath("$.result.employeeCode").value("EMP-QA-01"));
+                .andExpect(jsonPath("$.result.holidayName").value("Giỗ Tổ"));
     }
 
     @Test
-    void registerFaceDescriptorRejectsInvalidLength() throws Exception {
-        FaceDescriptorRequest request = new FaceDescriptorRequest(List.of(0.1d, 0.2d));
+    void createHolidayRejectsBlankName() throws Exception {
+        HolidayRequest request = new HolidayRequest("", LocalDate.of(2026, 4, 18), LocalDate.of(2026, 4, 18), true);
 
-        mockMvc.perform(put("/api/employees/1/face-descriptor")
+        mockMvc.perform(post("/api/attendance/holidays")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
