@@ -1,0 +1,93 @@
+server:
+  port: ${API_GATEWAY_PORT:9000}
+
+spring:
+  application:
+    name: api-gateway
+  output:
+    ansi:
+      enabled: ALWAYS
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: false
+          routes:
+            - id: auth-service-openapi
+              uri: lb://auth-service
+              predicates:
+                - Path=/v3/api-docs/auth-service
+              filters:
+                - RewritePath=/v3/api-docs/auth-service, /v3/api-docs
+            - id: hr-service-openapi
+              uri: lb://hr-service
+              predicates:
+                - Path=/v3/api-docs/hr-service
+              filters:
+                - RewritePath=/v3/api-docs/hr-service, /v3/api-docs
+            - id: attendance-service-openapi
+              uri: lb://attendance-service
+              predicates:
+                - Path=/v3/api-docs/attendance-service
+              filters:
+                - RewritePath=/v3/api-docs/attendance-service, /v3/api-docs
+            - id: request-service-openapi
+              uri: lb://request-service
+              predicates:
+                - Path=/v3/api-docs/request-service
+              filters:
+                - RewritePath=/v3/api-docs/request-service, /v3/api-docs
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/api/auth/**
+            - id: hr-service
+              uri: lb://hr-service
+              predicates:
+                - Path=/api/employees/**,/api/departments/**,/api/positions/**
+            - id: attendance-service
+              uri: lb://attendance-service
+              predicates:
+                - Path=/api/attendance/**,/api/reports/**
+            - id: request-service
+              uri: lb://request-service
+              predicates:
+                - Path=/api/leaves/**
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    urls:
+      - name: auth-service
+        url: /v3/api-docs/auth-service
+      - name: hr-service
+        url: /v3/api-docs/hr-service
+      - name: attendance-service
+        url: /v3/api-docs/attendance-service
+      - name: request-service
+        url: /v3/api-docs/request-service
+
+logging:
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %highlight(%-5level) %clr([%20.20thread]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %msg%n%wEx"
+  level:
+    root: INFO
+    com.attendance: DEBUG
