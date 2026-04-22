@@ -1,18 +1,22 @@
 package com.attendance.service;
 
+import com.attendance.client.AuthClient;
 import com.attendance.dto.request.FaceDescriptorRequest;
 import com.attendance.dto.response.FaceMatchResponse;
 import com.attendance.exception.AppException;
 import com.attendance.common.dto.PageResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.attendance.dto.request.EmployeeRequest;
+import com.attendance.dto.request.CreateEmployeeRequest;
+import com.attendance.dto.request.InternalCreateUserRequest;
 import com.attendance.dto.response.EmployeeResponse;
 import com.attendance.entity.Department;
 import com.attendance.entity.Employee;
 import com.attendance.entity.Position;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.EmployeeMapper;
+import com.attendance.dto.response.InternalUserResponse;
+import com.attendance.dto.request.UpdateEmployeeRequest;
 import com.attendance.dto.response.EmployeeInternalResponse;
 import com.attendance.dto.response.HrEmployeeSnapshot;
 import com.attendance.repository.DepartmentRepository;
@@ -21,6 +25,8 @@ import com.attendance.repository.spec.EmployeeSpecifications;
 import com.attendance.repository.PositionRepository;
 import com.attendance.util.FaceEmbeddingUtils;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +44,7 @@ public class EmployeeService {
     private final PositionRepository positionRepository;
     private final EmployeeMapper employeeMapper;
     private final ObjectMapper objectMapper;
+    private final AuthClient authClient;
     private final double faceMatchDistanceThreshold;
 
     // Khởi tạo service với các dependency xử lý nhân viên và khuôn mặt.
@@ -46,12 +53,14 @@ public class EmployeeService {
                            PositionRepository positionRepository,
                            EmployeeMapper employeeMapper,
                            ObjectMapper objectMapper,
+                           AuthClient authClient,
                            @Value("${app.face-match.distance-threshold:0.55}") double faceMatchDistanceThreshold) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.positionRepository = positionRepository;
         this.employeeMapper = employeeMapper;
         this.objectMapper = objectMapper;
+        this.authClient = authClient;
         this.faceMatchDistanceThreshold = faceMatchDistanceThreshold;
     }
 
@@ -75,11 +84,7 @@ public class EmployeeService {
 
     // Tạo mới hồ sơ nhân viên sau khi kiểm tra trùng mã và email.
     @Transactional
-    public EmployeeResponse create(EmployeeRequest request) {
-        if (employeeRepository.existsByEmployeeCode(request.employeeCode())) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Mã nhân viên đã tồn tại");
-        }
-
+    public EmployeeResponse create(CreateEmployeeRequest request) {
         if (request.email() != null && !request.email().isBlank() && employeeRepository.existsByEmail(request.email())) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email đã tồn tại");
         }
@@ -89,12 +94,21 @@ public class EmployeeService {
         Employee manager = resolveManager(request.managerId());
 
         Employee employee = employeeMapper.toEntity(request);
+        employee.setEmployeeCode(createPendingEmployeeCode());
         if (employee.getStatus() == null || employee.getStatus().isBlank()) {
             employee.setStatus("ACTIVE");
         }
         employeeMapper.updateRelations(employee, department, position, manager);
 
         Employee saved = employeeRepository.save(employee);
+        saved.setEmployeeCode(formatEmployeeCode(saved.getId()));
+        InternalUserResponse user = authClient.createUser(new InternalCreateUserRequest(
+                saved.getEmployeeCode(),
+                buildDefaultPassword(saved.getEmployeeCode()),
+                saved.getEmail(),
+                "ACTIVE".equals(saved.getStatus()),
+                Set.of("ROLE_EMPLOYEE")));
+        saved.setUserId(user.id());
         return employeeMapper.toResponse(saved);
     }
 
@@ -170,12 +184,17 @@ public class EmployeeService {
 
     // Cập nhật thông tin nhân viên hiện có.
     @Transactional
-    public EmployeeResponse update(Long id, EmployeeRequest request) {
+    public EmployeeResponse update(Long id, UpdateEmployeeRequest request) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
 
-        if (!employee.getEmployeeCode().equals(request.employeeCode())
-                && employeeRepository.existsByEmployeeCode(request.employeeCode())) {
+        String normalizedEmployeeCode = request.employeeCode() == null ? null : request.employeeCode().trim();
+        if (normalizedEmployeeCode == null || normalizedEmployeeCode.isBlank()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Mã nhân viên là bắt buộc");
+        }
+
+        if (!employee.getEmployeeCode().equals(normalizedEmployeeCode)
+                && employeeRepository.existsByEmployeeCode(normalizedEmployeeCode)) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Mã nhân viên đã tồn tại");
         }
 
@@ -193,7 +212,7 @@ public class EmployeeService {
         Position position = resolvePosition(request.positionId());
         Employee manager = resolveManager(request.managerId());
 
-        employee.setEmployeeCode(request.employeeCode() == null ? null : request.employeeCode().trim());
+        employee.setEmployeeCode(normalizedEmployeeCode);
         employee.setFullName(request.fullName() == null ? null : request.fullName().trim());
         employee.setGender(request.gender());
         employee.setEmail(request.email() == null ? null : request.email().trim());
@@ -234,6 +253,18 @@ public class EmployeeService {
 
         return employeeRepository.findById(managerId)
                 .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND, "Không tìm thấy quản lý"));
+    }
+
+    private String createPendingEmployeeCode() {
+        return "EMP-TMP-" + UUID.randomUUID();
+    }
+
+    private String formatEmployeeCode(Long employeeId) {
+        return String.format("EMP-%04d", employeeId);
+    }
+
+    private String buildDefaultPassword(String employeeCode) {
+        return employeeCode + "@123";
     }
 
     // Chuyển trạng thái nhân viên sang INACTIVE thay vì xoá cứng.

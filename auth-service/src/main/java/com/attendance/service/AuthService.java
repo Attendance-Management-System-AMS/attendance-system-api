@@ -6,8 +6,10 @@ import com.attendance.dto.response.*;
 import com.attendance.entity.Role;
 import com.attendance.entity.TokenBlacklist;
 import com.attendance.entity.User;
+import com.attendance.repository.RoleRepository;
 import com.attendance.repository.TokenBlacklistRepository;
 import com.attendance.repository.UserRepository;
+import feign.FeignException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +42,7 @@ public class AuthService {
     public static final String ROLE_EMPLOYEE = "ROLE_EMPLOYEE";
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final TokenBlacklistRepository tokenBlacklistRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -65,6 +69,42 @@ public class AuthService {
         }
 
         return buildAuthResponse(user);
+    }
+
+    @Transactional
+    public InternalUserResponse createInternalUser(InternalCreateUserRequest request) {
+        String username = request.username() == null ? null : request.username().trim();
+        if (username == null || username.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên đăng nhập là bắt buộc");
+        }
+        if (userRepository.existsByUsername(username)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên đăng nhập đã tồn tại");
+        }
+
+        String email = request.email() == null ? null : request.email().trim();
+        if (email != null && !email.isBlank() && userRepository.existsByEmail(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại");
+        }
+
+        List<Role> roles = roleRepository.findByRoleNameIn(request.roles());
+        if (roles.size() != request.roles().size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vai trò không hợp lệ");
+        }
+
+        User saved = userRepository.save(User.builder()
+                .username(username)
+                .password(passwordEncoder.encode(request.password().trim()))
+                .email(email == null || email.isBlank() ? null : email)
+                .isEnabled(request.enabled())
+                .roles(Set.copyOf(roles))
+                .build());
+
+        return new InternalUserResponse(
+                saved.getId(),
+                saved.getUsername(),
+                saved.getEmail(),
+                saved.isEnabled(),
+                saved.getRoles().stream().map(Role::getRoleName).collect(java.util.stream.Collectors.toSet()));
     }
 
     // Làm mới access token bằng refresh token còn hiệu lực.
@@ -137,19 +177,28 @@ public class AuthService {
                 .enabled(user.isEnabled())
                 .roles(String.join(",", user.getRoles().stream().map(Role::getRoleName).toList()));
 
-        // Lấy thêm thông tin từ hr-service thông qua userId.
-        try {
-            EmployeeInternalResponse employee = hrClient.getEmployeeByUserId(user.getId());
-            if (employee != null) {
-                builder.fullName(employee.getFullName())
-                        .departmentName(employee.getDepartmentName())
-                        .positionName(employee.getPositionName());
-            }
-        } catch (Exception e) {
-            log.error("Không tìm thấy thông tin nhân viên cho userId: " + user.getId(), e);
-        }
+        enrichUserProfileFromHr(builder, user.getId());
 
         return builder.build();
+    }
+
+    private void enrichUserProfileFromHr(UserProfileResponse.UserProfileResponseBuilder builder, Long userId) {
+        try {
+            EmployeeInternalResponse employee = hrClient.getEmployeeByUserId(userId);
+            if (employee == null) {
+                return;
+            }
+
+            builder.fullName(employee.getFullName())
+                    .departmentName(employee.getDepartmentName())
+                    .positionName(employee.getPositionName());
+        } catch (FeignException.NotFound ex) {
+            log.debug("Không có hồ sơ nhân viên liên kết với userId={}", userId);
+        } catch (FeignException ex) {
+            log.warn("Bỏ qua đồng bộ hồ sơ nhân viên cho userId={} vì hr-service chưa sẵn sàng: status={}", userId, ex.status());
+        } catch (Exception ex) {
+            log.warn("Bỏ qua đồng bộ hồ sơ nhân viên cho userId={} do lỗi ngoài dự kiến: {}", userId, ex.getMessage());
+        }
     }
 
     // Đổi mật khẩu cho tài khoản hiện tại.

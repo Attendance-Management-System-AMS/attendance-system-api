@@ -38,7 +38,7 @@ public class EmployeeController {
     // Tạo mới một hồ sơ nhân viên.
     @PostMapping
     @Operation(summary = "Tạo mới nhân viên")
-    public ApiResponse<EmployeeResponse> createEmployee(@Valid @RequestBody EmployeeRequest request) {
+    public ApiResponse<EmployeeResponse> createEmployee(@Valid @RequestBody CreateEmployeeRequest request) {
         EmployeeResponse response = employeeService.create(request);
         return ApiResponse.success(201, "Tạo nhân viên thành công", response);
     }
@@ -71,7 +71,7 @@ public class EmployeeController {
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật thông tin nhân viên")
     public ApiResponse<EmployeeResponse> updateEmployee(@PathVariable Long id,
-                                                        @Valid @RequestBody EmployeeRequest request) {
+                                                        @Valid @RequestBody UpdateEmployeeRequest request) {
         EmployeeResponse response = employeeService.update(id, request);
         return ApiResponse.success(200, "Cập nhật nhân viên thành công", response);
     }

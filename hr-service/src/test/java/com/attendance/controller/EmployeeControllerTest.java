@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.attendance.dto.request.EmployeeRequest;
+import com.attendance.dto.request.CreateEmployeeRequest;
 import com.attendance.dto.request.FaceDescriptorRequest;
 import com.attendance.dto.response.EmployeeResponse;
 import com.attendance.exception.GlobalExceptionHandler;
@@ -51,8 +51,7 @@ class EmployeeControllerTest {
 
     @Test
     void createEmployeeReturnsCreatedPayload() throws Exception {
-        EmployeeRequest request = new EmployeeRequest(
-                "EMP-QA-01",
+        CreateEmployeeRequest request = new CreateEmployeeRequest(
                 "Nguyen Van QA",
                 "MALE",
                 "qa@company.com",
@@ -68,7 +67,7 @@ class EmployeeControllerTest {
                 3L, "Phòng IT", 4L, "Tester", 3L, "Le Van Manager",
                 "ACTIVE", false, LocalDate.of(2026, 4, 1), LocalDateTime.now());
 
-        when(employeeService.create(any(EmployeeRequest.class))).thenReturn(response);
+        when(employeeService.create(any(CreateEmployeeRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/employees")
                         .contentType(APPLICATION_JSON)
