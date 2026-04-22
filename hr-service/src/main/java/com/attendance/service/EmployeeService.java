@@ -264,7 +264,16 @@ public class EmployeeService {
     }
 
     private String buildDefaultPassword(String employeeCode) {
-        return employeeCode + "@123";
+        if (employeeCode == null || employeeCode.isBlank()) {
+            return "Emp@0000";
+        }
+
+        String normalized = employeeCode.trim();
+        int separatorIndex = normalized.lastIndexOf('-');
+        String suffix = separatorIndex >= 0 && separatorIndex < normalized.length() - 1
+                ? normalized.substring(separatorIndex + 1)
+                : normalized;
+        return "Emp@" + suffix;
     }
 
     // Chuyển trạng thái nhân viên sang INACTIVE thay vì xoá cứng.
