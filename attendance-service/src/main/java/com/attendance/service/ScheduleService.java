@@ -39,12 +39,20 @@ public class ScheduleService {
     // Gán ca làm cho nhân viên đơn lẻ (Có kiểm tra xung đột).
     @Transactional
     public EmployeeScheduleResponse assignSchedule(EmployeeScheduleRequest request) {
+        validateEffectiveFrom(request.effectiveFrom());
+
         Shift newShift = shiftRepository.findById(request.shiftId())
                 .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
 
         List<ScheduleConflictDetail> conflicts = new ArrayList<>();
         boolean force = request.force() != null && request.force();
-        processConflicts(request.employeeId(), newShift, request.dayOfWeek(), force, conflicts);
+        processConflicts(
+                request.employeeId(),
+                newShift,
+                request.dayOfWeek(),
+                request.effectiveFrom(),
+                force,
+                conflicts);
 
         if (!conflicts.isEmpty()) {
             throw new AppException(ErrorCode.VALIDATION_FAILED, "Phát hiện xung đột lịch làm", conflicts);
@@ -64,6 +72,8 @@ public class ScheduleService {
     // Gán ca làm hàng loạt cho nhiều nhân viên và nhiều ngày.
     @Transactional
     public List<EmployeeScheduleResponse> bulkAssign(BulkScheduleRequest request) {
+        validateEffectiveFrom(request.effectiveFrom());
+
         Shift shift = shiftRepository.findById(request.shiftId())
                 .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
 
@@ -73,7 +83,7 @@ public class ScheduleService {
 
         for (Long employeeId : request.employeeIds()) {
             for (Integer dayOfWeek : request.daysOfWeek()) {
-                processConflicts(employeeId, shift, dayOfWeek, force, conflicts);
+                processConflicts(employeeId, shift, dayOfWeek, request.effectiveFrom(), force, conflicts);
                 
                 EmployeeSchedule schedule = new EmployeeSchedule();
                 schedule.setEmployeeId(employeeId);
@@ -99,6 +109,8 @@ public class ScheduleService {
     // Áp dụng mẫu lịch làm vào nhân viên.
     @Transactional
     public List<EmployeeScheduleResponse> applyTemplate(ApplyTemplateRequest request) {
+        validateEffectiveFrom(request.effectiveFrom());
+
         ScheduleTemplate template = templateRepository.findById(request.templateId())
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_TEMPLATE_NOT_FOUND));
 
@@ -112,7 +124,13 @@ public class ScheduleService {
 
         for (Long employeeId : request.employeeIds()) {
             for (ScheduleTemplateItem item : template.getItems()) {
-                processConflicts(employeeId, item.getShift(), item.getDayOfWeek(), force, conflicts);
+                processConflicts(
+                        employeeId,
+                        item.getShift(),
+                        item.getDayOfWeek(),
+                        request.effectiveFrom(),
+                        force,
+                        conflicts);
 
                 EmployeeSchedule schedule = new EmployeeSchedule();
                 schedule.setEmployeeId(employeeId);
@@ -136,13 +154,24 @@ public class ScheduleService {
     }
 
     /**
-     * Xử lý kiểm tra xung đột. Nếu force=true, xóa bản ghi cũ. Nếu force=false, thu thập vào danh sách conflicts.
+     * Xử lý kiểm tra xung đột cho cùng ngày hiệu lực. Các lịch có effectiveFrom khác nhau
+     * được phép cùng tồn tại để biểu diễn thay đổi ca làm theo từng giai đoạn.
      */
-    private void processConflicts(Long employeeId, Shift newShift, Integer dayOfWeek, boolean force, List<ScheduleConflictDetail> conflicts) {
+    private void processConflicts(
+            Long employeeId,
+            Shift newShift,
+            Integer dayOfWeek,
+            LocalDate effectiveFrom,
+            boolean force,
+            List<ScheduleConflictDetail> conflicts) {
         // Lấy tất cả lịch đang hoạt động của nhân viên để kiểm tra
         List<EmployeeSchedule> existingSchedules = employeeScheduleRepository.findByEmployeeIdAndIsActiveTrue(employeeId);
         
         for (EmployeeSchedule existing : existingSchedules) {
+            if (!sameEffectiveFrom(existing.getEffectiveFrom(), effectiveFrom)) {
+                continue;
+            }
+
             // Kiểm tra chồng lấn thời gian (xuyên ngày được xử lý trong ShiftUtils)
             if (ShiftUtils.isOverlapping(dayOfWeek, newShift, existing.getDayOfWeek(), existing.getShift())) {
                 if (force) {
@@ -159,6 +188,25 @@ public class ScheduleService {
                     ));
                 }
             }
+        }
+    }
+
+    private boolean sameEffectiveFrom(LocalDate existingEffectiveFrom, LocalDate newEffectiveFrom) {
+        if (existingEffectiveFrom == null && newEffectiveFrom == null) {
+            return true;
+        }
+        if (existingEffectiveFrom == null || newEffectiveFrom == null) {
+            return false;
+        }
+        return existingEffectiveFrom.isEqual(newEffectiveFrom);
+    }
+
+    private void validateEffectiveFrom(LocalDate effectiveFrom) {
+        if (effectiveFrom == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Ngày hiệu lực là bắt buộc");
+        }
+        if (effectiveFrom.isBefore(LocalDate.now())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Ngày hiệu lực không được ở quá khứ");
         }
     }
 

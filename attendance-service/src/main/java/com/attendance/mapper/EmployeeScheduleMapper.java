@@ -18,6 +18,8 @@ public class EmployeeScheduleMapper {
                 null, // employeeName is not available directly in attendance-service
                 shift != null ? shift.getId() : null,
                 shift != null ? shift.getName() : null,
+                shift != null && shift.getStartTime() != null ? shift.getStartTime().toString() : null,
+                shift != null && shift.getEndTime() != null ? shift.getEndTime().toString() : null,
                 schedule.getDayOfWeek(),
                 schedule.getIsActive(),
                 schedule.getEffectiveFrom()

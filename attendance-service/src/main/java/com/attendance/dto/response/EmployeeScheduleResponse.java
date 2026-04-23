@@ -8,6 +8,8 @@ public record EmployeeScheduleResponse(
         String employeeName,
         Long shiftId,
         String shiftName,
+        String startTime,
+        String endTime,
         Integer dayOfWeek,
         Boolean isActive,
         LocalDate effectiveFrom
