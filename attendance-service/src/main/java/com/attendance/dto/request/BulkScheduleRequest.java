@@ -21,7 +21,7 @@ public record BulkScheduleRequest(
         @NotEmpty(message = "Danh sách ngày trong tuần không được để trống")
         List<@Min(value = 1, message = "Thứ trong tuần phải từ 1 đến 7") @Max(value = 7, message = "Thứ trong tuần phải từ 1 đến 7") Integer> daysOfWeek,
 
-        @Schema(description = "Ngày bắt đầu áp dụng", example = "2026-04-01")
+        @Schema(description = "Ngày bắt đầu áp dụng, chỉ cho phép từ hôm nay trở đi", example = "2026-06-01")
         @NotNull(message = "Ngày hiệu lực là bắt buộc")
         LocalDate effectiveFrom,
 

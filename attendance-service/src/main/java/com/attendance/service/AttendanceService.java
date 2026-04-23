@@ -76,7 +76,7 @@ public class AttendanceService {
         }
 
         if (isCheckoutTooSoon(existing, LocalDateTime.now())) {
-            return attendanceMapper.toResponse(existing);
+            return toResponse(existing);
         }
 
         return performCheckOut(employeeId);
@@ -155,7 +155,7 @@ public class AttendanceService {
         try {
             Attendance saved = attendanceRepository.save(attendance);
             recordLog(employeeId, now, "IN");
-            return attendanceMapper.toResponse(saved);
+            return toResponse(saved);
         } catch (DataIntegrityViolationException ex) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đã check-in hôm nay rồi");
         }
@@ -208,13 +208,13 @@ public class AttendanceService {
 
         Attendance saved = attendanceRepository.save(attendance);
         recordLog(employeeId, now, "OUT");
-        return attendanceMapper.toResponse(saved);
+        return toResponse(saved);
     }
 
     // Lấy bản ghi chấm công của nhân viên trong ngày hôm nay.
     public AttendanceResponse getTodayByEmployee(Long employeeId) {
         return attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now())
-                .map(attendanceMapper::toResponse)
+                .map(this::toResponse)
                 .orElse(null);
     }
 
@@ -228,7 +228,7 @@ public class AttendanceService {
             Pageable pageable) {
         Page<Attendance> page = attendanceRepository.findAll(
                 AttendanceSpecifications.matches(employeeId, date, fromDate, toDate, status), pageable);
-        return PageResponse.of(page.map(attendanceMapper::toResponse));
+        return PageResponse.of(page.map(this::toResponse));
     }
 
     @Transactional
@@ -266,6 +266,21 @@ public class AttendanceService {
                 .deviceId("WEB")
                 .build();
         attendanceLogRepository.save(log);
+    }
+
+    private AttendanceResponse toResponse(Attendance attendance) {
+        AttendanceResponse response = attendanceMapper.toResponse(attendance);
+        if (isPastMissingCheckout(attendance)) {
+            return response.withStatus("MISSING_CHECKOUT");
+        }
+        return response;
+    }
+
+    private boolean isPastMissingCheckout(Attendance attendance) {
+        return attendance.getWorkDate() != null
+                && attendance.getWorkDate().isBefore(LocalDate.now())
+                && attendance.getCheckInTime() != null
+                && attendance.getCheckOutTime() == null;
     }
 
     private boolean isCheckoutTooSoon(Attendance attendance, LocalDateTime now) {

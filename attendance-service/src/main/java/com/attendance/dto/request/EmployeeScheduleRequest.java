@@ -25,7 +25,7 @@ public record EmployeeScheduleRequest(
         @NotNull(message = "Trạng thái hoạt động là bắt buộc")
         Boolean isActive,
 
-        @Schema(description = "Ngày bắt đầu áp dụng", example = "2026-03-18")
+        @Schema(description = "Ngày bắt đầu áp dụng, chỉ cho phép từ hôm nay trở đi", example = "2026-06-01")
         @NotNull(message = "Ngày hiệu lực là bắt buộc")
         LocalDate effectiveFrom,
 

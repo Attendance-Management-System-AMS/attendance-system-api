@@ -121,6 +121,25 @@ class ScheduleServiceTest {
         verify(employeeScheduleRepository, never()).save(any(EmployeeSchedule.class));
     }
 
+    @Test
+    void deleteRejectsScheduleThatAlreadyStartedInPast() {
+        Shift adminShift = createShift(1L, "Ca hành chính", LocalTime.of(8, 0), LocalTime.of(17, 30));
+        EmployeeSchedule existingSchedule = createSchedule(
+                10L,
+                5L,
+                adminShift,
+                1,
+                true,
+                LocalDate.now().minusDays(1));
+
+        when(employeeScheduleRepository.findById(10L)).thenReturn(Optional.of(existingSchedule));
+
+        AppException exception = assertThrows(AppException.class, () -> scheduleService.delete(10L));
+
+        assertEquals("Không thể xóa lịch đã có hiệu lực trong quá khứ", exception.getMessage());
+        verify(employeeScheduleRepository, never()).delete(any(EmployeeSchedule.class));
+    }
+
     private Shift createShift(Long id, String name, LocalTime startTime, LocalTime endTime) {
         Shift shift = new Shift();
         shift.setId(id);

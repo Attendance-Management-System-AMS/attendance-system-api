@@ -241,6 +241,9 @@ public class ScheduleService {
     public void delete(Long id) {
         EmployeeSchedule schedule = employeeScheduleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
+        if (schedule.getEffectiveFrom() != null && schedule.getEffectiveFrom().isBefore(LocalDate.now())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không thể xóa lịch đã có hiệu lực trong quá khứ");
+        }
         employeeScheduleRepository.delete(schedule);
     }
 }

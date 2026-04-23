@@ -20,6 +20,24 @@ public record AttendanceResponse(
         String employeeSnapshotDepartmentName,
         String employeeSnapshotPositionName
 ) {
+    public AttendanceResponse withStatus(String status) {
+        return new AttendanceResponse(
+                id,
+                employeeId,
+                checkInTime,
+                checkOutTime,
+                workDate,
+                status,
+                lateMinutes,
+                earlyLeaveMinutes,
+                workedMinutes,
+                expectedMinutes,
+                createdAt,
+                employeeFullName,
+                employeeSnapshotCode,
+                employeeSnapshotDepartmentName,
+                employeeSnapshotPositionName);
+    }
 }
 
 
