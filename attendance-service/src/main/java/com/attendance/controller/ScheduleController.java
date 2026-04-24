@@ -65,6 +65,17 @@ public class ScheduleController {
         return ApiResponse.success("Gán ca làm việc thành công", response);
     }
 
+    // Cập nhật ca làm của một lịch đã phân.
+    @org.springframework.web.bind.annotation.PutMapping("/{id}")
+    @Operation(summary = "Cập nhật ca làm của một lịch đã phân (Atomic update)")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
+    public ApiResponse<EmployeeScheduleResponse> updateSchedule(
+            @Parameter(description = "ID lịch làm") @PathVariable Long id,
+            @Valid @RequestBody com.attendance.dto.request.UpdateScheduleRequest request) {
+        EmployeeScheduleResponse response = scheduleService.updateSchedule(id, request);
+        return ApiResponse.success("Cập nhật lịch làm việc thành công", response);
+    }
+
     // Gán lịch làm hàng loạt.
     @PostMapping("/bulk")
     @Operation(summary = "Gán ca làm hàng loạt cho nhiều người, nhiều ngày")
