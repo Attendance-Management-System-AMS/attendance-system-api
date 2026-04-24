@@ -29,6 +29,14 @@ public class TokenBlacklist {
     @Column(name = "expires_at", nullable = false)
     private OffsetDateTime expiresAt;
 
+    // JTI của refresh token mới thay thế token này (dùng cho grace period).
+    @Column(name = "replaced_by_jti")
+    private String replacedByJti;
+
+    // Thời điểm token bị blacklist (dùng để tính grace period).
+    @Column(name = "blacklisted_at")
+    private OffsetDateTime blacklistedAt;
+
     @Column(name = "created_at", updatable = false, nullable = false)
     private OffsetDateTime createdAt;
 

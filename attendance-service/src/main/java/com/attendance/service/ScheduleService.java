@@ -69,6 +69,51 @@ public class ScheduleService {
         return employeeScheduleMapper.toResponse(saved);
     }
 
+    // Cập nhật ca làm của một lịch đã phân (Atomic update)
+    @Transactional
+    public EmployeeScheduleResponse updateSchedule(Long id, com.attendance.dto.request.UpdateScheduleRequest request) {
+        EmployeeSchedule existing = employeeScheduleRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
+
+        Shift newShift = shiftRepository.findById(request.shiftId())
+                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+
+        List<ScheduleConflictDetail> conflicts = new ArrayList<>();
+        boolean force = request.force() != null && request.force();
+        
+        // Kiểm tra xung đột nhưng bỏ qua chính schedule đang được update
+        List<EmployeeSchedule> allActive = employeeScheduleRepository.findByEmployeeIdAndIsActiveTrue(existing.getEmployeeId());
+        for (EmployeeSchedule other : allActive) {
+            if (other.getId().equals(existing.getId())) {
+                continue; // Bỏ qua bản thân
+            }
+            if (!sameEffectiveFrom(other.getEffectiveFrom(), existing.getEffectiveFrom())) {
+                continue;
+            }
+            if (ShiftUtils.isOverlapping(existing.getDayOfWeek(), newShift, other.getDayOfWeek(), other.getShift())) {
+                if (force) {
+                    other.setIsActive(false);
+                    employeeScheduleRepository.save(other);
+                } else {
+                    conflicts.add(new ScheduleConflictDetail(
+                            existing.getEmployeeId(),
+                            existing.getDayOfWeek(),
+                            newShift.getName(),
+                            other.getShift().getName()
+                    ));
+                }
+            }
+        }
+
+        if (!conflicts.isEmpty()) {
+            throw new AppException(ErrorCode.VALIDATION_FAILED, "Phát hiện xung đột lịch làm", conflicts);
+        }
+
+        existing.setShift(newShift);
+        EmployeeSchedule saved = employeeScheduleRepository.save(existing);
+        return employeeScheduleMapper.toResponse(saved);
+    }
+
     // Gán ca làm hàng loạt cho nhiều nhân viên và nhiều ngày.
     @Transactional
     public List<EmployeeScheduleResponse> bulkAssign(BulkScheduleRequest request) {

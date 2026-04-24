@@ -67,6 +67,7 @@ public class AuthService {
     }
 
     // Làm mới access token bằng refresh token còn hiệu lực.
+    // Hỗ trợ grace period 30 giây cho token đã bị rotation để tránh race condition.
     @Transactional
     public AuthResponse refresh(RefreshTokenRequest request) {
         try {
@@ -82,7 +83,28 @@ public class AuthService {
             }
 
             String jti = claims.getId();
-            if (tokenBlacklistRepository.existsByTokenJti(jti)) {
+
+            // Kiểm tra blacklist với grace period
+            var blacklistEntry = tokenBlacklistRepository.findByTokenJti(jti);
+            if (blacklistEntry.isPresent()) {
+                TokenBlacklist entry = blacklistEntry.get();
+                OffsetDateTime blacklistedAt = entry.getBlacklistedAt();
+
+                // Grace period 30 giây: Nếu token vừa bị blacklist bởi 1 request refresh khác
+                // (ví dụ race condition từ nhiều tab), trả về cặp token của user hiện tại
+                // thay vì reject.
+                boolean withinGracePeriod = blacklistedAt != null
+                        && blacklistedAt.plusSeconds(30).isAfter(OffsetDateTime.now(ZoneOffset.UTC));
+
+                if (withinGracePeriod) {
+                    log.warn("Refresh token replay trong grace period (jti={}). Cấp token mới.", jti);
+                    User user = resolveUserFromClaims(claims);
+                    if (!user.isEnabled()) {
+                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
+                    }
+                    return buildAuthResponse(user);
+                }
+
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token không còn hiệu lực");
             }
 
@@ -92,8 +114,16 @@ public class AuthService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
             }
 
-            blacklistToken(refreshToken, user.getId());
-            return buildAuthResponse(user);
+            // Tạo cặp token mới TRƯỚC khi blacklist token cũ
+            AuthResponse response = buildAuthResponse(user);
+
+            // Blacklist token cũ, lưu JTI của token mới thay thế
+            String newRefreshJti = jwtService.getJti(response.getRefreshToken());
+            blacklistTokenWithReplacement(refreshToken, user.getId(), newRefreshJti);
+
+            return response;
+        } catch (ResponseStatusException ex) {
+            throw ex;
         } catch (JwtException | IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token không hợp lệ");
         }
@@ -217,8 +247,13 @@ public class AuthService {
         return authHeader.substring(7).trim();
     }
 
-    // Ghi một token vào blacklist để chặn sử dụng lại.
+    // Ghi một token vào blacklist để chặn sử dụng lại (dùng cho logout).
     private void blacklistToken(String token, Long userId) {
+        blacklistTokenWithReplacement(token, userId, null);
+    }
+
+    // Ghi một token vào blacklist kèm JTI token thay thế (dùng cho refresh rotation).
+    private void blacklistTokenWithReplacement(String token, Long userId, String replacedByJti) {
         String jti = jwtService.getJti(token);
         var expiration = jwtService.getExpiration(token);
 
@@ -226,6 +261,8 @@ public class AuthService {
                 .userId(userId)
                 .tokenJti(jti)
                 .expiresAt(OffsetDateTime.ofInstant(expiration, ZoneOffset.UTC))
+                .replacedByJti(replacedByJti)
+                .blacklistedAt(OffsetDateTime.now(ZoneOffset.UTC))
                 .build();
 
         try {
