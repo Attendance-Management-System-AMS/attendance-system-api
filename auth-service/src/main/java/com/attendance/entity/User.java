@@ -2,6 +2,7 @@ package com.attendance.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.OffsetDateTime;
 import java.time.LocalDateTime;
 import java.util.Set;
 import org.hibernate.annotations.CreationTimestamp;
@@ -30,6 +31,12 @@ public class User {
     @Column(name = "is_enabled")
     @Builder.Default
     private boolean isEnabled = true;
+
+    @Column(name = "refresh_token_hash")
+    private String refreshTokenHash;
+
+    @Column(name = "refresh_token_expires_at")
+    private OffsetDateTime refreshTokenExpiresAt;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

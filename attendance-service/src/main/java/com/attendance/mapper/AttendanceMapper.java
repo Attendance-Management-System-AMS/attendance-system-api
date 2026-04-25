@@ -4,9 +4,8 @@ import com.attendance.dto.response.AttendanceResponse;
 import com.attendance.entity.Attendance;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(config = MapStructConfig.class)
 public interface AttendanceMapper {
 
     @Mapping(target = "employeeFullName", ignore = true)

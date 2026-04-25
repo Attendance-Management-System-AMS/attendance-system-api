@@ -8,6 +8,8 @@ import com.attendance.dto.response.ShiftResponse;
 import com.attendance.entity.Shift;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.ShiftMapper;
+import com.attendance.repository.EmployeeScheduleRepository;
+import com.attendance.repository.ScheduleTemplateItemRepository;
 import com.attendance.repository.ShiftRepository;
 import com.attendance.repository.spec.ShiftSpecifications;
 import java.util.List;
@@ -20,11 +22,19 @@ import org.springframework.stereotype.Service;
 public class ShiftService {
 
     private final ShiftRepository shiftRepository;
+    private final EmployeeScheduleRepository employeeScheduleRepository;
+    private final ScheduleTemplateItemRepository scheduleTemplateItemRepository;
     private final ShiftMapper shiftMapper;
 
     // Khởi tạo service xử lý ca làm.
-    public ShiftService(ShiftRepository shiftRepository, ShiftMapper shiftMapper) {
+    public ShiftService(
+            ShiftRepository shiftRepository,
+            EmployeeScheduleRepository employeeScheduleRepository,
+            ScheduleTemplateItemRepository scheduleTemplateItemRepository,
+            ShiftMapper shiftMapper) {
         this.shiftRepository = shiftRepository;
+        this.employeeScheduleRepository = employeeScheduleRepository;
+        this.scheduleTemplateItemRepository = scheduleTemplateItemRepository;
         this.shiftMapper = shiftMapper;
     }
 
@@ -97,6 +107,15 @@ public class ShiftService {
     public void delete(Long id) {
         Shift shift = shiftRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+
+        boolean usedBySchedules = employeeScheduleRepository.existsByShift_Id(id);
+        boolean usedByTemplates = !usedBySchedules && scheduleTemplateItemRepository.existsByShift_Id(id);
+        if (usedBySchedules || usedByTemplates) {
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
+                    "Không thể xóa ca làm đang được sử dụng trong lịch làm việc hoặc mẫu lịch");
+        }
+
         shiftRepository.delete(shift);
     }
 }

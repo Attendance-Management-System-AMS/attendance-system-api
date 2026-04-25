@@ -3,32 +3,21 @@ package com.attendance.mapper;
 import com.attendance.dto.request.HolidayRequest;
 import com.attendance.dto.response.HolidayResponse;
 import com.attendance.entity.Holiday;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-@Component
-public class HolidayMapper {
+@Mapper(config = MapStructConfig.class)
+public interface HolidayMapper {
 
-    // Chuyển request ngày nghỉ thành entity.
-    public Holiday toEntity(HolidayRequest request) {
-        Holiday holiday = new Holiday();
-        holiday.setHolidayName(request.holidayName().trim());
-        holiday.setFromDate(request.fromDate());
-        holiday.setToDate(request.toDate());
-        holiday.setIsPaid(request.isPaid());
-        return holiday;
-    }
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "holidayName", source = "holidayName", qualifiedByName = "trim")
+    Holiday toEntity(HolidayRequest request);
 
-    // Chuyển entity ngày nghỉ sang response.
-    public HolidayResponse toResponse(Holiday holiday) {
-        return new HolidayResponse(
-                holiday.getId(),
-                holiday.getHolidayName(),
-                holiday.getFromDate(),
-                holiday.getToDate(),
-                holiday.getIsPaid()
-        );
+    HolidayResponse toResponse(Holiday holiday);
+
+    @Named("trim")
+    default String trim(String value) {
+        return value == null ? null : value.trim();
     }
 }
-
-
-

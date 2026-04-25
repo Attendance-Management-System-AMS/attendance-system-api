@@ -4,17 +4,14 @@ import com.attendance.client.HrClient;
 import com.attendance.dto.request.*;
 import com.attendance.dto.response.*;
 import com.attendance.entity.Role;
-import com.attendance.entity.TokenBlacklist;
 import com.attendance.entity.User;
 import com.attendance.repository.RoleRepository;
-import com.attendance.repository.TokenBlacklistRepository;
 import com.attendance.repository.UserRepository;
 import feign.FeignException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
@@ -25,7 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,12 +40,12 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final TokenBlacklistRepository tokenBlacklistRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final HrClient hrClient;
 
     // Kiểm tra thông tin đăng nhập và trả về token.
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         String loginIdentifier = firstNonBlank(request.getUsername(), request.getEmail());
         if (loginIdentifier == null || request.getPassword() == null || request.getPassword().isBlank()) {
@@ -69,7 +65,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu");
         }
 
-        return buildAuthResponse(user);
+        return issueTokensForUser(user);
     }
 
     @Transactional
@@ -108,8 +104,7 @@ public class AuthService {
                 saved.getRoles().stream().map(Role::getRoleName).collect(java.util.stream.Collectors.toSet()));
     }
 
-    // Làm mới access token bằng refresh token còn hiệu lực.
-    // Hỗ trợ grace period 30 giây cho token đã bị rotation để tránh race condition.
+    // Làm mới access token bằng refresh token còn hiệu lực được lưu trên tài khoản.
     @Transactional
     public AuthResponse refresh(RefreshTokenRequest request) {
         try {
@@ -124,46 +119,14 @@ public class AuthService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token không phải refresh token");
             }
 
-            String jti = claims.getId();
-
-            // Kiểm tra blacklist với grace period
-            var blacklistEntry = tokenBlacklistRepository.findByTokenJti(jti);
-            if (blacklistEntry.isPresent()) {
-                TokenBlacklist entry = blacklistEntry.get();
-                OffsetDateTime blacklistedAt = entry.getBlacklistedAt();
-
-                // Grace period 30 giây: Nếu token vừa bị blacklist bởi 1 request refresh khác
-                // (ví dụ race condition từ nhiều tab), trả về cặp token của user hiện tại
-                // thay vì reject.
-                boolean withinGracePeriod = blacklistedAt != null
-                        && blacklistedAt.plusSeconds(30).isAfter(OffsetDateTime.now(ZoneOffset.UTC));
-
-                if (withinGracePeriod) {
-                    log.warn("Refresh token replay trong grace period (jti={}). Cấp token mới.", jti);
-                    User user = resolveUserFromClaims(claims);
-                    if (!user.isEnabled()) {
-                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
-                    }
-                    return buildAuthResponse(user);
-                }
-
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token không còn hiệu lực");
-            }
-
             User user = resolveUserFromClaims(claims);
 
             if (!user.isEnabled()) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
             }
 
-            // Tạo cặp token mới TRƯỚC khi blacklist token cũ
-            AuthResponse response = buildAuthResponse(user);
-
-            // Blacklist token cũ, lưu JTI của token mới thay thế
-            String newRefreshJti = jwtService.getJti(response.getRefreshToken());
-            blacklistTokenWithReplacement(refreshToken, user.getId(), newRefreshJti);
-
-            return response;
+            validateStoredRefreshToken(user, refreshToken.trim());
+            return issueTokensForUser(user);
         } catch (ResponseStatusException ex) {
             throw ex;
         } catch (JwtException | IllegalArgumentException ex) {
@@ -171,36 +134,25 @@ public class AuthService {
         }
     }
 
-    // Đưa access hoặc refresh token vào blacklist.
+    // Đăng xuất bằng cách xoá refresh token đang được lưu trên tài khoản.
     @Transactional
     public void logout(String authHeader, String refreshToken) {
-        String accessToken = extractToken(authHeader);
-        if ((accessToken == null || accessToken.isBlank()) && (refreshToken == null || refreshToken.isBlank())) {
+        if ((authHeader == null || authHeader.isBlank()) && (refreshToken == null || refreshToken.isBlank())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu token đăng xuất");
         }
 
-        Set<String> processedJtis = new HashSet<>();
-        Long expectedUserId = null;
-        int blacklistedCount = 0;
+        User accessUser = resolveUserFromAccessToken(extractToken(authHeader));
+        User refreshUser = resolveUserFromStoredRefreshToken(refreshToken);
 
-        LogoutTokenResult accessResult = blacklistLogoutToken(accessToken, expectedUserId, processedJtis);
-        expectedUserId = accessResult.userId();
-        blacklistedCount += accessResult.blacklistedCount();
-
-        LogoutTokenResult refreshResult = blacklistLogoutToken(refreshToken, expectedUserId, processedJtis);
-        expectedUserId = refreshResult.userId() != null ? refreshResult.userId() : expectedUserId;
-        blacklistedCount += refreshResult.blacklistedCount();
-
-        if (blacklistedCount == 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy token hợp lệ để đăng xuất");
+        if (accessUser == null && refreshUser == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy phiên đăng nhập hợp lệ để đăng xuất");
         }
-    }
 
-    public boolean isTokenBlacklisted(String jti) {
-        if (jti == null || jti.isBlank()) {
-            return false;
+        if (accessUser != null && refreshUser != null && !accessUser.getId().equals(refreshUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token đăng xuất không cùng người dùng");
         }
-        return tokenBlacklistRepository.existsByTokenJti(jti.trim());
+
+        clearStoredRefreshToken(accessUser != null ? accessUser : refreshUser);
     }
 
     // Lấy thông tin tài khoản đang đăng nhập từ SecurityContext.
@@ -266,6 +218,7 @@ public class AuthService {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
+        clearStoredRefreshToken(user);
         userRepository.save(user);
     }
 
@@ -308,63 +261,72 @@ public class AuthService {
         return authHeader.substring(7).trim();
     }
 
-    private LogoutTokenResult blacklistLogoutToken(String rawToken, Long expectedUserId, Set<String> processedJtis) {
-        if (rawToken == null || rawToken.isBlank()) {
-            return new LogoutTokenResult(expectedUserId, 0);
+    private User resolveUserFromAccessToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            return null;
         }
 
         try {
-            String token = rawToken.trim();
-            Claims claims = jwtService.parseClaims(token);
-            String tokenType = claims.get("token_type", String.class);
-            if (!"ACCESS".equals(tokenType) && !"REFRESH".equals(tokenType)) {
-                return new LogoutTokenResult(expectedUserId, 0);
+            Claims claims = jwtService.parseClaims(accessToken);
+            if (!"ACCESS".equals(claims.get("token_type", String.class))) {
+                return null;
+            }
+            return resolveUserFromClaims(claims);
+        } catch (ResponseStatusException | JwtException | IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private User resolveUserFromStoredRefreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return null;
+        }
+
+        try {
+            String normalizedToken = refreshToken.trim();
+            Claims claims = jwtService.parseClaims(normalizedToken);
+            if (!"REFRESH".equals(claims.get("token_type", String.class))) {
+                return null;
             }
 
             User user = resolveUserFromClaims(claims);
-            if (expectedUserId != null && !expectedUserId.equals(user.getId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token đăng xuất không cùng người dùng");
-            }
-
-            String jti = claims.getId();
-            if (jti == null || jti.isBlank() || !processedJtis.add(jti)) {
-                return new LogoutTokenResult(user.getId(), 0);
-            }
-
-            blacklistToken(token, user.getId());
-            return new LogoutTokenResult(user.getId(), 1);
-        } catch (JwtException | IllegalArgumentException ex) {
-            return new LogoutTokenResult(expectedUserId, 0);
+            validateStoredRefreshToken(user, normalizedToken);
+            return user;
+        } catch (ResponseStatusException | JwtException | IllegalArgumentException ex) {
+            return null;
         }
     }
 
-    // Ghi một token vào blacklist để chặn sử dụng lại (dùng cho logout).
-    private void blacklistToken(String token, Long userId) {
-        blacklistTokenWithReplacement(token, userId, null);
-    }
+    private void validateStoredRefreshToken(User user, String refreshToken) {
+        if (user.getRefreshTokenHash() == null || user.getRefreshTokenHash().isBlank() || user.getRefreshTokenExpiresAt() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token không còn hiệu lực");
+        }
 
-    // Ghi một token vào blacklist kèm JTI token thay thế (dùng cho refresh rotation).
-    private void blacklistTokenWithReplacement(String token, Long userId, String replacedByJti) {
-        String jti = jwtService.getJti(token);
-        var expiration = jwtService.getExpiration(token);
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        if (user.getRefreshTokenExpiresAt().isBefore(now)) {
+            clearStoredRefreshToken(user);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token đã hết hạn");
+        }
 
-        TokenBlacklist blacklistedToken = TokenBlacklist.builder()
-                .userId(userId)
-                .tokenJti(jti)
-                .expiresAt(OffsetDateTime.ofInstant(expiration, ZoneOffset.UTC))
-                .replacedByJti(replacedByJti)
-                .blacklistedAt(OffsetDateTime.now(ZoneOffset.UTC))
-                .build();
-
-        try {
-            tokenBlacklistRepository.save(blacklistedToken);
-        } catch (DataIntegrityViolationException ex) {
-            // Idempotent: token đã tồn tại trong blacklist
+        if (!passwordEncoder.matches(refreshToken, user.getRefreshTokenHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token không còn hiệu lực");
         }
     }
 
-    // Tạo cặp access token và refresh token cho một user.
-    private AuthResponse buildAuthResponse(User user) {
+    private void persistRefreshToken(User user, String refreshToken) {
+        user.setRefreshTokenHash(passwordEncoder.encode(refreshToken));
+        user.setRefreshTokenExpiresAt(OffsetDateTime.ofInstant(jwtService.getExpiration(refreshToken), ZoneOffset.UTC));
+        userRepository.save(user);
+    }
+
+    private void clearStoredRefreshToken(User user) {
+        user.setRefreshTokenHash(null);
+        user.setRefreshTokenExpiresAt(null);
+        userRepository.save(user);
+    }
+
+    // Một user chỉ giữ một refresh token đang hoạt động tại một thời điểm.
+    private AuthResponse issueTokensForUser(User user) {
         List<String> roleNames = user.getRoles().stream().map(Role::getRoleName).toList();
 
         Map<String, Object> claims = new HashMap<>();
@@ -376,6 +338,8 @@ public class AuthService {
             String.valueOf(user.getId()),
             Map.of("username", user.getUsername())
         );
+
+        persistRefreshToken(user, refreshToken);
 
         return AuthResponse.builder()
                 .accessToken(accessToken)
@@ -420,9 +384,6 @@ public class AuthService {
             return second;
         }
         return null;
-    }
-
-    private record LogoutTokenResult(Long userId, int blacklistedCount) {
     }
 
 }

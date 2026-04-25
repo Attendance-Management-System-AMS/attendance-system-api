@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import org.mapstruct.factory.Mappers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +53,7 @@ class ScheduleServiceTest {
                 employeeScheduleRepository,
                 shiftRepository,
                 scheduleTemplateRepository,
-                new EmployeeScheduleMapper());
+                Mappers.getMapper(EmployeeScheduleMapper.class));
     }
 
     @Test
@@ -161,7 +162,7 @@ class ScheduleServiceTest {
     }
 
     @Test
-    void deleteRejectsScheduleThatAlreadyStartedInPast() {
+    void deleteAllowsScheduleThatAlreadyStartedInPast() {
         Shift adminShift = createShift(1L, "Ca hành chính", LocalTime.of(8, 0), LocalTime.of(17, 30));
         EmployeeSchedule existingSchedule = createSchedule(
                 10L,
@@ -173,10 +174,28 @@ class ScheduleServiceTest {
 
         when(employeeScheduleRepository.findById(10L)).thenReturn(Optional.of(existingSchedule));
 
-        AppException exception = assertThrows(AppException.class, () -> scheduleService.delete(10L));
+        scheduleService.delete(10L);
 
-        assertEquals("Không thể xóa lịch đã có hiệu lực trong quá khứ", exception.getMessage());
-        verify(employeeScheduleRepository, never()).delete(any(EmployeeSchedule.class));
+        verify(employeeScheduleRepository).delete(existingSchedule);
+    }
+
+    @Test
+    void updateRejectsChangingShiftForScheduleThatStartedInPast() {
+        LocalDate pastEffectiveDate = LocalDate.now().minusDays(7);
+        Shift currentShift = createShift(1L, "Ca hành chính", LocalTime.of(8, 0), LocalTime.of(17, 30));
+        Shift nextShift = createShift(2L, "Ca tối", LocalTime.of(13, 0), LocalTime.of(22, 0));
+        EmployeeSchedule existingSchedule = createSchedule(15L, 5L, currentShift, 1, true, pastEffectiveDate);
+        var request = new com.attendance.dto.request.UpdateScheduleRequest(2L, null, null, null, false);
+
+        when(employeeScheduleRepository.findById(15L)).thenReturn(Optional.of(existingSchedule));
+        when(shiftRepository.findById(2L)).thenReturn(Optional.of(nextShift));
+
+        AppException exception = assertThrows(AppException.class, () -> scheduleService.updateSchedule(15L, request));
+
+        assertEquals(
+                "Không thể đổi ca cho lịch đã có hiệu lực trong quá khứ. Hãy tạo lịch mới từ ngày hiện tại.",
+                exception.getMessage());
+        verify(employeeScheduleRepository, never()).save(any(EmployeeSchedule.class));
     }
 
     private Shift createShift(Long id, String name, LocalTime startTime, LocalTime endTime) {

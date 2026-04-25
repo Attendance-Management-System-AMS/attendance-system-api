@@ -1,7 +1,6 @@
 package com.attendance.security;
 
 import com.attendance.service.JwtService;
-import com.attendance.repository.TokenBlacklistRepository;
 import com.attendance.repository.UserRepository;
 import com.attendance.entity.User;
 import io.jsonwebtoken.Claims;
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final TokenBlacklistRepository tokenBlacklistRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -49,13 +47,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             // Chỉ chấp nhận ACCESS token cho các request thông thường
             if (!"ACCESS".equals(tokenType)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            // Kiểm tra blacklist
-            String jti = claims.getId();
-            if (tokenBlacklistRepository.existsByTokenJti(jti)) {
                 filterChain.doFilter(request, response);
                 return;
             }

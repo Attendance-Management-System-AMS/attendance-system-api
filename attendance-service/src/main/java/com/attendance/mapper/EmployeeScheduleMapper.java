@@ -2,31 +2,23 @@ package com.attendance.mapper;
 
 import com.attendance.dto.response.EmployeeScheduleResponse;
 import com.attendance.entity.EmployeeSchedule;
-import com.attendance.entity.Shift;
-import org.springframework.stereotype.Component;
+import java.time.LocalTime;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-@Component
-public class EmployeeScheduleMapper {
+@Mapper(config = MapStructConfig.class)
+public interface EmployeeScheduleMapper {
 
-    // Chuyển lịch làm sang response hiển thị.
-    public EmployeeScheduleResponse toResponse(EmployeeSchedule schedule) {
-        Shift shift = schedule.getShift();
+    @Mapping(target = "employeeName", ignore = true)
+    @Mapping(target = "shiftId", source = "shift.id")
+    @Mapping(target = "shiftName", source = "shift.name")
+    @Mapping(target = "startTime", source = "shift.startTime", qualifiedByName = "localTimeToString")
+    @Mapping(target = "endTime", source = "shift.endTime", qualifiedByName = "localTimeToString")
+    EmployeeScheduleResponse toResponse(EmployeeSchedule schedule);
 
-        return new EmployeeScheduleResponse(
-                schedule.getId(),
-                schedule.getEmployeeId(),
-                null, // employeeName is not available directly in attendance-service
-                shift != null ? shift.getId() : null,
-                shift != null ? shift.getName() : null,
-                shift != null && shift.getStartTime() != null ? shift.getStartTime().toString() : null,
-                shift != null && shift.getEndTime() != null ? shift.getEndTime().toString() : null,
-                schedule.getDayOfWeek(),
-                schedule.getIsActive(),
-                schedule.getEffectiveFrom(),
-                schedule.getEffectiveTo()
-        );
+    @Named("localTimeToString")
+    default String localTimeToString(LocalTime value) {
+        return value == null ? null : value.toString();
     }
 }
-
-
-

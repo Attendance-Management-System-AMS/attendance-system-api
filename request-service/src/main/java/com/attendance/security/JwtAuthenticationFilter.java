@@ -1,6 +1,5 @@
 package com.attendance.security;
 
-import com.attendance.client.AuthClient;
 import com.attendance.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -23,11 +22,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final AuthClient authClient;
 
-    public JwtAuthenticationFilter(JwtService jwtService, AuthClient authClient) {
+    public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
-        this.authClient = authClient;
     }
 
     @Override
@@ -43,11 +40,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7).trim();
             Claims claims = jwtService.parseClaims(token);
             if (!"ACCESS".equals(claims.get("token_type", String.class))) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-            String jti = claims.getId();
-            if (jti != null && !jti.isBlank() && isBlacklisted(jti)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -76,13 +68,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .map(String::valueOf)
                 .map(SimpleGrantedAuthority::new)
                 .toList();
-    }
-
-    private boolean isBlacklisted(String jti) {
-        try {
-            return authClient.isTokenBlacklisted(jti);
-        } catch (Exception ignored) {
-            return true;
-        }
     }
 }

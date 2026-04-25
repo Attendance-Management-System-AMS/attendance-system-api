@@ -34,7 +34,7 @@ public class AuthController {
         return ApiResponse.success(200, "Làm mới token thành công", authService.refresh(request));
     }
 
-    // Đăng xuất bằng cách đưa token hiện tại vào blacklist.
+    // Đăng xuất bằng cách xoá refresh token đang lưu của phiên hiện tại.
     @PostMapping("/logout")
     @Operation(summary = "Đăng xuất", security = {@SecurityRequirement(name = "BearerAuth")})
     public ApiResponse<String> logout(

@@ -1,47 +1,22 @@
 package com.attendance.mapper;
 
-import com.attendance.dto.response.ScheduleTemplateItemResponse;
 import com.attendance.dto.request.ScheduleTemplateRequest;
+import com.attendance.dto.response.ScheduleTemplateItemResponse;
 import com.attendance.dto.response.ScheduleTemplateResponse;
 import com.attendance.entity.ScheduleTemplate;
 import com.attendance.entity.ScheduleTemplateItem;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-@RequiredArgsConstructor
-public class ScheduleTemplateMapper {
+@Mapper(config = MapStructConfig.class, uses = ShiftMapper.class)
+public interface ScheduleTemplateMapper {
 
-    private final ShiftMapper shiftMapper;
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "items", ignore = true)
+    @Mapping(target = "name", expression = "java(request.name() == null ? null : request.name().trim())")
+    ScheduleTemplate toEntity(ScheduleTemplateRequest request);
 
-    public ScheduleTemplate toEntity(ScheduleTemplateRequest request) {
-        ScheduleTemplate template = new ScheduleTemplate();
-        template.setName(request.name().trim());
-        template.setDescription(request.description());
-        // Items are usually handled in service to link shifts
-        return template;
-    }
+    ScheduleTemplateResponse toResponse(ScheduleTemplate template);
 
-    public ScheduleTemplateResponse toResponse(ScheduleTemplate template) {
-        return new ScheduleTemplateResponse(
-                template.getId(),
-                template.getName(),
-                template.getDescription(),
-                template.getItems().stream()
-                        .map(this::toItemResponse)
-                        .collect(Collectors.toList())
-        );
-    }
-
-    public ScheduleTemplateItemResponse toItemResponse(ScheduleTemplateItem item) {
-        return new ScheduleTemplateItemResponse(
-                item.getId(),
-                item.getDayOfWeek(),
-                shiftMapper.toResponse(item.getShift())
-        );
-    }
+    ScheduleTemplateItemResponse toItemResponse(ScheduleTemplateItem item);
 }
-
-
-

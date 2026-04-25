@@ -1,12 +1,16 @@
 package com.attendance.auth;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.attendance.controller.InternalAuthController;
+import com.attendance.dto.response.InternalUserResponse;
 import com.attendance.service.AuthService;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 @ExtendWith(MockitoExtension.class)
 class InternalAuthControllerTest {
@@ -29,15 +34,36 @@ class InternalAuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(internalAuthController).build();
+        LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
+        validator.afterPropertiesSet();
+        mockMvc = MockMvcBuilders.standaloneSetup(internalAuthController)
+                .setValidator(validator)
+                .build();
     }
 
     @Test
-    void tokenBlacklistEndpointReturnsBoolean() throws Exception {
-        when(authService.isTokenBlacklisted("revoked-jti")).thenReturn(true);
+    void createUserReturnsCreatedInternalUser() throws Exception {
+        when(authService.createInternalUser(any())).thenReturn(new InternalUserResponse(
+                99L,
+                "emp001",
+                "emp001@company.com",
+                true,
+                Set.of("ROLE_EMPLOYEE")));
 
-        mockMvc.perform(get("/internal/auth/tokens/blacklisted").param("jti", "revoked-jti"))
+        mockMvc.perform(post("/internal/auth/users")
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "emp001",
+                                  "password": "Emp@1234",
+                                  "email": "emp001@company.com",
+                                  "enabled": true,
+                                  "roles": ["ROLE_EMPLOYEE"]
+                                }
+                                """))
                 .andExpect(status().isOk())
-                .andExpect(content().string("true"));
+                .andExpect(jsonPath("$.id").value(99))
+                .andExpect(jsonPath("$.username").value("emp001"))
+                .andExpect(jsonPath("$.roles[0]").value("ROLE_EMPLOYEE"));
     }
 }

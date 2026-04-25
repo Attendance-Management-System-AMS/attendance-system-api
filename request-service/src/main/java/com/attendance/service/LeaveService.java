@@ -3,6 +3,9 @@ package com.attendance.service;
 import com.attendance.client.AttendanceClient;
 import com.attendance.client.HrClient;
 import com.attendance.common.dto.PageResponse;
+import com.attendance.common.dto.LeaveApprovalSyncRequest;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.attendance.dto.request.LeaveRequestRecord;
 import com.attendance.dto.response.HrEmployeeSnapshot;
 import com.attendance.dto.response.LeaveResponse;
@@ -20,11 +23,14 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import feign.FeignException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LeaveService {
@@ -35,6 +41,7 @@ public class LeaveService {
     private final LeaveTypeMapper leaveTypeMapper;
     private final HrClient hrClient;
     private final AttendanceClient attendanceClient;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public LeaveResponse createRequest(LeaveRequestRecord request) {
@@ -177,14 +184,66 @@ public class LeaveService {
 
     private void syncApprovedLeaveAttendance(LeaveRequest leaveRequest) {
         try {
-            attendanceClient.syncApprovedLeave(
+            attendanceClient.syncApprovedLeave(new LeaveApprovalSyncRequest(
                     leaveRequest.getEmployeeId(),
                     leaveRequest.getFromDate(),
-                    leaveRequest.getToDate());
+                    leaveRequest.getToDate()));
+        } catch (FeignException ex) {
+            String message = extractRemoteErrorMessage(ex);
+            log.error(
+                    "Đồng bộ bảng công thất bại khi duyệt đơn nghỉ id={}, employeeId={}, fromDate={}, toDate={}, status={}, message={}",
+                    leaveRequest.getId(),
+                    leaveRequest.getEmployeeId(),
+                    leaveRequest.getFromDate(),
+                    leaveRequest.getToDate(),
+                    ex.status(),
+                    message,
+                    ex);
+            throw new AppException(resolveAttendanceSyncErrorCode(ex), message);
         } catch (Exception ex) {
+            log.error(
+                    "Đồng bộ bảng công thất bại khi duyệt đơn nghỉ id={}, employeeId={}, fromDate={}, toDate={}",
+                    leaveRequest.getId(),
+                    leaveRequest.getEmployeeId(),
+                    leaveRequest.getFromDate(),
+                    leaveRequest.getToDate(),
+                    ex);
             throw new AppException(
                     ErrorCode.UNCATEGORIZED_ERROR,
                     "Không thể đồng bộ bảng công sau khi duyệt đơn nghỉ");
         }
+    }
+
+    private ErrorCode resolveAttendanceSyncErrorCode(FeignException ex) {
+        return switch (ex.status()) {
+            case 400 -> ErrorCode.INVALID_INPUT;
+            case 401 -> ErrorCode.UNAUTHORIZED;
+            case 403 -> ErrorCode.FORBIDDEN;
+            case 404 -> ErrorCode.RESOURCE_NOT_FOUND;
+            default -> ErrorCode.UNCATEGORIZED_ERROR;
+        };
+    }
+
+    private String extractRemoteErrorMessage(FeignException ex) {
+        String body = ex.contentUTF8();
+        if (body == null || body.isBlank()) {
+            return "Không thể đồng bộ bảng công sau khi duyệt đơn nghỉ";
+        }
+
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode messageNode = root.path("message");
+            if (messageNode.isTextual() && !messageNode.asText().isBlank()) {
+                return messageNode.asText();
+            }
+            JsonNode dataMessageNode = root.path("data").path("message");
+            if (dataMessageNode.isTextual() && !dataMessageNode.asText().isBlank()) {
+                return dataMessageNode.asText();
+            }
+        } catch (Exception ignored) {
+            // Fallback to a generic message below when the upstream body is not JSON.
+        }
+
+        return "Không thể đồng bộ bảng công sau khi duyệt đơn nghỉ";
     }
 }

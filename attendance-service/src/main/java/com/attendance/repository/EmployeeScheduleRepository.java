@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedule, Long>, JpaSpecificationExecutor<EmployeeSchedule> {
 
+    boolean existsByShift_Id(Long shiftId);
+
     List<EmployeeSchedule> findByEmployeeId(Long employeeId);
 
     List<EmployeeSchedule> findByEmployeeIdAndIsActiveTrue(Long employeeId);

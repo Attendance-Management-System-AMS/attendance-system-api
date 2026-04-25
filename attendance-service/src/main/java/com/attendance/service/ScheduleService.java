@@ -77,6 +77,7 @@ public class ScheduleService {
         EmployeeSchedule existing = employeeScheduleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
 
+        LocalDate today = LocalDate.now();
         Shift newShift = request.shiftId() == null
                 ? existing.getShift()
                 : shiftRepository.findById(request.shiftId())
@@ -92,6 +93,14 @@ public class ScheduleService {
         validateEffectiveRange(nextEffectiveFrom, nextEffectiveTo);
         if (request.effectiveFrom() != null && request.effectiveFrom().isBefore(LocalDate.now())) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Ngày hiệu lực không được ở quá khứ");
+        }
+        if (existing.getEffectiveFrom() != null
+                && existing.getEffectiveFrom().isBefore(today)
+                && request.shiftId() != null
+                && !existing.getShift().getId().equals(request.shiftId())) {
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
+                    "Không thể đổi ca cho lịch đã có hiệu lực trong quá khứ. Hãy tạo lịch mới từ ngày hiện tại.");
         }
 
         List<ScheduleConflictDetail> conflicts = new ArrayList<>();
@@ -323,9 +332,6 @@ public class ScheduleService {
     public void delete(Long id) {
         EmployeeSchedule schedule = employeeScheduleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
-        if (schedule.getEffectiveFrom() != null && schedule.getEffectiveFrom().isBefore(LocalDate.now())) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Không thể xóa lịch đã có hiệu lực trong quá khứ");
-        }
         employeeScheduleRepository.delete(schedule);
     }
 }
