@@ -20,9 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -308,13 +312,13 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token đã hết hạn");
         }
 
-        if (!passwordEncoder.matches(refreshToken, user.getRefreshTokenHash())) {
+        if (!matchesStoredRefreshToken(user.getRefreshTokenHash(), refreshToken)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refresh token không còn hiệu lực");
         }
     }
 
     private void persistRefreshToken(User user, String refreshToken) {
-        user.setRefreshTokenHash(passwordEncoder.encode(refreshToken));
+        user.setRefreshTokenHash(hashRefreshToken(refreshToken));
         user.setRefreshTokenExpiresAt(OffsetDateTime.ofInstant(jwtService.getExpiration(refreshToken), ZoneOffset.UTC));
         userRepository.save(user);
     }
@@ -323,6 +327,21 @@ public class AuthService {
         user.setRefreshTokenHash(null);
         user.setRefreshTokenExpiresAt(null);
         userRepository.save(user);
+    }
+
+    private boolean matchesStoredRefreshToken(String storedHash, String refreshToken) {
+        byte[] expected = storedHash.getBytes(StandardCharsets.UTF_8);
+        byte[] actual = hashRefreshToken(refreshToken).getBytes(StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(expected, actual);
+    }
+
+    private String hashRefreshToken(String refreshToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(refreshToken.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 không khả dụng", ex);
+        }
     }
 
     // Một user chỉ giữ một refresh token đang hoạt động tại một thời điểm.

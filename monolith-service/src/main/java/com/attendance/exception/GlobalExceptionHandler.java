@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
         }
         log.error("Unexpected error (rootCause={}): {}", root.getClass().getName(), root.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Da xay ra loi he thong"));
+                .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Lỗi không xác định, vui lòng thử lại sau"));
     }
 }
 
