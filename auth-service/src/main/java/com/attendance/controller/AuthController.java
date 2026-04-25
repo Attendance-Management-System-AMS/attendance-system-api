@@ -38,8 +38,9 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(summary = "Đăng xuất", security = {@SecurityRequirement(name = "BearerAuth")})
     public ApiResponse<String> logout(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
-        authService.logout(authHeader);
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
+            @RequestBody(required = false) LogoutRequest request) {
+        authService.logout(authHeader, request == null ? null : request.getRefreshToken());
         return ApiResponse.success(200, "Đăng xuất thành công", "OK");
     }
 

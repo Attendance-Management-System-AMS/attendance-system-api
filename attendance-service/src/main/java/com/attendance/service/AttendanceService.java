@@ -1,6 +1,7 @@
 package com.attendance.service;
 
 import com.attendance.client.HrClient;
+import com.attendance.client.RequestClient;
 import com.attendance.common.dto.PageResponse;
 import com.attendance.dto.response.HrEmployeeSnapshot;
 import com.attendance.dto.response.AttendanceResponse;
@@ -14,6 +15,7 @@ import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.AttendanceMapper;
 import com.attendance.repository.AttendanceRepository;
 import com.attendance.repository.AttendanceLogRepository;
+import com.attendance.repository.HolidayRepository;
 import com.attendance.repository.spec.AttendanceSpecifications;
 import com.attendance.repository.EmployeeScheduleRepository;
 import com.attendance.exception.AppException;
@@ -42,6 +44,8 @@ public class AttendanceService {
     private final AttendanceLogRepository attendanceLogRepository;
     private final HrClient hrClient;
     private final AttendanceMapper attendanceMapper;
+    private final HolidayRepository holidayRepository;
+    private final RequestClient requestClient;
 
     @Value("${app.attendance.min-checkout-after-minutes:30}")
     private long minCheckoutAfterMinutes;
@@ -65,6 +69,10 @@ public class AttendanceService {
     private AttendanceResponse resolveScanResult(Long employeeId, Attendance existing) {
         if (existing == null) {
             return performCheckIn(employeeId);
+        }
+
+        if ("ON_LEAVE".equalsIgnoreCase(existing.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đang có đơn nghỉ đã được duyệt cho hôm nay");
         }
 
         if (existing.getCheckInTime() == null) {
@@ -124,8 +132,15 @@ public class AttendanceService {
         LocalDate today = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
-        if (attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, today).isPresent()) {
+        Attendance existingAttendance = attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, today).orElse(null);
+        if (existingAttendance != null) {
+            if ("ON_LEAVE".equalsIgnoreCase(existingAttendance.getStatus())) {
+                throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đang có đơn nghỉ đã được duyệt cho hôm nay");
+            }
             throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đã check-in hôm nay rồi");
+        }
+        if (hasApprovedLeaveSafely(employeeId, today)) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đang có đơn nghỉ đã được duyệt cho hôm nay");
         }
 
         Shift shift = getTodayShift(employeeId, today);
@@ -238,6 +253,25 @@ public class AttendanceService {
         attendanceRepository.delete(attendance);
     }
 
+    @Transactional
+    public void syncApprovedLeave(Long employeeId, LocalDate fromDate, LocalDate toDate) {
+        if (employeeId == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Mã nhân viên là bắt buộc");
+        }
+        if (fromDate == null || toDate == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Khoảng ngày nghỉ là bắt buộc");
+        }
+        if (toDate.isBefore(fromDate)) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Ngày kết thúc phải sau ngày bắt đầu");
+        }
+
+        LocalDate workDate = fromDate;
+        while (!workDate.isAfter(toDate)) {
+            syncApprovedLeaveForDate(employeeId, workDate);
+            workDate = workDate.plusDays(1);
+        }
+    }
+
     // Kiểm tra nhân viên có tồn tại trong HR và lấy thông tin tóm tắt.
     private HrEmployeeSnapshot requireEmployee(Long employeeId) {
         HrEmployeeSnapshot result = hrClient.getEmployeeSnapshot(employeeId);
@@ -247,15 +281,60 @@ public class AttendanceService {
         return result;
     }
 
+    private void syncApprovedLeaveForDate(Long employeeId, LocalDate workDate) {
+        if (holidayRepository.existsByFromDateLessThanEqualAndToDateGreaterThanEqual(workDate, workDate)) {
+            return;
+        }
+
+        Attendance existingAttendance = attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, workDate).orElse(null);
+        if (existingAttendance == null) {
+            if (getTodayShift(employeeId, workDate) == null) {
+                return;
+            }
+            attendanceRepository.save(buildApprovedLeaveAttendance(employeeId, workDate));
+            return;
+        }
+
+        if (hasRecordedTime(existingAttendance) || "HOLIDAY".equalsIgnoreCase(existingAttendance.getStatus())) {
+            return;
+        }
+
+        if ("ON_LEAVE".equalsIgnoreCase(existingAttendance.getStatus())) {
+            return;
+        }
+
+        existingAttendance.setCheckInTime(null);
+        existingAttendance.setCheckOutTime(null);
+        existingAttendance.setStatus("ON_LEAVE");
+        existingAttendance.setLateMinutes(0);
+        existingAttendance.setEarlyLeaveMinutes(0);
+        existingAttendance.setWorkedMinutes(0);
+        existingAttendance.setExpectedMinutes(0);
+        attendanceRepository.save(existingAttendance);
+    }
+
     // Lấy ca làm trong ngày hiện tại của nhân viên.
     private Shift getTodayShift(Long employeeId, LocalDate date) {
         int dayOfWeek = date.getDayOfWeek().getValue();
         return employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(employeeId, date)
                 .stream()
+                .filter(schedule -> schedule.getEffectiveTo() == null || !schedule.getEffectiveTo().isBefore(date))
                 .filter(schedule -> schedule.getDayOfWeek() == dayOfWeek)
                 .map(EmployeeSchedule::getShift)
                 .findFirst()
                 .orElse(null);
+    }
+
+    private Attendance buildApprovedLeaveAttendance(Long employeeId, LocalDate workDate) {
+        return Attendance.builder()
+                .employeeId(employeeId)
+                .workDate(workDate)
+                .status("ON_LEAVE")
+                .lateMinutes(0)
+                .earlyLeaveMinutes(0)
+                .workedMinutes(0)
+                .expectedMinutes(0)
+                .build();
     }
 
     private void recordLog(Long employeeId, LocalDateTime logTime, String logType) {
@@ -281,6 +360,19 @@ public class AttendanceService {
                 && attendance.getWorkDate().isBefore(LocalDate.now())
                 && attendance.getCheckInTime() != null
                 && attendance.getCheckOutTime() == null;
+    }
+
+    private boolean hasRecordedTime(Attendance attendance) {
+        return attendance.getCheckInTime() != null || attendance.getCheckOutTime() != null;
+    }
+
+    private boolean hasApprovedLeaveSafely(Long employeeId, LocalDate date) {
+        try {
+            return requestClient.hasApprovedLeave(employeeId, date);
+        } catch (Exception ex) {
+            log.warn("Không kiểm tra được đơn nghỉ đã duyệt cho employeeId={}, date={}: {}", employeeId, date, ex.getMessage());
+            return false;
+        }
     }
 
     private boolean isCheckoutTooSoon(Attendance attendance, LocalDateTime now) {

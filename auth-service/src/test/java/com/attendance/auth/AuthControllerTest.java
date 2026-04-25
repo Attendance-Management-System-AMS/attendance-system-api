@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.attendance.controller.AuthController;
 import com.attendance.dto.request.ChangePasswordRequest;
 import com.attendance.dto.request.LoginRequest;
+import com.attendance.dto.request.LogoutRequest;
 import com.attendance.dto.request.RefreshTokenRequest;
 import com.attendance.dto.response.AuthResponse;
 import com.attendance.dto.response.UserProfileResponse;
@@ -123,10 +124,15 @@ class AuthControllerTest {
 
     @Test
     void logoutReturnsOk() throws Exception {
-        doNothing().when(authService).logout(eq("Bearer access-token"));
+        LogoutRequest request = new LogoutRequest();
+        request.setRefreshToken("refresh-token");
+
+        doNothing().when(authService).logout(eq("Bearer access-token"), eq("refresh-token"));
 
         mockMvc.perform(post("/api/auth/logout")
-                        .header("Authorization", "Bearer access-token"))
+                        .contentType(APPLICATION_JSON)
+                        .header("Authorization", "Bearer access-token")
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").value("OK"));
     }

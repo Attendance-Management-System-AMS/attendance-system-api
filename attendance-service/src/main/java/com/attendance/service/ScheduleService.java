@@ -39,7 +39,7 @@ public class ScheduleService {
     // Gán ca làm cho nhân viên đơn lẻ (Có kiểm tra xung đột).
     @Transactional
     public EmployeeScheduleResponse assignSchedule(EmployeeScheduleRequest request) {
-        validateEffectiveFrom(request.effectiveFrom());
+        validateCreateEffectiveRange(request.effectiveFrom(), request.effectiveTo());
 
         Shift newShift = shiftRepository.findById(request.shiftId())
                 .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
@@ -51,6 +51,7 @@ public class ScheduleService {
                 newShift,
                 request.dayOfWeek(),
                 request.effectiveFrom(),
+                request.effectiveTo(),
                 force,
                 conflicts);
 
@@ -64,6 +65,7 @@ public class ScheduleService {
         schedule.setDayOfWeek(request.dayOfWeek());
         schedule.setIsActive(request.isActive());
         schedule.setEffectiveFrom(request.effectiveFrom());
+        schedule.setEffectiveTo(request.effectiveTo());
 
         EmployeeSchedule saved = employeeScheduleRepository.save(schedule);
         return employeeScheduleMapper.toResponse(saved);
@@ -75,8 +77,22 @@ public class ScheduleService {
         EmployeeSchedule existing = employeeScheduleRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_NOT_FOUND));
 
-        Shift newShift = shiftRepository.findById(request.shiftId())
-                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+        Shift newShift = request.shiftId() == null
+                ? existing.getShift()
+                : shiftRepository.findById(request.shiftId())
+                        .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+        LocalDate nextEffectiveFrom = request.effectiveFrom() != null
+                ? request.effectiveFrom()
+                : existing.getEffectiveFrom();
+        LocalDate nextEffectiveTo = request.effectiveTo() != null
+                ? request.effectiveTo()
+                : existing.getEffectiveTo();
+        Boolean nextIsActive = request.isActive() != null ? request.isActive() : existing.getIsActive();
+
+        validateEffectiveRange(nextEffectiveFrom, nextEffectiveTo);
+        if (request.effectiveFrom() != null && request.effectiveFrom().isBefore(LocalDate.now())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Ngày hiệu lực không được ở quá khứ");
+        }
 
         List<ScheduleConflictDetail> conflicts = new ArrayList<>();
         boolean force = request.force() != null && request.force();
@@ -87,7 +103,7 @@ public class ScheduleService {
             if (other.getId().equals(existing.getId())) {
                 continue; // Bỏ qua bản thân
             }
-            if (!sameEffectiveFrom(other.getEffectiveFrom(), existing.getEffectiveFrom())) {
+            if (!sameEffectiveFrom(other.getEffectiveFrom(), nextEffectiveFrom)) {
                 continue;
             }
             if (ShiftUtils.isOverlapping(existing.getDayOfWeek(), newShift, other.getDayOfWeek(), other.getShift())) {
@@ -110,6 +126,9 @@ public class ScheduleService {
         }
 
         existing.setShift(newShift);
+        existing.setEffectiveFrom(nextEffectiveFrom);
+        existing.setEffectiveTo(nextEffectiveTo);
+        existing.setIsActive(nextIsActive);
         EmployeeSchedule saved = employeeScheduleRepository.save(existing);
         return employeeScheduleMapper.toResponse(saved);
     }
@@ -117,7 +136,7 @@ public class ScheduleService {
     // Gán ca làm hàng loạt cho nhiều nhân viên và nhiều ngày.
     @Transactional
     public List<EmployeeScheduleResponse> bulkAssign(BulkScheduleRequest request) {
-        validateEffectiveFrom(request.effectiveFrom());
+        validateCreateEffectiveRange(request.effectiveFrom(), request.effectiveTo());
 
         Shift shift = shiftRepository.findById(request.shiftId())
                 .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
@@ -128,7 +147,14 @@ public class ScheduleService {
 
         for (Long employeeId : request.employeeIds()) {
             for (Integer dayOfWeek : request.daysOfWeek()) {
-                processConflicts(employeeId, shift, dayOfWeek, request.effectiveFrom(), force, conflicts);
+                processConflicts(
+                        employeeId,
+                        shift,
+                        dayOfWeek,
+                        request.effectiveFrom(),
+                        request.effectiveTo(),
+                        force,
+                        conflicts);
                 
                 EmployeeSchedule schedule = new EmployeeSchedule();
                 schedule.setEmployeeId(employeeId);
@@ -136,6 +162,7 @@ public class ScheduleService {
                 schedule.setDayOfWeek(dayOfWeek);
                 schedule.setIsActive(true);
                 schedule.setEffectiveFrom(request.effectiveFrom());
+                schedule.setEffectiveTo(request.effectiveTo());
                 
                 schedulesToSave.add(schedule);
             }
@@ -154,7 +181,7 @@ public class ScheduleService {
     // Áp dụng mẫu lịch làm vào nhân viên.
     @Transactional
     public List<EmployeeScheduleResponse> applyTemplate(ApplyTemplateRequest request) {
-        validateEffectiveFrom(request.effectiveFrom());
+        validateCreateEffectiveRange(request.effectiveFrom(), request.effectiveTo());
 
         ScheduleTemplate template = templateRepository.findById(request.templateId())
                 .orElseThrow(() -> new AppException(ErrorCode.SCHEDULE_TEMPLATE_NOT_FOUND));
@@ -174,6 +201,7 @@ public class ScheduleService {
                         item.getShift(),
                         item.getDayOfWeek(),
                         request.effectiveFrom(),
+                        request.effectiveTo(),
                         force,
                         conflicts);
 
@@ -183,6 +211,7 @@ public class ScheduleService {
                 schedule.setDayOfWeek(item.getDayOfWeek());
                 schedule.setIsActive(true);
                 schedule.setEffectiveFrom(request.effectiveFrom());
+                schedule.setEffectiveTo(request.effectiveTo());
                 
                 schedulesToSave.add(schedule);
             }
@@ -207,6 +236,7 @@ public class ScheduleService {
             Shift newShift,
             Integer dayOfWeek,
             LocalDate effectiveFrom,
+            LocalDate effectiveTo,
             boolean force,
             List<ScheduleConflictDetail> conflicts) {
         // Lấy tất cả lịch đang hoạt động của nhân viên để kiểm tra
@@ -246,12 +276,19 @@ public class ScheduleService {
         return existingEffectiveFrom.isEqual(newEffectiveFrom);
     }
 
-    private void validateEffectiveFrom(LocalDate effectiveFrom) {
+    private void validateCreateEffectiveRange(LocalDate effectiveFrom, LocalDate effectiveTo) {
+        validateEffectiveRange(effectiveFrom, effectiveTo);
+        if (effectiveFrom.isBefore(LocalDate.now())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Ngày hiệu lực không được ở quá khứ");
+        }
+    }
+
+    private void validateEffectiveRange(LocalDate effectiveFrom, LocalDate effectiveTo) {
         if (effectiveFrom == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Ngày hiệu lực là bắt buộc");
         }
-        if (effectiveFrom.isBefore(LocalDate.now())) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Ngày hiệu lực không được ở quá khứ");
+        if (effectiveTo != null && effectiveTo.isBefore(effectiveFrom)) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Ngày kết thúc không được nhỏ hơn ngày hiệu lực");
         }
     }
 

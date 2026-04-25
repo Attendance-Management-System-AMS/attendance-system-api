@@ -1,5 +1,6 @@
 package com.attendance.service;
 
+import com.attendance.client.AttendanceClient;
 import com.attendance.client.HrClient;
 import com.attendance.common.dto.PageResponse;
 import com.attendance.dto.request.LeaveRequestRecord;
@@ -33,6 +34,7 @@ public class LeaveService {
     private final LeaveMapper leaveMapper;
     private final LeaveTypeMapper leaveTypeMapper;
     private final HrClient hrClient;
+    private final AttendanceClient attendanceClient;
 
     @Transactional
     public LeaveResponse createRequest(LeaveRequestRecord request) {
@@ -100,7 +102,10 @@ public class LeaveService {
             requireEmployee(approvedById);
             leaveRequest.setApprovedById(approvedById);
         }
-        return toResponse(leaveRequestRepository.save(leaveRequest));
+
+        LeaveRequest saved = leaveRequestRepository.save(leaveRequest);
+        syncApprovedLeaveAttendance(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -167,6 +172,19 @@ public class LeaveService {
             return hrClient.getEmployeeSnapshot(employeeId);
         } catch (Exception ignored) {
             return null;
+        }
+    }
+
+    private void syncApprovedLeaveAttendance(LeaveRequest leaveRequest) {
+        try {
+            attendanceClient.syncApprovedLeave(
+                    leaveRequest.getEmployeeId(),
+                    leaveRequest.getFromDate(),
+                    leaveRequest.getToDate());
+        } catch (Exception ex) {
+            throw new AppException(
+                    ErrorCode.UNCATEGORIZED_ERROR,
+                    "Không thể đồng bộ bảng công sau khi duyệt đơn nghỉ");
         }
     }
 }

@@ -25,8 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
+import java.util.HashSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -172,24 +173,34 @@ public class AuthService {
 
     // Đưa access hoặc refresh token vào blacklist.
     @Transactional
-    public void logout(String authHeader) {
-        String token = extractToken(authHeader);
-        try {
-            if (token == null || token.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu token đăng xuất");
-            }
-
-            Claims claims = jwtService.parseClaims(token);
-            String tokenType = claims.get("token_type", String.class);
-            if (!"ACCESS".equals(tokenType) && !"REFRESH".equals(tokenType)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loại token không hợp lệ");
-            }
-
-            User user = resolveUserFromClaims(claims);
-            blacklistToken(token, user.getId());
-        } catch (JwtException | IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token không hợp lệ");
+    public void logout(String authHeader, String refreshToken) {
+        String accessToken = extractToken(authHeader);
+        if ((accessToken == null || accessToken.isBlank()) && (refreshToken == null || refreshToken.isBlank())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu token đăng xuất");
         }
+
+        Set<String> processedJtis = new HashSet<>();
+        Long expectedUserId = null;
+        int blacklistedCount = 0;
+
+        LogoutTokenResult accessResult = blacklistLogoutToken(accessToken, expectedUserId, processedJtis);
+        expectedUserId = accessResult.userId();
+        blacklistedCount += accessResult.blacklistedCount();
+
+        LogoutTokenResult refreshResult = blacklistLogoutToken(refreshToken, expectedUserId, processedJtis);
+        expectedUserId = refreshResult.userId() != null ? refreshResult.userId() : expectedUserId;
+        blacklistedCount += refreshResult.blacklistedCount();
+
+        if (blacklistedCount == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy token hợp lệ để đăng xuất");
+        }
+    }
+
+    public boolean isTokenBlacklisted(String jti) {
+        if (jti == null || jti.isBlank()) {
+            return false;
+        }
+        return tokenBlacklistRepository.existsByTokenJti(jti.trim());
     }
 
     // Lấy thông tin tài khoản đang đăng nhập từ SecurityContext.
@@ -297,6 +308,36 @@ public class AuthService {
         return authHeader.substring(7).trim();
     }
 
+    private LogoutTokenResult blacklistLogoutToken(String rawToken, Long expectedUserId, Set<String> processedJtis) {
+        if (rawToken == null || rawToken.isBlank()) {
+            return new LogoutTokenResult(expectedUserId, 0);
+        }
+
+        try {
+            String token = rawToken.trim();
+            Claims claims = jwtService.parseClaims(token);
+            String tokenType = claims.get("token_type", String.class);
+            if (!"ACCESS".equals(tokenType) && !"REFRESH".equals(tokenType)) {
+                return new LogoutTokenResult(expectedUserId, 0);
+            }
+
+            User user = resolveUserFromClaims(claims);
+            if (expectedUserId != null && !expectedUserId.equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token đăng xuất không cùng người dùng");
+            }
+
+            String jti = claims.getId();
+            if (jti == null || jti.isBlank() || !processedJtis.add(jti)) {
+                return new LogoutTokenResult(user.getId(), 0);
+            }
+
+            blacklistToken(token, user.getId());
+            return new LogoutTokenResult(user.getId(), 1);
+        } catch (JwtException | IllegalArgumentException ex) {
+            return new LogoutTokenResult(expectedUserId, 0);
+        }
+    }
+
     // Ghi một token vào blacklist để chặn sử dụng lại (dùng cho logout).
     private void blacklistToken(String token, Long userId) {
         blacklistTokenWithReplacement(token, userId, null);
@@ -379,6 +420,9 @@ public class AuthService {
             return second;
         }
         return null;
+    }
+
+    private record LogoutTokenResult(Long userId, int blacklistedCount) {
     }
 
 }

@@ -22,7 +22,8 @@ public class EmployeeScheduleMapper {
                 shift != null && shift.getEndTime() != null ? shift.getEndTime().toString() : null,
                 schedule.getDayOfWeek(),
                 schedule.getIsActive(),
-                schedule.getEffectiveFrom()
+                schedule.getEffectiveFrom(),
+                schedule.getEffectiveTo()
         );
     }
 }

@@ -8,9 +8,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.attendance.dto.request.ApplyTemplateRequest;
 import com.attendance.dto.request.EmployeeScheduleRequest;
 import com.attendance.dto.response.EmployeeScheduleResponse;
 import com.attendance.entity.EmployeeSchedule;
+import com.attendance.entity.ScheduleTemplate;
+import com.attendance.entity.ScheduleTemplateItem;
 import com.attendance.entity.Shift;
 import com.attendance.exception.AppException;
 import com.attendance.mapper.EmployeeScheduleMapper;
@@ -53,6 +56,38 @@ class ScheduleServiceTest {
     }
 
     @Test
+    void applyTemplateAllowsSameWeekdayWhenEffectiveFromIsDifferent() {
+        LocalDate firstEffectiveDate = LocalDate.now().plusDays(30);
+        LocalDate nextEffectiveDate = LocalDate.now().plusDays(44);
+        Shift adminShift = createShift(1L, "Ca hành chính", LocalTime.of(8, 0), LocalTime.of(17, 0));
+        Shift morningShift = createShift(2L, "Ca sáng", LocalTime.of(6, 0), LocalTime.of(14, 0));
+        EmployeeSchedule existingSchedule = createSchedule(10L, 5L, adminShift, 6, true, firstEffectiveDate);
+        ScheduleTemplate template = createTemplate(20L, createTemplateItem(21L, 6, morningShift));
+        ApplyTemplateRequest request = new ApplyTemplateRequest(
+                List.of(5L),
+                20L,
+                nextEffectiveDate,
+                nextEffectiveDate.plusDays(7),
+                false);
+
+        when(scheduleTemplateRepository.findById(20L)).thenReturn(Optional.of(template));
+        when(employeeScheduleRepository.findByEmployeeIdAndIsActiveTrue(5L)).thenReturn(List.of(existingSchedule));
+        when(employeeScheduleRepository.saveAll(any())).thenAnswer(invocation -> {
+            List<EmployeeSchedule> schedules = invocation.getArgument(0);
+            schedules.forEach(schedule -> schedule.setId(99L));
+            return schedules;
+        });
+
+        List<EmployeeScheduleResponse> responses = scheduleService.applyTemplate(request);
+
+        assertEquals(1, responses.size());
+        assertEquals("Ca sáng", responses.get(0).shiftName());
+        assertEquals(nextEffectiveDate, responses.get(0).effectiveFrom());
+        assertEquals(nextEffectiveDate.plusDays(7), responses.get(0).effectiveTo());
+        verify(employeeScheduleRepository, times(1)).saveAll(any());
+    }
+
+    @Test
     void assignScheduleAllowsOverlappingShiftWhenEffectiveFromIsDifferent() {
         LocalDate firstEffectiveDate = LocalDate.now().plusDays(30);
         LocalDate nextEffectiveDate = LocalDate.now().plusDays(60);
@@ -64,6 +99,7 @@ class ScheduleServiceTest {
                 1,
                 true,
                 nextEffectiveDate,
+                nextEffectiveDate.plusDays(10),
                 false);
 
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(adminShift));
@@ -78,6 +114,7 @@ class ScheduleServiceTest {
 
         assertEquals(99L, response.id());
         assertEquals(nextEffectiveDate, response.effectiveFrom());
+        assertEquals(nextEffectiveDate.plusDays(10), response.effectiveTo());
         assertEquals("Ca hành chính", response.shiftName());
         verify(employeeScheduleRepository, times(1)).save(any(EmployeeSchedule.class));
     }
@@ -93,6 +130,7 @@ class ScheduleServiceTest {
                 1,
                 true,
                 effectiveDate,
+                null,
                 false);
 
         when(shiftRepository.findById(1L)).thenReturn(Optional.of(adminShift));
@@ -112,6 +150,7 @@ class ScheduleServiceTest {
                 1,
                 true,
                 LocalDate.now().minusDays(1),
+                null,
                 false);
 
         AppException exception = assertThrows(AppException.class, () -> scheduleService.assignSchedule(request));
@@ -164,6 +203,26 @@ class ScheduleServiceTest {
         schedule.setDayOfWeek(dayOfWeek);
         schedule.setIsActive(isActive);
         schedule.setEffectiveFrom(effectiveFrom);
+        schedule.setEffectiveTo(null);
         return schedule;
+    }
+
+    private ScheduleTemplate createTemplate(Long id, ScheduleTemplateItem... items) {
+        ScheduleTemplate template = new ScheduleTemplate();
+        template.setId(id);
+        template.setName("Mẫu lịch");
+        for (ScheduleTemplateItem item : items) {
+            item.setTemplate(template);
+            template.getItems().add(item);
+        }
+        return template;
+    }
+
+    private ScheduleTemplateItem createTemplateItem(Long id, Integer dayOfWeek, Shift shift) {
+        ScheduleTemplateItem item = new ScheduleTemplateItem();
+        item.setId(id);
+        item.setDayOfWeek(dayOfWeek);
+        item.setShift(shift);
+        return item;
     }
 }

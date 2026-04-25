@@ -296,6 +296,7 @@ public class EmployeeService {
         if (probe.length != FaceEmbeddingUtils.FACE_DESCRIPTOR_LENGTH) {
             throw new AppException(ErrorCode.INVALID_INPUT, "descriptor phải có đúng 128 phần tử");
         }
+        ensureFaceEmbeddingIsUnique(employee.getId(), probe);
         try {
             employee.setFaceEmbedding(objectMapper.writeValueAsString(request.descriptor()));
         } catch (JsonProcessingException e) {
@@ -339,6 +340,28 @@ public class EmployeeService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Không nhận diện được nhân viên (khoảng cách vượt ngưỡng)");
         }
         return new FaceMatchResponse(bestEmp.getId(), best);
+    }
+
+    private void ensureFaceEmbeddingIsUnique(Long employeeId, double[] probe) {
+        List<Employee> candidates = employeeRepository.findByStatusAndFaceEmbeddingIsNotNull("ACTIVE");
+        for (Employee candidate : candidates) {
+            if (candidate.getId() == null || candidate.getId().equals(employeeId)) {
+                continue;
+            }
+            try {
+                double[] stored = FaceEmbeddingUtils.fromJson(candidate.getFaceEmbedding(), objectMapper);
+                if (stored.length != FaceEmbeddingUtils.FACE_DESCRIPTOR_LENGTH) {
+                    continue;
+                }
+
+                double distance = FaceEmbeddingUtils.euclideanDistance(probe, stored);
+                if (distance <= faceMatchDistanceThreshold) {
+                    throw new AppException(ErrorCode.INVALID_INPUT, "Khuôn mặt này đã được đăng ký trong hệ thống");
+                }
+            } catch (JsonProcessingException ex) {
+                // Bỏ qua bản ghi không parse được để không chặn toàn bộ thao tác đăng ký.
+            }
+        }
     }
 }
 

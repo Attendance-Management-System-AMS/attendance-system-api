@@ -56,10 +56,17 @@ class ScheduleControllerTest {
 
     @Test
     void assignScheduleReturnsCreatedPayload() throws Exception {
-        EmployeeScheduleRequest request = new EmployeeScheduleRequest(4L, 1L, 1, true, LocalDate.of(2026, 4, 1), false);
+        EmployeeScheduleRequest request = new EmployeeScheduleRequest(
+                4L,
+                1L,
+                1,
+                true,
+                LocalDate.of(2026, 4, 1),
+                LocalDate.of(2026, 4, 30),
+                false);
         EmployeeScheduleResponse response = new EmployeeScheduleResponse(
                 1L, 4L, "Pham Thi Employee", 1L, "Ca sáng",
-                "08:00", "17:30", 1, true, LocalDate.of(2026, 4, 1));
+                "08:00", "17:30", 1, true, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30));
 
         when(scheduleService.assignSchedule(any(EmployeeScheduleRequest.class))).thenReturn(response);
 
@@ -73,10 +80,16 @@ class ScheduleControllerTest {
 
     @Test
     void bulkAssignReturnsList() throws Exception {
-        BulkScheduleRequest request = new BulkScheduleRequest(List.of(4L), 1L, List.of(1, 2, 3, 4, 5), LocalDate.of(2026, 4, 1), false);
+        BulkScheduleRequest request = new BulkScheduleRequest(
+                List.of(4L),
+                1L,
+                List.of(1, 2, 3, 4, 5),
+                LocalDate.of(2026, 4, 1),
+                LocalDate.of(2026, 4, 30),
+                false);
         EmployeeScheduleResponse response = new EmployeeScheduleResponse(
                 1L, 4L, "Pham Thi Employee", 1L, "Ca sáng",
-                "08:00", "17:30", 1, true, LocalDate.of(2026, 4, 1));
+                "08:00", "17:30", 1, true, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30));
 
         when(scheduleService.bulkAssign(any(BulkScheduleRequest.class))).thenReturn(List.of(response));
 
@@ -91,7 +104,7 @@ class ScheduleControllerTest {
     void getMyScheduleUsesCurrentEmployeeId() throws Exception {
         EmployeeScheduleResponse response = new EmployeeScheduleResponse(
                 1L, 4L, "Pham Thi Employee", 1L, "Ca sáng",
-                "08:00", "17:30", 1, true, LocalDate.of(2026, 4, 1));
+                "08:00", "17:30", 1, true, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30));
 
         when(currentUserService.getCurrentEmployeeId()).thenReturn(4L);
         when(scheduleService.getByEmployee(eq(4L))).thenReturn(List.of(response));

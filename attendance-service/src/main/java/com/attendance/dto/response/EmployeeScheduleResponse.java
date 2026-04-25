@@ -12,7 +12,8 @@ public record EmployeeScheduleResponse(
         String endTime,
         Integer dayOfWeek,
         Boolean isActive,
-        LocalDate effectiveFrom
+        LocalDate effectiveFrom,
+        LocalDate effectiveTo
 ) {
 }
 

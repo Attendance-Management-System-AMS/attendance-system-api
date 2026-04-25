@@ -38,6 +38,9 @@ public class EmployeeSchedule {
 
     @Column(name = "effective_from", nullable = false)
     private LocalDate effectiveFrom;
+
+    @Column(name = "effective_to")
+    private LocalDate effectiveTo;
 }
 
 
