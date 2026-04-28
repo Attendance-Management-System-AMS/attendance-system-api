@@ -1,6 +1,8 @@
 package com.attendance.util;
 
 import com.attendance.entity.Shift;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 public class ShiftUtils {
@@ -46,8 +48,16 @@ public class ShiftUtils {
         return (long)(dayOfWeek - 1) * 1440 + time.getHour() * 60 + time.getMinute();
     }
 
-    private static boolean isOvernight(Shift shift) {
+    public static boolean isOvernight(Shift shift) {
         return shift.getEndTime().isBefore(shift.getStartTime());
+    }
+
+    public static LocalDateTime resolveShiftEnd(LocalDate workDate, Shift shift) {
+        LocalDateTime end = workDate.atTime(shift.getEndTime());
+        if (shift.getEndTime().isBefore(shift.getStartTime()) || shift.getEndTime().equals(shift.getStartTime())) {
+            end = end.plusDays(1);
+        }
+        return end;
     }
 }
 

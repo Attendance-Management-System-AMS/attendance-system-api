@@ -16,6 +16,7 @@ import com.attendance.dto.response.AttendanceResponse;
 import com.attendance.exception.GlobalExceptionHandler;
 import com.attendance.service.AttendanceService;
 import com.attendance.service.CurrentUserService;
+import com.attendance.service.KioskAccessService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,6 +42,9 @@ class AttendanceControllerTest {
 
     @Mock
     private CurrentUserService currentUserService;
+
+    @Mock
+    private KioskAccessService kioskAccessService;
 
     @InjectMocks
     private AttendanceController attendanceController;
@@ -77,6 +81,29 @@ class AttendanceControllerTest {
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void scanByFaceRequiresValidatedKioskSession() throws Exception {
+        FaceDescriptorRequest request = new FaceDescriptorRequest(java.util.Collections.nCopies(128, 0.1d));
+        AttendanceResponse response = new AttendanceResponse(
+                1L, 4L, LocalDateTime.now(), null, LocalDate.now(), "PRESENT",
+                0, 0, 0, 480, LocalDateTime.now(), "Pham Thi Employee", "EMP-EMPLOYEE", "Phòng IT", "Lập Trình Viên");
+
+        when(kioskAccessService.validateScanRequest("session-token", "kiosk-a", "nonce-1", "1745587200000"))
+                .thenReturn("kiosk-a");
+        when(attendanceService.scanByFace(any(FaceDescriptorRequest.class), eq("kiosk-a"))).thenReturn(response);
+
+        mockMvc.perform(post("/api/attendance/scan-by-face")
+                        .header(KioskAccessService.HEADER_SESSION, "session-token")
+                        .header(KioskAccessService.HEADER_DEVICE_ID, "kiosk-a")
+                        .header(KioskAccessService.HEADER_NONCE, "nonce-1")
+                        .header(KioskAccessService.HEADER_TIMESTAMP, "1745587200000")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.employeeId").value(4))
+                .andExpect(jsonPath("$.result.status").value("PRESENT"));
     }
 
     @Test

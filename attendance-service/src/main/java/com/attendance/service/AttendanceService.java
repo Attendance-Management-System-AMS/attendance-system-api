@@ -19,6 +19,7 @@ import com.attendance.repository.HolidayRepository;
 import com.attendance.repository.spec.AttendanceSpecifications;
 import com.attendance.repository.EmployeeScheduleRepository;
 import com.attendance.exception.AppException;
+import com.attendance.util.ShiftUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -54,21 +55,26 @@ public class AttendanceService {
     @Transactional
     public AttendanceResponse checkIn(Long employeeId) {
         requireEmployee(employeeId);
-        return performCheckIn(employeeId);
+        return performCheckIn(employeeId, "WEB");
     }
 
     @Transactional
     public AttendanceResponse scanByFace(FaceDescriptorRequest request) {
+        return scanByFace(request, "KIOSK");
+    }
+
+    @Transactional
+    public AttendanceResponse scanByFace(FaceDescriptorRequest request, String deviceId) {
         Long employeeId = matchEmployeeIdByFace(request);
         HrEmployeeSnapshot hr = requireEmployee(employeeId);
         Attendance existing = attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, LocalDate.now()).orElse(null);
 
-        return withEmployeeBrief(resolveScanResult(employeeId, existing), hr);
+        return withEmployeeBrief(resolveScanResult(employeeId, existing, deviceId), hr);
     }
 
-    private AttendanceResponse resolveScanResult(Long employeeId, Attendance existing) {
+    private AttendanceResponse resolveScanResult(Long employeeId, Attendance existing, String deviceId) {
         if (existing == null) {
-            return performCheckIn(employeeId);
+            return performCheckIn(employeeId, deviceId);
         }
 
         if ("ON_LEAVE".equalsIgnoreCase(existing.getStatus())) {
@@ -84,10 +90,12 @@ public class AttendanceService {
         }
 
         if (isCheckoutTooSoon(existing, LocalDateTime.now())) {
-            return toResponse(existing);
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
+                    "Bạn vừa check-in, vui lòng chờ ít nhất " + minCheckoutAfterMinutes + " phút trước khi check-out");
         }
 
-        return performCheckOut(employeeId);
+        return performCheckOut(employeeId, deviceId);
     }
 
     private Long matchEmployeeIdByFace(FaceDescriptorRequest request) {
@@ -128,7 +136,7 @@ public class AttendanceService {
     }
 
     // Tạo bản ghi check-in cho ngày hiện tại và xác định trạng thái đi làm.
-    private AttendanceResponse performCheckIn(Long employeeId) {
+    private AttendanceResponse performCheckIn(Long employeeId, String deviceId) {
         LocalDate today = LocalDate.now();
         LocalTime nowTime = LocalTime.now();
 
@@ -169,7 +177,7 @@ public class AttendanceService {
                 .build();
         try {
             Attendance saved = attendanceRepository.save(attendance);
-            recordLog(employeeId, now, "IN");
+            recordLog(employeeId, now, "IN", deviceId);
             return toResponse(saved);
         } catch (DataIntegrityViolationException ex) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Bạn đã check-in hôm nay rồi");
@@ -180,10 +188,10 @@ public class AttendanceService {
     @Transactional
     public AttendanceResponse checkOut(Long employeeId) {
         requireEmployee(employeeId);
-        return performCheckOut(employeeId);
+        return performCheckOut(employeeId, "WEB");
     }
 
-    private AttendanceResponse performCheckOut(Long employeeId) {
+    private AttendanceResponse performCheckOut(Long employeeId, String deviceId) {
         LocalDate today = LocalDate.now();
 
         Attendance attendance = attendanceRepository
@@ -207,22 +215,25 @@ public class AttendanceService {
         attendance.setCheckOutTime(now);
 
         Shift shift = getTodayShift(employeeId, attendance.getWorkDate());
+        String baseStatus = resolveCheckoutBaseStatus(attendance);
         int earlyLeaveMinutes = 0;
-        LocalDateTime scheduledEnd = shift == null ? null : resolveShiftEnd(attendance.getWorkDate(), shift);
+        LocalDateTime scheduledEnd = shift == null ? null : ShiftUtils.resolveShiftEnd(attendance.getWorkDate(), shift);
         if (scheduledEnd != null && now.isBefore(scheduledEnd)) {
             earlyLeaveMinutes = Math.toIntExact(Duration.between(now, scheduledEnd).toMinutes());
-            if ("PRESENT".equals(attendance.getStatus())) {
+            if ("PRESENT".equals(baseStatus)) {
                 attendance.setStatus("EARLY_LEAVE");
-            } else if ("LATE".equals(attendance.getStatus())) {
+            } else if ("LATE".equals(baseStatus)) {
                 attendance.setStatus("LATE_AND_EARLY_LEAVE");
             }
+        } else {
+            attendance.setStatus(baseStatus);
         }
         attendance.setEarlyLeaveMinutes(earlyLeaveMinutes);
         attendance.setWorkedMinutes(calculateWorkedMinutes(attendance.getCheckInTime(), now, shift));
         attendance.setExpectedMinutes(shift == null ? 0 : calculateExpectedMinutes(shift));
 
         Attendance saved = attendanceRepository.save(attendance);
-        recordLog(employeeId, now, "OUT");
+        recordLog(employeeId, now, "OUT", deviceId);
         return toResponse(saved);
     }
 
@@ -337,12 +348,12 @@ public class AttendanceService {
                 .build();
     }
 
-    private void recordLog(Long employeeId, LocalDateTime logTime, String logType) {
+    private void recordLog(Long employeeId, LocalDateTime logTime, String logType, String deviceId) {
         AttendanceLog log = AttendanceLog.builder()
                 .employeeId(employeeId)
                 .logTime(logTime)
                 .logType(logType)
-                .deviceId("WEB")
+                .deviceId(deviceId == null || deviceId.isBlank() ? "WEB" : deviceId.trim())
                 .build();
         attendanceLogRepository.save(log);
     }
@@ -419,14 +430,6 @@ public class AttendanceService {
         return Math.toIntExact(Duration.between(overlapStart, overlapEnd).toMinutes());
     }
 
-    private LocalDateTime resolveShiftEnd(LocalDate workDate, Shift shift) {
-        LocalDateTime end = workDate.atTime(shift.getEndTime());
-        if (shift.getEndTime().isBefore(shift.getStartTime()) || shift.getEndTime().equals(shift.getStartTime())) {
-            end = end.plusDays(1);
-        }
-        return end;
-    }
-
     private int minutesBetween(LocalTime start, LocalTime end) {
         int startMinutes = start.getHour() * 60 + start.getMinute();
         int endMinutes = end.getHour() * 60 + end.getMinute();
@@ -434,5 +437,22 @@ public class AttendanceService {
             endMinutes += 24 * 60;
         }
         return endMinutes - startMinutes;
+    }
+
+    private String resolveCheckoutBaseStatus(Attendance attendance) {
+        if (attendance.getLateMinutes() != null && attendance.getLateMinutes() > 0) {
+            return "LATE";
+        }
+        if ("LATE".equalsIgnoreCase(attendance.getStatus())
+                || "LATE_AND_EARLY_LEAVE".equalsIgnoreCase(attendance.getStatus())) {
+            return "LATE";
+        }
+        if ("MISSING_CHECKOUT".equalsIgnoreCase(attendance.getStatus())
+                || "EARLY_LEAVE".equalsIgnoreCase(attendance.getStatus())
+                || attendance.getStatus() == null
+                || attendance.getStatus().isBlank()) {
+            return "PRESENT";
+        }
+        return attendance.getStatus();
     }
 }

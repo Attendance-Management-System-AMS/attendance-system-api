@@ -11,6 +11,8 @@ import static org.mockito.Mockito.when;
 
 import com.attendance.client.HrClient;
 import com.attendance.client.RequestClient;
+import com.attendance.dto.request.FaceDescriptorRequest;
+import com.attendance.dto.response.FaceMatchResponse;
 import com.attendance.dto.response.HrEmployeeSnapshot;
 import com.attendance.entity.Attendance;
 import com.attendance.entity.EmployeeSchedule;
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class AttendanceServiceTest {
@@ -69,6 +72,7 @@ class AttendanceServiceTest {
                 attendanceMapper,
                 holidayRepository,
                 requestClient);
+        ReflectionTestUtils.setField(attendanceService, "minCheckoutAfterMinutes", 30L);
     }
 
     @Test
@@ -119,6 +123,29 @@ class AttendanceServiceTest {
         AppException exception = assertThrows(AppException.class, () -> attendanceService.checkIn(4L));
 
         assertEquals("Bạn đang có đơn nghỉ đã được duyệt cho hôm nay", exception.getMessage());
+        verify(attendanceRepository, never()).save(any(Attendance.class));
+    }
+
+    @Test
+    void scanByFaceRejectsCheckoutTooSoon() {
+        LocalDate today = LocalDate.now();
+        Attendance existing = Attendance.builder()
+                .id(1L)
+                .employeeId(4L)
+                .workDate(today)
+                .status("PRESENT")
+                .checkInTime(LocalDateTime.now().minusMinutes(5))
+                .build();
+
+        when(hrClient.matchFace(any(FaceDescriptorRequest.class))).thenReturn(new FaceMatchResponse(4L, 0.21d));
+        when(hrClient.getEmployeeSnapshot(4L)).thenReturn(new HrEmployeeSnapshot(4L, "EMP004", "Pham Thi Employee", "IT", "Dev"));
+        when(attendanceRepository.findByEmployeeIdAndWorkDate(4L, today)).thenReturn(Optional.of(existing));
+
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> attendanceService.scanByFace(new FaceDescriptorRequest(java.util.Collections.nCopies(128, 0.1d)), "KIOSK-A"));
+
+        assertEquals("Bạn vừa check-in, vui lòng chờ ít nhất 30 phút trước khi check-out", exception.getMessage());
         verify(attendanceRepository, never()).save(any(Attendance.class));
     }
 

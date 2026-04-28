@@ -2,10 +2,12 @@ package com.attendance.controller;
 
 import com.attendance.dto.request.FaceDescriptorRequest;
 import com.attendance.dto.response.AttendanceResponse;
+import com.attendance.dto.response.KioskSessionResponse;
 import com.attendance.common.dto.ApiResponse;
 import com.attendance.common.dto.PageResponse;
 import com.attendance.service.CurrentUserService;
 import com.attendance.service.AttendanceService;
+import com.attendance.service.KioskAccessService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import jakarta.validation.Valid;
@@ -27,6 +30,7 @@ public class AttendanceController {
 
     private final AttendanceService attendanceService;
     private final CurrentUserService currentUserService;
+    private final KioskAccessService kioskAccessService;
 
     // Ghi nhận check-in cho nhân viên theo ID.
     @PostMapping("/check-in/{employeeId}")
@@ -37,11 +41,28 @@ public class AttendanceController {
         return ApiResponse.success("Check-in thành công", attendanceService.checkIn(employeeId));
     }
 
+    @PostMapping("/kiosk/session")
+    @Operation(summary = "Cấp phiên kiosk ngắn hạn cho máy chấm công")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
+    public ApiResponse<KioskSessionResponse> issueKioskSession(
+            @RequestHeader(value = KioskAccessService.HEADER_DEVICE_ID, required = false) String deviceId,
+            Authentication authentication) {
+        return ApiResponse.success(
+                "Cấp phiên kiosk thành công",
+                kioskAccessService.issueSession(authentication == null ? null : authentication.getName(), deviceId));
+    }
+
     @PostMapping("/scan-by-face")
     @Operation(summary = "Quét khuôn mặt để tự động check-in hoặc check-out")
     @PreAuthorize("permitAll()")
-    public ApiResponse<AttendanceResponse> scanByFace(@Valid @RequestBody FaceDescriptorRequest request) {
-        return ApiResponse.success("Chấm công thành công", attendanceService.scanByFace(request));
+    public ApiResponse<AttendanceResponse> scanByFace(
+            @Valid @RequestBody FaceDescriptorRequest request,
+            @RequestHeader(value = KioskAccessService.HEADER_SESSION, required = false) String kioskSession,
+            @RequestHeader(value = KioskAccessService.HEADER_DEVICE_ID, required = false) String deviceId,
+            @RequestHeader(value = KioskAccessService.HEADER_NONCE, required = false) String nonce,
+            @RequestHeader(value = KioskAccessService.HEADER_TIMESTAMP, required = false) String timestamp) {
+        String validatedDeviceId = kioskAccessService.validateScanRequest(kioskSession, deviceId, nonce, timestamp);
+        return ApiResponse.success("Chấm công thành công", attendanceService.scanByFace(request, validatedDeviceId));
     }
 
     // Ghi nhận check-out cho nhân viên theo ID.
