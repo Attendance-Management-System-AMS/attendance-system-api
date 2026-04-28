@@ -1,0 +1,55 @@
+package com.attendance.exception;
+
+import com.attendance.common.error.ErrorCodeContract;
+import org.springframework.http.HttpStatus;
+
+public enum ErrorCode implements ErrorCodeContract {
+
+    UNCATEGORIZED_ERROR(1999, "Lỗi chưa xác định", HttpStatus.INTERNAL_SERVER_ERROR),
+    VALIDATION_FAILED(1001, "Xác thực dữ liệu thất bại", HttpStatus.BAD_REQUEST),
+    INVALID_INPUT(1002, "Dữ liệu không hợp lệ", HttpStatus.BAD_REQUEST),
+    RESOURCE_NOT_FOUND(1003, "Không tìm thấy dữ liệu", HttpStatus.NOT_FOUND),
+    FORBIDDEN(1004, "Không có quyền truy cập", HttpStatus.FORBIDDEN),
+    UNAUTHORIZED(1005, "Chưa đăng nhập", HttpStatus.UNAUTHORIZED),
+    USER_NOT_FOUND(1006, "Không tìm thấy tài khoản", HttpStatus.NOT_FOUND),
+
+    DEPARTMENT_NOT_FOUND(2001, "Không tìm thấy phòng ban", HttpStatus.NOT_FOUND),
+    POSITION_NOT_FOUND(2002, "Không tìm thấy chức vụ", HttpStatus.NOT_FOUND),
+    EMPLOYEE_NOT_FOUND(2003, "Không tìm thấy nhân viên", HttpStatus.NOT_FOUND),
+    SHIFT_NOT_FOUND(2004, "Không tìm thấy ca làm", HttpStatus.NOT_FOUND),
+    SCHEDULE_NOT_FOUND(2005, "Không tìm thấy lịch làm", HttpStatus.NOT_FOUND),
+    HOLIDAY_NOT_FOUND(2006, "Không tìm thấy ngày nghỉ", HttpStatus.NOT_FOUND),
+    LEAVE_NOT_FOUND(2007, "Không tìm thấy đơn nghỉ", HttpStatus.NOT_FOUND),
+    ATTENDANCE_NOT_FOUND(2008, "Không tìm thấy bản ghi chấm công", HttpStatus.NOT_FOUND),
+    SCHEDULE_TEMPLATE_NOT_FOUND(2009, "Không tìm thấy mẫu lịch làm", HttpStatus.NOT_FOUND);
+
+    private final int code;
+    private final String message;
+    private final HttpStatus status;
+
+    // Khởi tạo từng mã lỗi với code, message và HTTP status.
+    ErrorCode(int code, String message, HttpStatus status) {
+        this.code = code;
+        this.message = message;
+        this.status = status;
+    }
+
+    // Lấy mã số nội bộ của lỗi.
+    public int getCode() {
+        return code;
+    }
+
+    // Lấy thông điệp mặc định của lỗi.
+    public String getMessage() {
+        return message;
+    }
+
+    // Lấy HTTP status tương ứng với lỗi.
+    public HttpStatus getStatus() {
+        return status;
+    }
+}
+
+
+
+
