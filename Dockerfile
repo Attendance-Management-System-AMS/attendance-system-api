@@ -8,7 +8,6 @@ COPY api-gateway/pom.xml api-gateway/pom.xml
 COPY auth-service/pom.xml auth-service/pom.xml
 COPY hr-service/pom.xml hr-service/pom.xml
 COPY attendance-service/pom.xml attendance-service/pom.xml
-COPY request-service/pom.xml request-service/pom.xml
 COPY monolith-service/pom.xml monolith-service/pom.xml
 COPY monolith-service/src ./monolith-service/src
 # Build monolith trong lúc các microservice đang được tách dần.

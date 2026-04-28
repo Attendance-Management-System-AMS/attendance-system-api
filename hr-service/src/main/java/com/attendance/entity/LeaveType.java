@@ -6,10 +6,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "leave_types")
@@ -24,27 +24,23 @@ public class LeaveType {
     private Long id;
 
     @Column(name = "code", nullable = false, unique = true, length = 10)
-    private String code; // AL, PH, SL, ML, UL, BT
+    private String code;
 
     @Column(name = "name", nullable = false, length = 100)
-    private String name; // Tên loại nghỉ
+    private String name;
 
     @Column(name = "is_paid", nullable = false)
-    private Boolean isPaid; // Hưởng lương
+    private Boolean isPaid;
 
     @Column(name = "deduct_annual_leave", nullable = false)
-    private Boolean deductAnnualLeave; // Trừ phép năm
+    private Boolean deductAnnualLeave;
 
     @Column(name = "insurance_covers", nullable = false)
-    private Boolean insuranceCovers; // Bảo hiểm trả
+    private Boolean insuranceCovers;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
     @Column(length = 500)
-    private String description; // Mô tả thêm
+    private String description;
 }
-
-
-
-

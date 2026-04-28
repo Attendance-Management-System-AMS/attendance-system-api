@@ -13,7 +13,3 @@ public interface LeaveTypeRepository extends JpaRepository<LeaveType, Long> {
 
     List<LeaveType> findByIsActive(Boolean isActive);
 }
-
-
-
-

@@ -19,9 +19,8 @@ Hệ thống được module hóa để phục vụ các nghiệp vụ chuyên b
 
 * **`api-gateway`**: Cửa ngõ bảo mật, xác thực người dùng (JWT) và điều phối các yêu cầu từ phía người dùng.
 * **`auth-service`**: Phân hệ tài khoản, vai trò, đăng nhập, refresh token và logout.
-* **`hr-service`**: Phân hệ cốt lõi quản lý sơ đồ tổ chức, thông tin chi tiết nhân viên, hợp đồng lao động, bảo hiểm và khen thưởng/kỷ luật.
+* **`hr-service`**: Phân hệ cốt lõi quản lý sơ đồ tổ chức, thông tin chi tiết nhân viên và nghiệp vụ nghỉ phép.
 * **`attendance-service`**: Phân hệ quản lý thời gian. Tiếp nhận dữ liệu chấm công, quản lý ca kíp, tính toán công chuẩn và xử lý vi phạm (đi muộn/về sớm).
-* **`request-service`**: Phân hệ quản lý quy trình (Workflow). Tự động hóa luồng phê duyệt đơn từ giữa nhân viên, trưởng bộ phận và phòng HR.
 * **`common-lib`**: Thư viện contract dùng chung như response envelope, pagination và error contract.
 * **`monolith-service`**: Module fallback giữ ứng dụng monolith hiện tại trong lúc tách dần từng service.
 
@@ -47,9 +46,8 @@ attendance-system-api
 ├── eureka-server        # Service discovery
 ├── api-gateway          # Phân hệ điều hướng & Bảo mật
 ├── auth-service         # Phân hệ xác thực & tài khoản
-├── hr-service           # Phân hệ Quản trị nhân sự (Core HRM)
+├── hr-service           # Phân hệ Quản trị nhân sự + Nghỉ phép
 ├── attendance-service   # Phân hệ Chấm công & Quản lý ca kíp
-├── request-service      # Phân hệ Phê duyệt đơn từ (Workflow)
 ├── monolith-service     # Ứng dụng monolith fallback trong giai đoạn migration
 ├── docs                 # Tài liệu migration chi tiết
 ├── .gitignore           # Loại bỏ các file rác khi build
@@ -74,7 +72,7 @@ attendance-system-api
 
 ```
 
-### 3. Khởi chạy hệ thống (Eureka + Gateway + HR + Attendance)
+### 3. Khởi chạy hệ thống (Eureka + Gateway + HR + Attendance + Auth)
 
 **Phải chạy lệnh từ thư mục chứa `mvnw.cmd`** — trong repo này là `attendance-system/attendance-system-api`.  
 Nếu bạn đang ở `...\attendance-system` thì sẽ báo *mvnw.cmd is not recognized*.
@@ -97,16 +95,14 @@ Các service **đăng ký Eureka** với `spring.application.name` khớp route 
 |--------|--------|----------------|--------|
 | 1 | `eureka-server` | 8761 (`EUREKA_SERVER_PORT`) | Bật trước để discovery sẵn sàng |
 | 2 | `hr-service` | 9001 (`HR_SERVICE_PORT`) | Nguồn dữ liệu nhân viên, phòng ban, chức vụ |
-| 3 | `request-service` | 9003 (`REQUEST_SERVICE_PORT`) | Quản lý đơn nghỉ phép |
-| 4 | `attendance-service` | 9002 (`ATTENDANCE_SERVICE_PORT`) | Cần HR đã lên để check-in validate nhân viên |
-| 5 | `auth-service` | 9004 (`AUTH_SERVICE_PORT`) | Login JWT qua gateway |
-| 6 | `api-gateway` | 9000 (`API_GATEWAY_PORT`) | Client/frontend chỉ gọi **một cổng**: `http://localhost:9000` |
+| 3 | `attendance-service` | 9002 (`ATTENDANCE_SERVICE_PORT`) | Cần HR đã lên để check-in và kiểm tra nghỉ phép |
+| 4 | `auth-service` | 9004 (`AUTH_SERVICE_PORT`) | Login JWT qua gateway |
+| 5 | `api-gateway` | 9000 (`API_GATEWAY_PORT`) | Client/frontend chỉ gọi **một cổng**: `http://localhost:9000` |
 
 ```powershell
 # Windows — đang đứng trong thư mục attendance-system-api
 .\mvnw.cmd -pl eureka-server spring-boot:run
 .\mvnw.cmd -pl hr-service spring-boot:run
-.\mvnw.cmd -pl request-service spring-boot:run
 .\mvnw.cmd -pl attendance-service spring-boot:run
 .\mvnw.cmd -pl auth-service spring-boot:run
 .\mvnw.cmd -pl api-gateway spring-boot:run
@@ -135,8 +131,8 @@ Flyway đã có migration seed mẫu cho toàn bộ service:
 
 - `auth-service/src/main/resources/db/migration/V2__seed_sample_data.sql`
 - `hr-service/src/main/resources/db/migration/V2__seed_sample_data.sql`
+- `hr-service/src/main/resources/db/migration/V3__add_leave_management.sql`
 - `attendance-service/src/main/resources/db/migration/V2__seed_sample_data.sql`
-- `request-service/src/main/resources/db/migration/V2__seed_sample_data.sql`
 
 Tài khoản mẫu:
 

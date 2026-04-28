@@ -45,7 +45,7 @@ public class LeaveRequest {
     private String reason;
 
     @Column(nullable = false, length = 20)
-    private String status = "PENDING"; // PENDING, APPROVED, REJECTED
+    private String status = "PENDING";
 
     @Column(name = "approved_by")
     private Long approvedById;
@@ -54,7 +54,3 @@ public class LeaveRequest {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }
-
-
-
-

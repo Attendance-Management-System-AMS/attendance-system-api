@@ -24,7 +24,6 @@
         <module>auth-service</module>
         <module>hr-service</module>
         <module>attendance-service</module>
-        <module>request-service</module>
         <module>monolith-service</module>
     </modules>
 

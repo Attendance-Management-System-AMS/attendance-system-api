@@ -31,7 +31,6 @@ $defaults = @{
     API_GATEWAY_PORT = "9000"
     HR_SERVICE_PORT = "9001"
     ATTENDANCE_SERVICE_PORT = "9002"
-    REQUEST_SERVICE_PORT = "9003"
     AUTH_SERVICE_PORT = "9004"
 }
 
@@ -44,7 +43,6 @@ foreach ($entry in $defaults.GetEnumerator()) {
 $modules = @(
     @{ Name = "eureka-server"; Port = [int]$env:EUREKA_SERVER_PORT; DelaySeconds = 8 },
     @{ Name = "hr-service"; Port = [int]$env:HR_SERVICE_PORT; DelaySeconds = 3 },
-    @{ Name = "request-service"; Port = [int]$env:REQUEST_SERVICE_PORT; DelaySeconds = 2 },
     @{ Name = "attendance-service"; Port = [int]$env:ATTENDANCE_SERVICE_PORT; DelaySeconds = 2 },
     @{ Name = "auth-service"; Port = [int]$env:AUTH_SERVICE_PORT; DelaySeconds = 2 },
     @{ Name = "api-gateway"; Port = [int]$env:API_GATEWAY_PORT; DelaySeconds = 0 }

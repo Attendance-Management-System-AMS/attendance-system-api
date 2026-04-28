@@ -1,22 +1,22 @@
-package com.attendance.request;
+package com.attendance;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.attendance.client.AttendanceClient;
-import com.attendance.client.HrClient;
 import com.attendance.common.dto.LeaveApprovalSyncRequest;
 import com.attendance.dto.response.LeaveResponse;
+import com.attendance.entity.Employee;
 import com.attendance.entity.LeaveRequest;
 import com.attendance.entity.LeaveType;
 import com.attendance.exception.AppException;
 import com.attendance.mapper.LeaveMapper;
 import com.attendance.mapper.LeaveTypeMapper;
+import com.attendance.repository.EmployeeRepository;
 import com.attendance.repository.LeaveRequestRepository;
 import com.attendance.repository.LeaveTypeRepository;
 import com.attendance.service.LeaveService;
@@ -45,13 +45,13 @@ class LeaveServiceTest {
     private LeaveTypeRepository leaveTypeRepository;
 
     @Mock
+    private EmployeeRepository employeeRepository;
+
+    @Mock
     private LeaveMapper leaveMapper;
 
     @Mock
     private LeaveTypeMapper leaveTypeMapper;
-
-    @Mock
-    private HrClient hrClient;
 
     @Mock
     private AttendanceClient attendanceClient;
@@ -63,9 +63,9 @@ class LeaveServiceTest {
         leaveService = new LeaveService(
                 leaveRequestRepository,
                 leaveTypeRepository,
+                employeeRepository,
                 leaveMapper,
                 leaveTypeMapper,
-                hrClient,
                 attendanceClient,
                 new ObjectMapper());
     }
@@ -73,11 +73,15 @@ class LeaveServiceTest {
     @Test
     void approveSyncsAttendanceWithRequestBody() {
         LeaveRequest leaveRequest = createPendingLeave();
+        Employee employee = createEmployee(4L, "EMP-0004", "Nguyen Van A");
         LeaveResponse response = new LeaveResponse(
                 1L,
                 4L,
                 "Nguyen Van A",
-                "ANNUAL",
+                "EMP-0004",
+                "Phòng Nhân sự",
+                "Chuyên viên",
+                "AL",
                 "Nghỉ phép năm",
                 leaveRequest.getFromDate(),
                 leaveRequest.getToDate(),
@@ -89,7 +93,8 @@ class LeaveServiceTest {
 
         when(leaveRequestRepository.findById(1L)).thenReturn(Optional.of(leaveRequest));
         when(leaveRequestRepository.save(any(LeaveRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(leaveMapper.toResponse(any(LeaveRequest.class), eq(null), eq(null))).thenReturn(response);
+        when(employeeRepository.findById(4L)).thenReturn(Optional.of(employee));
+        when(leaveMapper.toResponse(any(LeaveRequest.class), any(), any())).thenReturn(response);
 
         LeaveResponse approved = leaveService.approve(1L, null);
 
@@ -101,8 +106,11 @@ class LeaveServiceTest {
     @Test
     void approveSurfacesRemoteAttendanceErrorMessage() {
         LeaveRequest leaveRequest = createPendingLeave();
+        Employee employee = createEmployee(4L, "EMP-0004", "Nguyen Van A");
+
         when(leaveRequestRepository.findById(1L)).thenReturn(Optional.of(leaveRequest));
         when(leaveRequestRepository.save(any(LeaveRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(employeeRepository.findById(4L)).thenReturn(Optional.of(employee));
         doThrow(buildFeignException(400, "{\"success\":false,\"code\":1002,\"message\":\"Ngày kết thúc phải sau ngày bắt đầu\"}"))
                 .when(attendanceClient)
                 .syncApprovedLeave(any(LeaveApprovalSyncRequest.class));
@@ -116,7 +124,7 @@ class LeaveServiceTest {
     private LeaveRequest createPendingLeave() {
         LeaveType leaveType = new LeaveType();
         leaveType.setId(1L);
-        leaveType.setCode("ANNUAL");
+        leaveType.setCode("AL");
         leaveType.setName("Nghỉ phép năm");
 
         LeaveRequest leaveRequest = new LeaveRequest();
@@ -129,6 +137,14 @@ class LeaveServiceTest {
         leaveRequest.setReason("Việc riêng");
         leaveRequest.setStatus("PENDING");
         return leaveRequest;
+    }
+
+    private Employee createEmployee(Long id, String employeeCode, String fullName) {
+        Employee employee = new Employee();
+        employee.setId(id);
+        employee.setEmployeeCode(employeeCode);
+        employee.setFullName(fullName);
+        return employee;
     }
 
     private FeignException buildFeignException(int status, String body) {

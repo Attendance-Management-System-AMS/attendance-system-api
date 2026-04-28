@@ -1,10 +1,9 @@
 -- ============================================================
--- REQUEST SERVICE: V1__init_request.sql
--- Owns leave types and leave requests.
--- employee_id and approved_by are logical references to hr-service.
+-- HR SERVICE: V3__add_leave_management.sql
+-- Leave management was merged from request-service into hr-service.
 -- ============================================================
 
-CREATE TABLE leave_types (
+CREATE TABLE IF NOT EXISTS leave_types (
     id                    BIGSERIAL       PRIMARY KEY,
     code                  VARCHAR(10)     UNIQUE NOT NULL,
     name                  VARCHAR(100)    NOT NULL,
@@ -15,7 +14,7 @@ CREATE TABLE leave_types (
     description           VARCHAR(500)
 );
 
-CREATE TABLE leave_requests (
+CREATE TABLE IF NOT EXISTS leave_requests (
     id              BIGSERIAL        PRIMARY KEY,
     employee_id     BIGINT           NOT NULL,
     leave_type_id   BIGINT           NOT NULL REFERENCES leave_types(id),
@@ -28,12 +27,19 @@ CREATE TABLE leave_requests (
     created_at      TIMESTAMP        DEFAULT now()
 );
 
-CREATE INDEX idx_leave_requests_employee_id ON leave_requests(employee_id);
-CREATE INDEX idx_leave_requests_status ON leave_requests(status);
-CREATE INDEX idx_leave_requests_date_range ON leave_requests(from_date, to_date);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_employee_id ON leave_requests(employee_id);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_status ON leave_requests(status);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_date_range ON leave_requests(from_date, to_date);
 
 INSERT INTO leave_types (code, name, is_paid, deduct_annual_leave, insurance_covers, is_active, description) VALUES
-('AL', 'Nghỉ phép năm', true, true, false, true, 'Nghỉ phép hưởng lương định kỳ hàng năm'),
-('CL', 'Nghỉ chế độ (Ốm)', false, false, true, true, 'Nghỉ ốm đau có bảo hiểm chi trả'),
-('UL', 'Nghỉ không lương', false, false, false, true, 'Nghỉ việc riêng không hưởng lương'),
-('ML', 'Nghỉ thai sản', true, false, true, true, 'Nghỉ thai sản theo quy định nhà nước');
+    ('AL', 'Nghỉ phép năm', true, true, false, true, 'Nghỉ phép hưởng lương định kỳ hàng năm'),
+    ('CL', 'Nghỉ chế độ (Ốm)', false, false, true, true, 'Nghỉ ốm đau có bảo hiểm chi trả'),
+    ('UL', 'Nghỉ không lương', false, false, false, true, 'Nghỉ việc riêng không hưởng lương'),
+    ('ML', 'Nghỉ thai sản', true, false, true, true, 'Nghỉ thai sản theo quy định nhà nước')
+ON CONFLICT (code) DO UPDATE
+SET name = EXCLUDED.name,
+    is_paid = EXCLUDED.is_paid,
+    deduct_annual_leave = EXCLUDED.deduct_annual_leave,
+    insurance_covers = EXCLUDED.insurance_covers,
+    is_active = EXCLUDED.is_active,
+    description = EXCLUDED.description;
