@@ -1,30 +1,33 @@
 package com.attendance.service;
 
 import com.attendance.client.AttendanceClient;
-import com.attendance.client.HrClient;
-import com.attendance.common.dto.PageResponse;
 import com.attendance.common.dto.LeaveApprovalSyncRequest;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.attendance.common.dto.PageResponse;
 import com.attendance.dto.request.LeaveRequestRecord;
 import com.attendance.dto.response.HrEmployeeSnapshot;
 import com.attendance.dto.response.LeaveResponse;
 import com.attendance.dto.response.LeaveTypeResponse;
+import com.attendance.entity.Employee;
 import com.attendance.entity.LeaveRequest;
 import com.attendance.entity.LeaveType;
 import com.attendance.exception.AppException;
 import com.attendance.exception.ErrorCode;
 import com.attendance.mapper.LeaveMapper;
 import com.attendance.mapper.LeaveTypeMapper;
+import com.attendance.repository.EmployeeRepository;
 import com.attendance.repository.LeaveRequestRepository;
 import com.attendance.repository.LeaveTypeRepository;
 import com.attendance.repository.spec.LeaveSpecifications;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.FeignException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import feign.FeignException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,9 +40,9 @@ public class LeaveService {
 
     private final LeaveRequestRepository leaveRequestRepository;
     private final LeaveTypeRepository leaveTypeRepository;
+    private final EmployeeRepository employeeRepository;
     private final LeaveMapper leaveMapper;
     private final LeaveTypeMapper leaveTypeMapper;
-    private final HrClient hrClient;
     private final AttendanceClient attendanceClient;
     private final ObjectMapper objectMapper;
 
@@ -50,7 +53,8 @@ public class LeaveService {
         }
         requireEmployee(request.employeeId());
 
-        LeaveType leaveType = leaveTypeRepository.findByCode(request.leaveTypeCode().trim())
+        String leaveTypeCode = request.leaveTypeCode() == null ? null : request.leaveTypeCode().trim().toUpperCase();
+        LeaveType leaveType = leaveTypeRepository.findByCode(leaveTypeCode)
                 .orElseThrow(() -> new AppException(ErrorCode.INVALID_INPUT, "Loại nghỉ không hợp lệ"));
 
         if (request.toDate().isBefore(request.fromDate())) {
@@ -83,9 +87,9 @@ public class LeaveService {
 
     @Transactional(readOnly = true)
     public PageResponse<LeaveResponse> search(String keyword, Long employeeId, String status, Pageable pageable) {
-        var spec = LeaveSpecifications.matches(keyword, employeeId, status);
-        Page<LeaveRequest> page = leaveRequestRepository.findAll(spec, pageable);
-        return PageResponse.of(page.map(this::toResponse));
+        Page<LeaveRequest> page = leaveRequestRepository.findAll(LeaveSpecifications.matches(keyword, employeeId, status), pageable);
+        Map<Long, HrEmployeeSnapshot> snapshots = loadEmployeeSnapshots(page.getContent());
+        return PageResponse.of(page.map(leaveRequest -> toResponse(leaveRequest, snapshots)));
     }
 
     @Transactional(readOnly = true)
@@ -165,8 +169,16 @@ public class LeaveService {
         return leaveMapper.toResponse(leaveRequest, employee, approvedBy);
     }
 
+    private LeaveResponse toResponse(LeaveRequest leaveRequest, Map<Long, HrEmployeeSnapshot> snapshots) {
+        HrEmployeeSnapshot employee = snapshots.get(leaveRequest.getEmployeeId());
+        HrEmployeeSnapshot approvedBy = leaveRequest.getApprovedById() == null
+                ? null
+                : snapshots.get(leaveRequest.getApprovedById());
+        return leaveMapper.toResponse(leaveRequest, employee, approvedBy);
+    }
+
     private void requireEmployee(Long employeeId) {
-        if (!hrClient.employeeExists(employeeId)) {
+        if (employeeId == null || !employeeRepository.existsById(employeeId)) {
             throw new AppException(ErrorCode.EMPLOYEE_NOT_FOUND);
         }
     }
@@ -175,11 +187,36 @@ public class LeaveService {
         if (employeeId == null) {
             return null;
         }
-        try {
-            return hrClient.getEmployeeSnapshot(employeeId);
-        } catch (Exception ignored) {
-            return null;
+        return employeeRepository.findById(employeeId)
+                .map(this::toSnapshot)
+                .orElse(null);
+    }
+
+    private Map<Long, HrEmployeeSnapshot> loadEmployeeSnapshots(List<LeaveRequest> leaveRequests) {
+        List<Long> employeeIds = leaveRequests.stream()
+                .flatMap(leaveRequest -> java.util.stream.Stream.of(leaveRequest.getEmployeeId(), leaveRequest.getApprovedById()))
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+
+        if (employeeIds.isEmpty()) {
+            return Map.of();
         }
+
+        Map<Long, HrEmployeeSnapshot> snapshots = new LinkedHashMap<>();
+        for (Employee employee : employeeRepository.findByIdIn(employeeIds)) {
+            snapshots.put(employee.getId(), toSnapshot(employee));
+        }
+        return snapshots;
+    }
+
+    private HrEmployeeSnapshot toSnapshot(Employee employee) {
+        return new HrEmployeeSnapshot(
+                employee.getId(),
+                employee.getEmployeeCode(),
+                employee.getFullName(),
+                employee.getDepartment() != null ? employee.getDepartment().getName() : null,
+                employee.getPosition() != null ? employee.getPosition().getName() : null);
     }
 
     private void syncApprovedLeaveAttendance(LeaveRequest leaveRequest) {

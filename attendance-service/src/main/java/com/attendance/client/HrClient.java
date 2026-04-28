@@ -5,7 +5,9 @@ import com.attendance.dto.response.EmployeeInternalResponse;
 import com.attendance.dto.response.FaceMatchResponse;
 import com.attendance.dto.response.HrEmployeeSnapshot;
 import java.util.List;
+import java.time.LocalDate;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,4 +34,9 @@ public interface HrClient {
             @RequestParam(value = "departmentId", required = false) Long departmentId,
             @RequestParam(value = "employeeId", required = false) Long employeeId,
             @RequestParam(value = "status", required = false) String status);
+
+    @GetMapping("/internal/hr/leaves/approved")
+    boolean hasApprovedLeave(
+            @RequestParam("employeeId") Long employeeId,
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date);
 }

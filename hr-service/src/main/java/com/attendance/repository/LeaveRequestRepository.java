@@ -15,15 +15,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long>, JpaSpecificationExecutor<LeaveRequest> {
 
-    // Nạp trước loại nghỉ khi tìm danh sách đơn nghỉ.
     @EntityGraph(attributePaths = {"leaveType"})
     @Override
     Page<LeaveRequest> findAll(Specification<LeaveRequest> spec, Pageable pageable);
 
-    // Lấy danh sách đơn nghỉ theo nhân viên.
     List<LeaveRequest> findByEmployeeId(Long employeeId);
 
-    // Lấy danh sách đơn nghỉ theo trạng thái.
     List<LeaveRequest> findByStatus(String status);
 
     boolean existsByEmployeeIdAndStatusAndFromDateLessThanEqualAndToDateGreaterThanEqual(
@@ -38,7 +35,3 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
             LocalDate fromDate,
             LocalDate toDate);
 }
-
-
-
-

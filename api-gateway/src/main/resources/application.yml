@@ -35,12 +35,6 @@ spring:
                 - Path=/v3/api-docs/attendance-service
               filters:
                 - RewritePath=/v3/api-docs/attendance-service, /v3/api-docs
-            - id: request-service-openapi
-              uri: lb://request-service
-              predicates:
-                - Path=/v3/api-docs/request-service
-              filters:
-                - RewritePath=/v3/api-docs/request-service, /v3/api-docs
             - id: auth-service
               uri: lb://auth-service
               predicates:
@@ -48,15 +42,11 @@ spring:
             - id: hr-service
               uri: lb://hr-service
               predicates:
-                - Path=/api/employees/**,/api/departments/**,/api/positions/**
+                - Path=/api/employees/**,/api/departments/**,/api/positions/**,/api/leaves/**
             - id: attendance-service
               uri: lb://attendance-service
               predicates:
                 - Path=/api/attendance/**,/api/reports/**
-            - id: request-service
-              uri: lb://request-service
-              predicates:
-                - Path=/api/leaves/**
 
 app:
   cors:
@@ -86,8 +76,6 @@ springdoc:
         url: /v3/api-docs/hr-service
       - name: attendance-service
         url: /v3/api-docs/attendance-service
-      - name: request-service
-        url: /v3/api-docs/request-service
 
 logging:
   pattern:

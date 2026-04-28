@@ -17,17 +17,15 @@ public final class LeaveSpecifications {
     public static Specification<LeaveRequest> matches(String keyword, Long employeeId, String status) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
-            Join<LeaveRequest, LeaveType> leaveTypeJoin = null;
 
             if (StringUtils.hasText(keyword)) {
-                leaveTypeJoin = root.join("leaveType");
+                Join<LeaveRequest, LeaveType> leaveTypeJoin = root.join("leaveType");
                 String pattern = "%" + keyword.trim().toLowerCase() + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(leaveTypeJoin.get("name")), pattern),
                         cb.like(cb.lower(leaveTypeJoin.get("code")), pattern),
-                        cb.and(
-                                cb.isNotNull(root.get("reason")),
-                                cb.like(cb.lower(root.get("reason")), pattern))));
+                        cb.like(cb.lower(cb.coalesce(root.get("reason"), "")), pattern),
+                        cb.like(root.get("employeeId").as(String.class), pattern)));
             }
 
             if (employeeId != null) {
@@ -38,9 +36,6 @@ public final class LeaveSpecifications {
                 predicates.add(cb.equal(cb.upper(root.get("status")), status.trim().toUpperCase()));
             }
 
-            if (predicates.isEmpty()) {
-                return cb.conjunction();
-            }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
     }

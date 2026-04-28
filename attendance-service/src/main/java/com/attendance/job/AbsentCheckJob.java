@@ -1,6 +1,6 @@
 package com.attendance.job;
 
-import com.attendance.client.RequestClient;
+import com.attendance.client.HrClient;
 import com.attendance.entity.Attendance;
 import com.attendance.entity.EmployeeSchedule;
 import com.attendance.entity.Shift;
@@ -31,7 +31,7 @@ public class AbsentCheckJob {
     private final AttendanceRepository attendanceRepository;
     private final EmployeeScheduleRepository employeeScheduleRepository;
     private final HolidayRepository holidayRepository;
-    private final RequestClient requestClient;
+    private final HrClient hrClient;
     private final Clock clock;
 
     // Chạy định kỳ để hoàn tất ca làm đã qua giờ kết thúc, kể cả ca xuyên đêm từ hôm trước.
@@ -74,7 +74,7 @@ public class AbsentCheckJob {
             if (holiday) {
                 status = "HOLIDAY";
                 stats.holidayCount++;
-            } else if (requestClient.hasApprovedLeave(employeeId, workDate)) {
+            } else if (hrClient.hasApprovedLeave(employeeId, workDate)) {
                 status = "ON_LEAVE";
                 stats.onLeaveCount++;
             } else if (shiftEnded) {

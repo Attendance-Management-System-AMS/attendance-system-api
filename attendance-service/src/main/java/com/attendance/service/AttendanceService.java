@@ -1,7 +1,6 @@
 package com.attendance.service;
 
 import com.attendance.client.HrClient;
-import com.attendance.client.RequestClient;
 import com.attendance.common.dto.PageResponse;
 import com.attendance.dto.response.HrEmployeeSnapshot;
 import com.attendance.dto.response.AttendanceResponse;
@@ -46,8 +45,6 @@ public class AttendanceService {
     private final HrClient hrClient;
     private final AttendanceMapper attendanceMapper;
     private final HolidayRepository holidayRepository;
-    private final RequestClient requestClient;
-
     @Value("${app.attendance.min-checkout-after-minutes:30}")
     private long minCheckoutAfterMinutes;
 
@@ -379,7 +376,7 @@ public class AttendanceService {
 
     private boolean hasApprovedLeaveSafely(Long employeeId, LocalDate date) {
         try {
-            return requestClient.hasApprovedLeave(employeeId, date);
+            return hrClient.hasApprovedLeave(employeeId, date);
         } catch (Exception ex) {
             log.warn("Không kiểm tra được đơn nghỉ đã duyệt cho employeeId={}, date={}: {}", employeeId, date, ex.getMessage());
             return false;
