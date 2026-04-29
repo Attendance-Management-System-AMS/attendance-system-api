@@ -121,6 +121,8 @@ Hoặc không cần `cd`, chỉ định đường dẫn tới wrapper (ví dụ 
 - Người dùng / frontend → **API Gateway** (`9000`) → `/api/auth/**`, `/api/employees/**`, `/api/departments/**`, `/api/positions/**`, `/api/attendance/**`, `/api/leaves/**`.
 - **Attendance** → **HR** trực tiếp qua service discovery (`@FeignClient(name = "hr-service")`), không bắt buộc đi qua gateway.
 
+Trong chế độ microservice, CORS cho browser được cấu hình tập trung tại `api-gateway`. Các service nội bộ (`auth-service`, `hr-service`, `attendance-service`) không cần giữ danh sách origin của frontend khi chỉ phục vụ request đi qua gateway. `monolith-service` vẫn giữ cấu hình CORS riêng cho luồng fallback browser-facing.
+
 Biến môi trường dùng chung: `EUREKA_HOST`, `EUREKA_PORT` (trùng cổng Eureka), `EUREKA_USER`, `EUREKA_PASSWORD`. Gateway và Swagger tổng hợp: `http://localhost:9000/swagger-ui/index.html`.
 
 Không dùng biến `PORT` chung cho microservice local vì biến này sẽ ép mọi service chạy cùng một cổng nếu đã tồn tại trong terminal. Dùng các biến port riêng ở bảng trên.

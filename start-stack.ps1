@@ -1,15 +1,23 @@
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$envFile = Join-Path $root ".env.development"
 
 if (-not (Test-Path -LiteralPath (Join-Path $root "mvnw.cmd"))) {
     throw "Cannot find mvnw.cmd in $root"
 }
 
-if (Test-Path -LiteralPath $envFile) {
-    Write-Host "Loading environment from .env.development" -ForegroundColor Cyan
-    Get-Content -LiteralPath $envFile | ForEach-Object {
+function Import-EnvFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    Write-Host "Loading environment from $(Split-Path -Leaf $Path)" -ForegroundColor Cyan
+    Get-Content -LiteralPath $Path | ForEach-Object {
         $line = $_.Trim()
         if ($line -eq "" -or $line.StartsWith("#")) {
             return
@@ -24,6 +32,15 @@ if (Test-Path -LiteralPath $envFile) {
         $value = $line.Substring($separatorIndex + 1).Trim()
         [Environment]::SetEnvironmentVariable($key, $value, "Process")
     }
+}
+
+$envFiles = @(
+    Join-Path $root ".env",
+    Join-Path $root ".env.development"
+)
+
+foreach ($envFile in $envFiles) {
+    Import-EnvFile -Path $envFile
 }
 
 $defaults = @{

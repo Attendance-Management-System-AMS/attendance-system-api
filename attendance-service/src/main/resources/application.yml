@@ -28,8 +28,6 @@ jwt:
   issuer: ${JWT_ISSUER:auth-service}
 
 app:
-  cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   attendance:
     min-checkout-after-minutes: ${MIN_CHECKOUT_AFTER_MINUTES:30}
     kiosk:
