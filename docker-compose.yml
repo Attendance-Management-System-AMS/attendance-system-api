@@ -1,0 +1,152 @@
+name: attendance-system-api
+
+x-service-build: &service-build
+  context: .
+  dockerfile: docker/Dockerfile.service
+
+x-common-env: &common-env
+  SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-production}
+  EUREKA_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+  JWT_SECRET: ${JWT_SECRET:-replace-with-a-strong-random-secret-at-least-32-chars}
+  JWT_EXPIRATION: ${JWT_EXPIRATION:-900000}
+  JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
+  JWT_ISSUER: ${JWT_ISSUER:-attendance-auth-service}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:9000,http://127.0.0.1:9000}
+  SHOW_SQL: ${SHOW_SQL:-false}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-attendance}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-attendance}
+      POSTGRES_DB: postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-attendance} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - backend
+
+  eureka-server:
+    build:
+      <<: *service-build
+      args:
+        MODULE_NAME: eureka-server
+    environment:
+      EUREKA_SERVER_PORT: 8761
+      EUREKA_DEFAULT_ZONE: http://eureka-server:8761/eureka/
+    ports:
+      - "${EUREKA_SERVER_PORT:-8761}:8761"
+    restart: unless-stopped
+    networks:
+      - backend
+
+  auth-service:
+    build:
+      <<: *service-build
+      args:
+        MODULE_NAME: auth-service
+    environment:
+      <<: *common-env
+      AUTH_SERVICE_PORT: 9004
+      EUREKA_INSTANCE_HOSTNAME: auth-service
+      AUTH_DB_URL: jdbc:postgresql://postgres:5432/attendance_auth
+      AUTH_DB_USERNAME: ${POSTGRES_USER:-attendance}
+      AUTH_DB_PASSWORD: ${POSTGRES_PASSWORD:-attendance}
+      SEED_DEFAULT_USERS: ${SEED_DEFAULT_USERS:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend
+
+  hr-service:
+    build:
+      <<: *service-build
+      args:
+        MODULE_NAME: hr-service
+    environment:
+      <<: *common-env
+      HR_SERVICE_PORT: 9001
+      EUREKA_INSTANCE_HOSTNAME: hr-service
+      HR_DB_URL: jdbc:postgresql://postgres:5432/attendance_hr
+      HR_DB_USERNAME: ${POSTGRES_USER:-attendance}
+      HR_DB_PASSWORD: ${POSTGRES_PASSWORD:-attendance}
+      FACE_MATCH_DISTANCE_THRESHOLD: ${FACE_MATCH_DISTANCE_THRESHOLD:-0.55}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend
+
+  attendance-service:
+    build:
+      <<: *service-build
+      args:
+        MODULE_NAME: attendance-service
+    environment:
+      <<: *common-env
+      ATTENDANCE_SERVICE_PORT: 9002
+      EUREKA_INSTANCE_HOSTNAME: attendance-service
+      ATTENDANCE_DB_URL: jdbc:postgresql://postgres:5432/attendance_attendance
+      ATTENDANCE_DB_USERNAME: ${POSTGRES_USER:-attendance}
+      ATTENDANCE_DB_PASSWORD: ${POSTGRES_PASSWORD:-attendance}
+      MIN_CHECKOUT_AFTER_MINUTES: ${MIN_CHECKOUT_AFTER_MINUTES:-30}
+      ATTENDANCE_KIOSK_TOKEN_EXPIRATION_SECONDS: ${ATTENDANCE_KIOSK_TOKEN_EXPIRATION_SECONDS:-300}
+      ATTENDANCE_KIOSK_ALLOWED_CLOCK_SKEW_SECONDS: ${ATTENDANCE_KIOSK_ALLOWED_CLOCK_SKEW_SECONDS:-30}
+      ATTENDANCE_KIOSK_NONCE_TTL_SECONDS: ${ATTENDANCE_KIOSK_NONCE_TTL_SECONDS:-120}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+      hr-service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend
+
+  api-gateway:
+    build:
+      <<: *service-build
+      args:
+        MODULE_NAME: api-gateway
+    environment:
+      <<: *common-env
+      API_GATEWAY_PORT: 9000
+      EUREKA_INSTANCE_HOSTNAME: api-gateway
+    ports:
+      - "${API_GATEWAY_PORT:-9000}:9000"
+    depends_on:
+      eureka-server:
+        condition: service_started
+      auth-service:
+        condition: service_started
+      hr-service:
+        condition: service_started
+      attendance-service:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    driver: bridge

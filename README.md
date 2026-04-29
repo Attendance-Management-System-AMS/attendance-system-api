@@ -125,6 +125,43 @@ Biến môi trường dùng chung: `EUREKA_HOST`, `EUREKA_PORT` (trùng cổng E
 
 Không dùng biến `PORT` chung cho microservice local vì biến này sẽ ép mọi service chạy cùng một cổng nếu đã tồn tại trong terminal. Dùng các biến port riêng ở bảng trên.
 
+### 3.1. Chạy bằng Docker Compose
+
+Repo hiện có sẵn bộ Docker dành cho **microservice backend** trong:
+
+- [docker-compose.yml](docker-compose.yml)
+- [docker/Dockerfile.service](docker/Dockerfile.service)
+- [.env.docker.example](.env.docker.example)
+
+Luồng này sẽ chạy:
+
+- `postgres`
+- `eureka-server`
+- `auth-service`
+- `hr-service`
+- `attendance-service`
+- `api-gateway`
+
+Thực hiện:
+
+```powershell
+cd attendance-system-api
+Copy-Item .env.docker.example .env
+docker compose up --build
+```
+
+Sau khi lên thành công:
+
+- API Gateway: `http://localhost:9000`
+- Eureka Dashboard: `http://localhost:8761`
+- Swagger tổng hợp qua gateway: `http://localhost:9000/swagger-ui.html`
+
+Lưu ý:
+
+- `docker-compose.yml` dùng **1 PostgreSQL container** nhưng tách thành 3 database: `attendance_auth`, `attendance_hr`, `attendance_attendance`.
+- Trong Docker, các service đăng ký Eureka bằng hostname nội bộ như `auth-service`, `hr-service`, `attendance-service`, nên không bị lỗi resolve host kiểu máy local.
+- File [Dockerfile](./Dockerfile) ở root vẫn là Dockerfile cho `monolith-service` fallback; microservice deploy dùng `docker-compose.yml`.
+
 ### 4. Dữ liệu mẫu
 
 Flyway đã có migration seed mẫu cho toàn bộ service:
