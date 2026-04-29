@@ -13,7 +13,7 @@ import com.attendance.controller.ScheduleController;
 import com.attendance.dto.request.BulkScheduleRequest;
 import com.attendance.dto.request.EmployeeScheduleRequest;
 import com.attendance.dto.response.EmployeeScheduleResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.CurrentUserService;
 import com.attendance.service.ScheduleService;
 import com.fasterxml.jackson.databind.ObjectMapper;

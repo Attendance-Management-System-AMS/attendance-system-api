@@ -17,7 +17,7 @@ import com.attendance.dto.request.LogoutRequest;
 import com.attendance.dto.request.RefreshTokenRequest;
 import com.attendance.dto.response.AuthResponse;
 import com.attendance.dto.response.UserProfileResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;

@@ -13,7 +13,7 @@ import com.attendance.common.dto.PageResponse;
 import com.attendance.controller.AttendanceController;
 import com.attendance.dto.request.FaceDescriptorRequest;
 import com.attendance.dto.response.AttendanceResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.AttendanceService;
 import com.attendance.service.CurrentUserService;
 import com.attendance.service.KioskAccessService;

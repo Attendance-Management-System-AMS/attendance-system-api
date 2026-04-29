@@ -108,6 +108,10 @@ public class LeaveService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Chỉ có thể phê duyệt đơn đang chờ xử lý");
         }
 
+        if (approvedById != null && approvedById.equals(leaveRequest.getEmployeeId())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không thể tự phê duyệt đơn nghỉ của chính mình");
+        }
+
         leaveRequest.setStatus("APPROVED");
         if (approvedById != null) {
             requireEmployee(approvedById);

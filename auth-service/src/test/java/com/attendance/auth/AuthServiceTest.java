@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.attendance.client.HrClient;
+import com.attendance.dto.request.InternalUpdateUserRequest;
 import com.attendance.dto.request.LoginRequest;
 import com.attendance.dto.request.RefreshTokenRequest;
 import com.attendance.dto.response.AuthResponse;
@@ -126,6 +127,30 @@ class AuthServiceTest {
 
         authService.logout("Bearer access-token", null);
 
+        assertThat(user.getRefreshTokenHash()).isNull();
+        assertThat(user.getRefreshTokenExpiresAt()).isNull();
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void updateInternalUserDisablesAccountAndClearsStoredRefreshToken() {
+        User user = user(1L, "emp001");
+        user.setRefreshTokenHash(hashRefreshToken("stored-refresh-token"));
+        user.setRefreshTokenExpiresAt(OffsetDateTime.now(ZoneOffset.UTC).plusDays(1));
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByUsername("emp001-renamed")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("emp001-new@company.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        authService.updateInternalUser(1L, new InternalUpdateUserRequest(
+                "emp001-renamed",
+                "emp001-new@company.com",
+                false));
+
+        assertThat(user.getUsername()).isEqualTo("emp001-renamed");
+        assertThat(user.getEmail()).isEqualTo("emp001-new@company.com");
+        assertThat(user.isEnabled()).isFalse();
         assertThat(user.getRefreshTokenHash()).isNull();
         assertThat(user.getRefreshTokenExpiresAt()).isNull();
         verify(userRepository).save(user);

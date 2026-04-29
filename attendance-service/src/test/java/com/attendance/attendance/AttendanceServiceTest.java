@@ -145,6 +145,29 @@ class AttendanceServiceTest {
         verify(attendanceRepository, never()).save(any(Attendance.class));
     }
 
+    @Test
+    void checkInRejectsWhenMultipleSchedulesShareSameEffectiveDate() {
+        LocalDate today = LocalDate.now();
+        Shift morningShift = createShift(1L);
+        Shift eveningShift = createShift(2L);
+        eveningShift.setName("Ca tối");
+        eveningShift.setStartTime(LocalTime.of(14, 0));
+        eveningShift.setEndTime(LocalTime.of(18, 0));
+
+        when(hrClient.getEmployeeSnapshot(4L)).thenReturn(new HrEmployeeSnapshot(4L, "EMP004", "Pham Thi Employee", "IT", "Dev"));
+        when(attendanceRepository.findByEmployeeIdAndWorkDate(4L, today)).thenReturn(Optional.empty());
+        when(hrClient.hasApprovedLeave(4L, today)).thenReturn(false);
+        when(employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(4L, today))
+                .thenReturn(List.of(
+                        createSchedule(4L, today.getDayOfWeek().getValue(), morningShift, today.minusDays(7)),
+                        createSchedule(4L, today.getDayOfWeek().getValue(), eveningShift, today.minusDays(7))));
+
+        AppException exception = assertThrows(AppException.class, () -> attendanceService.checkIn(4L));
+
+        assertEquals("Nhân viên đang có nhiều ca làm cùng ngày hiệu lực, hệ thống chưa hỗ trợ split shift", exception.getMessage());
+        verify(attendanceRepository, never()).save(any(Attendance.class));
+    }
+
     private Shift createShift(Long id) {
         Shift shift = new Shift();
         shift.setId(id);

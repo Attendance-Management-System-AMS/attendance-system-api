@@ -13,7 +13,7 @@ import com.attendance.common.dto.PageResponse;
 import com.attendance.controller.ShiftController;
 import com.attendance.dto.request.ShiftRequest;
 import com.attendance.dto.response.ShiftResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.ShiftService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;

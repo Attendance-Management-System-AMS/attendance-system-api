@@ -12,7 +12,7 @@ import com.attendance.controller.ScheduleTemplateController;
 import com.attendance.dto.request.ScheduleTemplateItemRequest;
 import com.attendance.dto.request.ScheduleTemplateRequest;
 import com.attendance.dto.response.ScheduleTemplateResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.ScheduleTemplateService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;

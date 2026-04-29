@@ -324,13 +324,31 @@ public class AttendanceService {
     // Lấy ca làm trong ngày hiện tại của nhân viên.
     private Shift getTodayShift(Long employeeId, LocalDate date) {
         int dayOfWeek = date.getDayOfWeek().getValue();
-        return employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(employeeId, date)
-                .stream()
-                .filter(schedule -> schedule.getEffectiveTo() == null || !schedule.getEffectiveTo().isBefore(date))
-                .filter(schedule -> schedule.getDayOfWeek() == dayOfWeek)
-                .map(EmployeeSchedule::getShift)
-                .findFirst()
-                .orElse(null);
+        EmployeeSchedule selected = null;
+        for (EmployeeSchedule schedule : employeeScheduleRepository
+                .findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(employeeId, date)) {
+            if (schedule.getEffectiveTo() != null && schedule.getEffectiveTo().isBefore(date)) {
+                continue;
+            }
+            if (schedule.getDayOfWeek() != dayOfWeek) {
+                continue;
+            }
+
+            if (selected == null) {
+                selected = schedule;
+                continue;
+            }
+
+            if (sameEffectiveFrom(selected.getEffectiveFrom(), schedule.getEffectiveFrom())) {
+                throw new AppException(
+                        ErrorCode.INVALID_INPUT,
+                        "Nhân viên đang có nhiều ca làm cùng ngày hiệu lực, hệ thống chưa hỗ trợ split shift");
+            }
+
+            break;
+        }
+
+        return selected == null ? null : selected.getShift();
     }
 
     private Attendance buildApprovedLeaveAttendance(Long employeeId, LocalDate workDate) {
@@ -372,6 +390,16 @@ public class AttendanceService {
 
     private boolean hasRecordedTime(Attendance attendance) {
         return attendance.getCheckInTime() != null || attendance.getCheckOutTime() != null;
+    }
+
+    private boolean sameEffectiveFrom(LocalDate first, LocalDate second) {
+        if (first == null && second == null) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        return first.isEqual(second);
     }
 
     private boolean hasApprovedLeaveSafely(Long employeeId, LocalDate date) {

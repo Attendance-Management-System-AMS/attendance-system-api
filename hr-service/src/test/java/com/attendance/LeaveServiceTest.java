@@ -106,11 +106,9 @@ class LeaveServiceTest {
     @Test
     void approveSurfacesRemoteAttendanceErrorMessage() {
         LeaveRequest leaveRequest = createPendingLeave();
-        Employee employee = createEmployee(4L, "EMP-0004", "Nguyen Van A");
 
         when(leaveRequestRepository.findById(1L)).thenReturn(Optional.of(leaveRequest));
         when(leaveRequestRepository.save(any(LeaveRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(employeeRepository.findById(4L)).thenReturn(Optional.of(employee));
         doThrow(buildFeignException(400, "{\"success\":false,\"code\":1002,\"message\":\"Ngày kết thúc phải sau ngày bắt đầu\"}"))
                 .when(attendanceClient)
                 .syncApprovedLeave(any(LeaveApprovalSyncRequest.class));
@@ -119,6 +117,17 @@ class LeaveServiceTest {
 
         assertEquals("Ngày kết thúc phải sau ngày bắt đầu", exception.getMessage());
         assertEquals(1002, exception.getErrorCode().getCode());
+    }
+
+    @Test
+    void approveRejectsSelfApproval() {
+        LeaveRequest leaveRequest = createPendingLeave();
+
+        when(leaveRequestRepository.findById(1L)).thenReturn(Optional.of(leaveRequest));
+
+        AppException exception = assertThrows(AppException.class, () -> leaveService.approve(1L, 4L));
+
+        assertEquals("Không thể tự phê duyệt đơn nghỉ của chính mình", exception.getMessage());
     }
 
     private LeaveRequest createPendingLeave() {

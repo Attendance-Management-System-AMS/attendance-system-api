@@ -1,6 +1,7 @@
 package com.attendance.attendance;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -123,6 +124,38 @@ class AbsentCheckJobTest {
         job.markAbsentEmployees();
 
         verify(attendanceRepository, never()).save(any(Attendance.class));
+    }
+
+    @Test
+    void continuesProcessingOtherEmployeesWhenHrLeaveLookupFails() {
+        LocalDate workDate = LocalDate.of(2026, 4, 25);
+        Clock clock = fixedClock(LocalDateTime.of(2026, 4, 25, 18, 0));
+        AbsentCheckJob job = new AbsentCheckJob(
+                attendanceRepository,
+                employeeScheduleRepository,
+                holidayRepository,
+                hrClient,
+                clock);
+
+        EmployeeSchedule firstSchedule = createSchedule(4L, workDate.getDayOfWeek().getValue(), createShift("Ca hành chính", 8, 0, 17, 0), workDate.minusDays(10));
+        EmployeeSchedule secondSchedule = createSchedule(7L, workDate.getDayOfWeek().getValue(), createShift("Ca hành chính", 8, 0, 17, 0), workDate.minusDays(10));
+
+        when(employeeScheduleRepository.findByEffectiveFromLessThanEqual(any(LocalDate.class))).thenAnswer(invocation -> {
+            LocalDate requestedDate = invocation.getArgument(0);
+            return requestedDate.equals(workDate) ? List.of(firstSchedule, secondSchedule) : List.of();
+        });
+        when(holidayRepository.existsByFromDateLessThanEqualAndToDateGreaterThanEqual(any(), any())).thenReturn(false);
+        when(attendanceRepository.findByEmployeeIdAndWorkDate(4L, workDate)).thenReturn(Optional.empty());
+        when(attendanceRepository.findByEmployeeIdAndWorkDate(7L, workDate)).thenReturn(Optional.empty());
+        when(hrClient.hasApprovedLeave(4L, workDate)).thenThrow(new RuntimeException("HR timeout"));
+        when(hrClient.hasApprovedLeave(7L, workDate)).thenReturn(false);
+
+        job.markAbsentEmployees();
+
+        verify(attendanceRepository).save(argThat(attendance ->
+                attendance.getEmployeeId().equals(7L)
+                        && "ABSENT".equals(attendance.getStatus())
+                        && workDate.equals(attendance.getWorkDate())));
     }
 
     private Clock fixedClock(LocalDateTime dateTime) {

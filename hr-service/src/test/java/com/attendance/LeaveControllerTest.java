@@ -15,7 +15,7 @@ import com.attendance.controller.LeaveController;
 import com.attendance.dto.request.LeaveRequestRecord;
 import com.attendance.dto.response.LeaveResponse;
 import com.attendance.dto.response.LeaveTypeResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.EmployeeService;
 import com.attendance.service.LeaveService;
 import com.fasterxml.jackson.databind.ObjectMapper;

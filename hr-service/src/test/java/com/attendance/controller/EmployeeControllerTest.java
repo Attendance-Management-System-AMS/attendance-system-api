@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.attendance.dto.request.CreateEmployeeRequest;
 import com.attendance.dto.request.FaceDescriptorRequest;
 import com.attendance.dto.response.EmployeeResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.EmployeeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
