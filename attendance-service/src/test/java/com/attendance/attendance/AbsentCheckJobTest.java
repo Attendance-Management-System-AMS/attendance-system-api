@@ -5,7 +5,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.attendance.client.RequestClient;
+import com.attendance.client.HrClient;
 import com.attendance.entity.Attendance;
 import com.attendance.entity.EmployeeSchedule;
 import com.attendance.entity.Shift;
@@ -41,7 +41,7 @@ class AbsentCheckJobTest {
     private HolidayRepository holidayRepository;
 
     @Mock
-    private RequestClient requestClient;
+    private HrClient hrClient;
 
     @Test
     void doesNotMarkOvernightAttendanceMissingBeforeShiftEnds() {
@@ -51,7 +51,7 @@ class AbsentCheckJobTest {
                 attendanceRepository,
                 employeeScheduleRepository,
                 holidayRepository,
-                requestClient,
+                hrClient,
                 clock);
 
         EmployeeSchedule schedule = createSchedule(4L, workDate.getDayOfWeek().getValue(), createShift("Ca đêm", 22, 0, 6, 0), workDate.minusDays(7));
@@ -80,7 +80,7 @@ class AbsentCheckJobTest {
                 attendanceRepository,
                 employeeScheduleRepository,
                 holidayRepository,
-                requestClient,
+                hrClient,
                 clock);
 
         EmployeeSchedule schedule = createSchedule(4L, workDate.getDayOfWeek().getValue(), createShift("Ca đêm", 22, 0, 6, 0), workDate.minusDays(7));
@@ -110,7 +110,7 @@ class AbsentCheckJobTest {
                 attendanceRepository,
                 employeeScheduleRepository,
                 holidayRepository,
-                requestClient,
+                hrClient,
                 clock);
 
         EmployeeSchedule schedule = createSchedule(7L, workDate.getDayOfWeek().getValue(), createShift("Ca hành chính", 8, 0, 17, 0), workDate.minusDays(10));
@@ -118,7 +118,7 @@ class AbsentCheckJobTest {
         when(employeeScheduleRepository.findByEffectiveFromLessThanEqual(any(LocalDate.class))).thenReturn(List.of(schedule));
         when(holidayRepository.existsByFromDateLessThanEqualAndToDateGreaterThanEqual(any(), any())).thenReturn(false);
         when(attendanceRepository.findByEmployeeIdAndWorkDate(7L, workDate)).thenReturn(Optional.empty());
-        when(requestClient.hasApprovedLeave(7L, workDate)).thenReturn(false);
+        when(hrClient.hasApprovedLeave(7L, workDate)).thenReturn(false);
 
         job.markAbsentEmployees();
 

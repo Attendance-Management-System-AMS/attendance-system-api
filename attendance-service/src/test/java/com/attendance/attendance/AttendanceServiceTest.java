@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.attendance.client.HrClient;
-import com.attendance.client.RequestClient;
 import com.attendance.dto.request.FaceDescriptorRequest;
 import com.attendance.dto.response.FaceMatchResponse;
 import com.attendance.dto.response.HrEmployeeSnapshot;
@@ -58,8 +57,6 @@ class AttendanceServiceTest {
     private HolidayRepository holidayRepository;
 
     @Mock
-    private RequestClient requestClient;
-
     private AttendanceService attendanceService;
 
     @BeforeEach
@@ -70,8 +67,7 @@ class AttendanceServiceTest {
                 attendanceLogRepository,
                 hrClient,
                 attendanceMapper,
-                holidayRepository,
-                requestClient);
+                holidayRepository);
         ReflectionTestUtils.setField(attendanceService, "minCheckoutAfterMinutes", 30L);
     }
 
@@ -118,7 +114,7 @@ class AttendanceServiceTest {
 
         when(hrClient.getEmployeeSnapshot(4L)).thenReturn(new HrEmployeeSnapshot(4L, "EMP004", "Pham Thi Employee", "IT", "Dev"));
         when(attendanceRepository.findByEmployeeIdAndWorkDate(4L, today)).thenReturn(Optional.empty());
-        when(requestClient.hasApprovedLeave(4L, today)).thenReturn(true);
+        when(hrClient.hasApprovedLeave(4L, today)).thenReturn(true);
 
         AppException exception = assertThrows(AppException.class, () -> attendanceService.checkIn(4L));
 
