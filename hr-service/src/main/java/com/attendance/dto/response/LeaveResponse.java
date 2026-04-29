@@ -2,6 +2,7 @@ package com.attendance.dto.response;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public record LeaveResponse(
         Long id,
@@ -18,6 +19,10 @@ public record LeaveResponse(
         String reason,
         String status,
         String approvedByName,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        // Dùng cho đơn giải trình công (loại AC)
+        LocalTime correctedCheckIn,
+        LocalTime correctedCheckOut
 ) {
 }
+

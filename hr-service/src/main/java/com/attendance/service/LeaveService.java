@@ -1,6 +1,7 @@
 package com.attendance.service;
 
 import com.attendance.client.AttendanceClient;
+import com.attendance.common.dto.AttendanceCorrectionSyncRequest;
 import com.attendance.common.dto.LeaveApprovalSyncRequest;
 import com.attendance.common.dto.PageResponse;
 import com.attendance.dto.request.LeaveRequestRecord;
@@ -71,12 +72,25 @@ public class LeaveService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Khoảng ngày nghỉ bị trùng với đơn đang chờ duyệt hoặc đã duyệt");
         }
 
+        // Validate đơn giải trình công (AC) phải có ít nhất 1 giờ bổ sung
+        if ("AC".equals(leaveTypeCode)) {
+            if (request.correctedCheckIn() == null && request.correctedCheckOut() == null) {
+                throw new AppException(ErrorCode.INVALID_INPUT, "Đơn giải trình công phải có ít nhất giờ vào hoặc giờ ra bổ sung");
+            }
+            // Đơn giải trình chỉ áp dụng 1 ngày
+            if (!request.fromDate().equals(request.toDate())) {
+                throw new AppException(ErrorCode.INVALID_INPUT, "Đơn giải trình công chỉ áp dụng cho 1 ngày");
+            }
+        }
+
         LeaveRequest leaveRequest = new LeaveRequest();
         leaveRequest.setEmployeeId(request.employeeId());
         leaveRequest.setLeaveType(leaveType);
         leaveRequest.setFromDate(request.fromDate());
         leaveRequest.setToDate(request.toDate());
         leaveRequest.setReason(request.reason());
+        leaveRequest.setCorrectedCheckIn(request.correctedCheckIn());
+        leaveRequest.setCorrectedCheckOut(request.correctedCheckOut());
 
         long days = ChronoUnit.DAYS.between(request.fromDate(), request.toDate()) + 1;
         leaveRequest.setTotalDays((double) days);
@@ -119,7 +133,14 @@ public class LeaveService {
         }
 
         LeaveRequest saved = leaveRequestRepository.save(leaveRequest);
-        syncApprovedLeaveAttendance(saved);
+
+        // Phân biệt logic sync: nghỉ phép vs giải trình công
+        if ("AC".equals(saved.getLeaveType().getCode())) {
+            syncAttendanceCorrectionData(saved);
+        } else {
+            syncApprovedLeaveAttendance(saved);
+        }
+
         return toResponse(saved);
     }
 
@@ -230,7 +251,7 @@ public class LeaveService {
                     leaveRequest.getFromDate(),
                     leaveRequest.getToDate()));
         } catch (FeignException ex) {
-            String message = extractRemoteErrorMessage(ex);
+            String message = extractRemoteErrorMessage(ex, "Không thể đồng bộ bảng công sau khi duyệt đơn nghỉ");
             log.error(
                     "Đồng bộ bảng công thất bại khi duyệt đơn nghỉ id={}, employeeId={}, fromDate={}, toDate={}, status={}, message={}",
                     leaveRequest.getId(),
@@ -255,6 +276,37 @@ public class LeaveService {
         }
     }
 
+    private void syncAttendanceCorrectionData(LeaveRequest leaveRequest) {
+        try {
+            attendanceClient.syncAttendanceCorrection(new AttendanceCorrectionSyncRequest(
+                    leaveRequest.getEmployeeId(),
+                    leaveRequest.getFromDate(),
+                    leaveRequest.getCorrectedCheckIn(),
+                    leaveRequest.getCorrectedCheckOut()));
+        } catch (FeignException ex) {
+            String message = extractRemoteErrorMessage(ex, "Không thể đồng bộ bảng công sau khi duyệt đơn giải trình");
+            log.error(
+                    "Đồng bộ giải trình công thất bại id={}, employeeId={}, workDate={}, status={}, message={}",
+                    leaveRequest.getId(),
+                    leaveRequest.getEmployeeId(),
+                    leaveRequest.getFromDate(),
+                    ex.status(),
+                    message,
+                    ex);
+            throw new AppException(resolveAttendanceSyncErrorCode(ex), message);
+        } catch (Exception ex) {
+            log.error(
+                    "Đồng bộ giải trình công thất bại id={}, employeeId={}, workDate={}",
+                    leaveRequest.getId(),
+                    leaveRequest.getEmployeeId(),
+                    leaveRequest.getFromDate(),
+                    ex);
+            throw new AppException(
+                    ErrorCode.UNCATEGORIZED_ERROR,
+                    "Không thể đồng bộ bảng công sau khi duyệt đơn giải trình");
+        }
+    }
+
     private ErrorCode resolveAttendanceSyncErrorCode(FeignException ex) {
         return switch (ex.status()) {
             case 400 -> ErrorCode.INVALID_INPUT;
@@ -265,10 +317,10 @@ public class LeaveService {
         };
     }
 
-    private String extractRemoteErrorMessage(FeignException ex) {
+    private String extractRemoteErrorMessage(FeignException ex, String fallbackMessage) {
         String body = ex.contentUTF8();
         if (body == null || body.isBlank()) {
-            return "Không thể đồng bộ bảng công sau khi duyệt đơn nghỉ";
+            return fallbackMessage;
         }
 
         try {
@@ -285,6 +337,6 @@ public class LeaveService {
             // Fallback to a generic message below when the upstream body is not JSON.
         }
 
-        return "Không thể đồng bộ bảng công sau khi duyệt đơn nghỉ";
+        return fallbackMessage;
     }
 }

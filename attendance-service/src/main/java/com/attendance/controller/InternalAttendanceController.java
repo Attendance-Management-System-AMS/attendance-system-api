@@ -1,5 +1,6 @@
 package com.attendance.controller;
 
+import com.attendance.common.dto.AttendanceCorrectionSyncRequest;
 import com.attendance.common.dto.LeaveApprovalSyncRequest;
 import com.attendance.service.AttendanceService;
 import jakarta.validation.Valid;
@@ -19,5 +20,14 @@ public class InternalAttendanceController {
     @PostMapping("/leave-approvals/sync")
     public void syncApprovedLeave(@Valid @RequestBody LeaveApprovalSyncRequest request) {
         attendanceService.syncApprovedLeave(request.employeeId(), request.fromDate(), request.toDate());
+    }
+
+    @PostMapping("/corrections/sync")
+    public void syncAttendanceCorrection(@Valid @RequestBody AttendanceCorrectionSyncRequest request) {
+        attendanceService.syncAttendanceCorrection(
+                request.employeeId(),
+                request.workDate(),
+                request.correctedCheckIn(),
+                request.correctedCheckOut());
     }
 }

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.attendance.client.AttendanceClient;
+import com.attendance.common.dto.AttendanceCorrectionSyncRequest;
 import com.attendance.common.dto.LeaveApprovalSyncRequest;
 import com.attendance.dto.response.LeaveResponse;
 import com.attendance.entity.Employee;
@@ -37,6 +38,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class LeaveServiceTest {
+
+    private static final Long EMPLOYEE_ID = 4L;
+    private static final String EMPLOYEE_CODE = "EMP-0004";
+    private static final String EMPLOYEE_NAME = "Nguyen Van A";
 
     @Mock
     private LeaveRequestRepository leaveRequestRepository;
@@ -73,12 +78,12 @@ class LeaveServiceTest {
     @Test
     void approveSyncsAttendanceWithRequestBody() {
         LeaveRequest leaveRequest = createPendingLeave();
-        Employee employee = createEmployee(4L, "EMP-0004", "Nguyen Van A");
+        Employee employee = createEmployee(EMPLOYEE_ID, EMPLOYEE_CODE, EMPLOYEE_NAME);
         LeaveResponse response = new LeaveResponse(
                 1L,
-                4L,
-                "Nguyen Van A",
-                "EMP-0004",
+                EMPLOYEE_ID,
+                EMPLOYEE_NAME,
+                EMPLOYEE_CODE,
                 "Phòng Nhân sự",
                 "Chuyên viên",
                 "AL",
@@ -89,18 +94,20 @@ class LeaveServiceTest {
                 leaveRequest.getReason(),
                 "APPROVED",
                 null,
-                LocalDateTime.now());
+                LocalDateTime.now(),
+                null,
+                null);
 
         when(leaveRequestRepository.findById(1L)).thenReturn(Optional.of(leaveRequest));
         when(leaveRequestRepository.save(any(LeaveRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(employeeRepository.findById(4L)).thenReturn(Optional.of(employee));
+        when(employeeRepository.findById(EMPLOYEE_ID)).thenReturn(Optional.of(employee));
         when(leaveMapper.toResponse(any(LeaveRequest.class), any(), any())).thenReturn(response);
 
         LeaveResponse approved = leaveService.approve(1L, null);
 
         assertEquals("APPROVED", approved.status());
         verify(attendanceClient)
-                .syncApprovedLeave(new LeaveApprovalSyncRequest(4L, LocalDate.of(2026, 4, 25), LocalDate.of(2026, 4, 25)));
+                .syncApprovedLeave(new LeaveApprovalSyncRequest(EMPLOYEE_ID, LocalDate.of(2026, 4, 25), LocalDate.of(2026, 4, 25)));
     }
 
     @Test
@@ -130,6 +137,45 @@ class LeaveServiceTest {
         assertEquals("Không thể tự phê duyệt đơn nghỉ của chính mình", exception.getMessage());
     }
 
+    @Test
+    void approveAttendanceCorrectionSyncsCorrectionRequestBody() {
+        LeaveRequest leaveRequest = createPendingAttendanceCorrection();
+        Employee employee = createEmployee(EMPLOYEE_ID, EMPLOYEE_CODE, EMPLOYEE_NAME);
+        LeaveResponse response = new LeaveResponse(
+                2L,
+                EMPLOYEE_ID,
+                EMPLOYEE_NAME,
+                EMPLOYEE_CODE,
+                "Phòng Nhân sự",
+                "Chuyên viên",
+                "AC",
+                "Giải trình công",
+                leaveRequest.getFromDate(),
+                leaveRequest.getToDate(),
+                leaveRequest.getTotalDays(),
+                leaveRequest.getReason(),
+                "APPROVED",
+                null,
+                LocalDateTime.now(),
+                leaveRequest.getCorrectedCheckIn(),
+                leaveRequest.getCorrectedCheckOut());
+
+        when(leaveRequestRepository.findById(2L)).thenReturn(Optional.of(leaveRequest));
+        when(leaveRequestRepository.save(any(LeaveRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(employeeRepository.findById(EMPLOYEE_ID)).thenReturn(Optional.of(employee));
+        when(leaveMapper.toResponse(any(LeaveRequest.class), any(), any())).thenReturn(response);
+
+        LeaveResponse approved = leaveService.approve(2L, null);
+
+        assertEquals("APPROVED", approved.status());
+        verify(attendanceClient)
+                .syncAttendanceCorrection(new AttendanceCorrectionSyncRequest(
+                        EMPLOYEE_ID,
+                        LocalDate.of(2026, 4, 26),
+                        java.time.LocalTime.of(8, 0),
+                        java.time.LocalTime.of(17, 0)));
+    }
+
     private LeaveRequest createPendingLeave() {
         LeaveType leaveType = new LeaveType();
         leaveType.setId(1L);
@@ -138,12 +184,32 @@ class LeaveServiceTest {
 
         LeaveRequest leaveRequest = new LeaveRequest();
         leaveRequest.setId(1L);
-        leaveRequest.setEmployeeId(4L);
+        leaveRequest.setEmployeeId(EMPLOYEE_ID);
         leaveRequest.setLeaveType(leaveType);
         leaveRequest.setFromDate(LocalDate.of(2026, 4, 25));
         leaveRequest.setToDate(LocalDate.of(2026, 4, 25));
         leaveRequest.setTotalDays(1.0);
         leaveRequest.setReason("Việc riêng");
+        leaveRequest.setStatus("PENDING");
+        return leaveRequest;
+    }
+
+    private LeaveRequest createPendingAttendanceCorrection() {
+        LeaveType leaveType = new LeaveType();
+        leaveType.setId(2L);
+        leaveType.setCode("AC");
+        leaveType.setName("Giải trình công");
+
+        LeaveRequest leaveRequest = new LeaveRequest();
+        leaveRequest.setId(2L);
+        leaveRequest.setEmployeeId(EMPLOYEE_ID);
+        leaveRequest.setLeaveType(leaveType);
+        leaveRequest.setFromDate(LocalDate.of(2026, 4, 26));
+        leaveRequest.setToDate(LocalDate.of(2026, 4, 26));
+        leaveRequest.setTotalDays(1.0);
+        leaveRequest.setReason("Quên chấm công khi ra về");
+        leaveRequest.setCorrectedCheckIn(java.time.LocalTime.of(8, 0));
+        leaveRequest.setCorrectedCheckOut(java.time.LocalTime.of(17, 0));
         leaveRequest.setStatus("PENDING");
         return leaveRequest;
     }

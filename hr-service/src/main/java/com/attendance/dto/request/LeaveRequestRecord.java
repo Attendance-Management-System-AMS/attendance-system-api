@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 public record LeaveRequestRecord(
         Long employeeId,
@@ -21,6 +22,11 @@ public record LeaveRequestRecord(
         Double totalDays,
 
         @Size(max = 500, message = "Lý do tối đa 500 ký tự")
-        String reason
+        String reason,
+
+        // Dùng cho đơn giải trình công (loại AC)
+        LocalTime correctedCheckIn,
+        LocalTime correctedCheckOut
 ) {
 }
+

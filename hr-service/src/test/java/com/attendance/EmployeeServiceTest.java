@@ -28,6 +28,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class EmployeeServiceTest {
 
+    private static final double FACE_MATCH_THRESHOLD = 0.55d;
+
     @Mock
     private EmployeeRepository employeeRepository;
 
@@ -51,7 +53,7 @@ class EmployeeServiceTest {
                 Mappers.getMapper(EmployeeMapper.class),
                 new ObjectMapper(),
                 authClient,
-                0.55d);
+                FACE_MATCH_THRESHOLD);
     }
 
     @Test
