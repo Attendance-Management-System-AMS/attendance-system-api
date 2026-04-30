@@ -32,6 +32,10 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -51,8 +55,8 @@ public class AttendanceService {
     // Check-in nhân viên theo ID và xác thực nhân viên tồn tại trong HR.
     @Transactional
     public AttendanceResponse checkIn(Long employeeId) {
-        requireEmployee(employeeId);
-        return performCheckIn(employeeId, "WEB");
+        HrEmployeeSnapshot hr = requireEmployee(employeeId);
+        return withEmployeeBrief(performCheckIn(employeeId, "WEB"), hr);
     }
 
     @Transactional
@@ -184,8 +188,8 @@ public class AttendanceService {
     // Check-out nhân viên trong ngày hiện tại.
     @Transactional
     public AttendanceResponse checkOut(Long employeeId) {
-        requireEmployee(employeeId);
-        return performCheckOut(employeeId, "WEB");
+        HrEmployeeSnapshot hr = requireEmployee(employeeId);
+        return withEmployeeBrief(performCheckOut(employeeId, "WEB"), hr);
     }
 
     private AttendanceResponse performCheckOut(Long employeeId, String deviceId) {
@@ -251,7 +255,34 @@ public class AttendanceService {
             Pageable pageable) {
         Page<Attendance> page = attendanceRepository.findAll(
                 AttendanceSpecifications.matches(employeeId, date, fromDate, toDate, status), pageable);
-        return PageResponse.of(page.map(this::toResponse));
+        Map<Long, HrEmployeeSnapshot> employeeSnapshots = loadEmployeeSnapshots(page.getContent());
+        return PageResponse.of(page.map(attendance ->
+                withEmployeeBrief(toResponse(attendance), employeeSnapshots.get(attendance.getEmployeeId()))));
+    }
+
+    private Map<Long, HrEmployeeSnapshot> loadEmployeeSnapshots(List<Attendance> attendances) {
+        List<Long> employeeIds = attendances.stream()
+                .map(Attendance::getEmployeeId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (employeeIds.isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            Map<Long, HrEmployeeSnapshot> snapshots = new LinkedHashMap<>();
+            for (HrEmployeeSnapshot snapshot : hrClient.findEmployeeSnapshotsByIds(employeeIds)) {
+                if (snapshot != null && snapshot.id() != null) {
+                    snapshots.put(snapshot.id(), snapshot);
+                }
+            }
+            return snapshots;
+        } catch (Exception ex) {
+            log.warn("Không lấy được batch snapshot nhân viên employeeIds={}: {}", employeeIds, ex.getMessage());
+            return Map.of();
+        }
     }
 
     @Transactional

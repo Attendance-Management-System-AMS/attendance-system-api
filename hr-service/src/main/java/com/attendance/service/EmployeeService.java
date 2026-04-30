@@ -161,6 +161,21 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public List<HrEmployeeSnapshot> findEmployeeSnapshots(Long departmentId, Long employeeId, String status) {
+        return findEmployeeSnapshots(departmentId, employeeId, status, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<HrEmployeeSnapshot> findEmployeeSnapshots(
+            Long departmentId,
+            Long employeeId,
+            String status,
+            List<Long> employeeIds) {
+        if (employeeIds != null && !employeeIds.isEmpty()) {
+            return employeeRepository.findByIdIn(employeeIds).stream()
+                    .map(this::toSnapshot)
+                    .toList();
+        }
+
         if (employeeId != null) {
             return employeeRepository.findById(employeeId).stream()
                     .map(this::toSnapshot)

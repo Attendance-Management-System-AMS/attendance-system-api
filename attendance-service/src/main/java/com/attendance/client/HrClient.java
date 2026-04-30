@@ -35,6 +35,10 @@ public interface HrClient {
             @RequestParam(value = "employeeId", required = false) Long employeeId,
             @RequestParam(value = "status", required = false) String status);
 
+    @GetMapping("/internal/hr/employees/snapshots")
+    List<HrEmployeeSnapshot> findEmployeeSnapshotsByIds(
+            @RequestParam("employeeIds") List<Long> employeeIds);
+
     @GetMapping("/internal/hr/leaves/approved")
     boolean hasApprovedLeave(
             @RequestParam("employeeId") Long employeeId,

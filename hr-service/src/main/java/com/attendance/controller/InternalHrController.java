@@ -42,8 +42,9 @@ public class InternalHrController {
     public List<HrEmployeeSnapshot> findEmployeeSnapshots(
             @RequestParam(required = false) Long departmentId,
             @RequestParam(required = false) Long employeeId,
-            @RequestParam(required = false) String status) {
-        return employeeService.findEmployeeSnapshots(departmentId, employeeId, status);
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) List<Long> employeeIds) {
+        return employeeService.findEmployeeSnapshots(departmentId, employeeId, status, employeeIds);
     }
 
     @PostMapping("/face-match")

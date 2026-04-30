@@ -76,6 +76,10 @@ public class AttendanceReportExportService {
             html.append("<tr><td>E</td><td>Về sớm</td></tr>");
             html.append("<tr><td>LE</td><td>Đi muộn và về sớm</td></tr>");
             html.append("<tr><td>A</td><td>Vắng mặt</td></tr>");
+            html.append("<tr><td>NP</td><td>Nghỉ phép</td></tr>");
+            html.append("<tr><td>NL</td><td>Ngày lễ</td></tr>");
+            html.append("<tr><td>TC</td><td>Thiếu checkout</td></tr>");
+            html.append("<tr><td>CT</td><td>Chưa đủ công</td></tr>");
             html.append("<tr><td>-</td><td>Chưa có dữ liệu chấm công</td></tr>");
             html.append("</table>");
         }
@@ -314,22 +318,32 @@ public class AttendanceReportExportService {
     }
 
     private String statusCode(String status) {
-        return switch (normalizeStatus(status)) {
+        String normalized = normalizeStatus(status);
+        return switch (normalized) {
+            case "PRESENT" -> "P";
             case "LATE" -> "L";
             case "EARLY_LEAVE" -> "E";
             case "LATE_AND_EARLY_LEAVE" -> "LE";
             case "ABSENT" -> "A";
-            default -> "P";
+            case "ON_LEAVE", "LEAVE" -> "NP";
+            case "HOLIDAY" -> "NL";
+            case "MISSING_CHECKOUT" -> "TC";
+            case "INCOMPLETE" -> "CT";
+            default -> normalized;
         };
     }
 
     private String statusLabel(String status) {
         return switch (normalizeStatus(status)) {
+            case "PRESENT" -> "Có mặt";
             case "LATE" -> "Đi muộn";
             case "EARLY_LEAVE" -> "Về sớm";
             case "LATE_AND_EARLY_LEAVE" -> "Đi muộn và về sớm";
             case "ABSENT" -> "Vắng mặt";
-            case "PRESENT" -> "Có mặt";
+            case "ON_LEAVE", "LEAVE" -> "Nghỉ phép";
+            case "HOLIDAY" -> "Ngày lễ";
+            case "MISSING_CHECKOUT" -> "Thiếu checkout";
+            case "INCOMPLETE" -> "Chưa đủ công";
             default -> status == null || status.isBlank() ? "Có dữ liệu" : status;
         };
     }
