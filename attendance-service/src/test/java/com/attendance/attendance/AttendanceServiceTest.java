@@ -2,6 +2,7 @@ package com.attendance.attendance;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -143,6 +145,64 @@ class AttendanceServiceTest {
 
         assertEquals("Bạn vừa check-in, vui lòng chờ ít nhất 30 phút trước khi check-out", exception.getMessage());
         verify(attendanceRepository, never()).save(any(Attendance.class));
+    }
+
+    @Test
+    void checkInRejectsWhenMultipleSchedulesShareSameEffectiveDate() {
+        LocalDate today = LocalDate.now();
+        Shift morningShift = createShift(1L);
+        Shift eveningShift = createShift(2L);
+        eveningShift.setName("Ca tối");
+        eveningShift.setStartTime(LocalTime.of(14, 0));
+        eveningShift.setEndTime(LocalTime.of(18, 0));
+
+        when(hrClient.getEmployeeSnapshot(4L)).thenReturn(new HrEmployeeSnapshot(4L, "EMP004", "Pham Thi Employee", "IT", "Dev"));
+        when(attendanceRepository.findByEmployeeIdAndWorkDate(4L, today)).thenReturn(Optional.empty());
+        when(hrClient.hasApprovedLeave(4L, today)).thenReturn(false);
+        when(employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(4L, today))
+                .thenReturn(List.of(
+                        createSchedule(4L, today.getDayOfWeek().getValue(), morningShift, today.minusDays(7)),
+                        createSchedule(4L, today.getDayOfWeek().getValue(), eveningShift, today.minusDays(7))));
+
+        AppException exception = assertThrows(AppException.class, () -> attendanceService.checkIn(4L));
+
+        assertEquals("Nhân viên đang có nhiều ca làm cùng ngày hiệu lực, hệ thống chưa hỗ trợ split shift", exception.getMessage());
+        verify(attendanceRepository, never()).save(any(Attendance.class));
+    }
+
+    @Test
+    void syncAttendanceCorrectionRejectsCheckoutOnlyWhenAttendanceMissing() {
+        LocalDate workDate = LocalDate.now().minusDays(2);
+
+        when(attendanceRepository.findByEmployeeIdAndWorkDate(4L, workDate)).thenReturn(Optional.empty());
+        when(employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(4L, workDate))
+                .thenReturn(List.of());
+
+        AppException exception = assertThrows(
+                AppException.class,
+                () -> attendanceService.syncAttendanceCorrection(4L, workDate, null, LocalTime.of(17, 0)));
+
+        assertEquals("Không thể bổ sung giờ ra khi ngày công chưa có giờ vào", exception.getMessage());
+        verify(attendanceRepository, never()).save(any(Attendance.class));
+    }
+
+    @Test
+    void syncAttendanceCorrectionCreatesAttendanceForMissingDay() {
+        LocalDate workDate = LocalDate.now().minusDays(3);
+        Shift shift = createShift(1L);
+        ArgumentCaptor<Attendance> attendanceCaptor = ArgumentCaptor.forClass(Attendance.class);
+
+        when(attendanceRepository.findByEmployeeIdAndWorkDate(4L, workDate)).thenReturn(Optional.empty());
+        when(employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(4L, workDate))
+                .thenReturn(List.of(createSchedule(4L, workDate.getDayOfWeek().getValue(), shift, workDate.minusDays(7))));
+
+        attendanceService.syncAttendanceCorrection(4L, workDate, LocalTime.of(8, 5), LocalTime.of(17, 0));
+
+        verify(attendanceRepository).save(attendanceCaptor.capture());
+        Attendance saved = attendanceCaptor.getValue();
+        assertEquals(workDate.atTime(8, 5), saved.getCheckInTime());
+        assertEquals(workDate.atTime(17, 0), saved.getCheckOutTime());
+        assertTrue(List.of("PRESENT", "LATE").contains(saved.getStatus()));
     }
 
     private Shift createShift(Long id) {

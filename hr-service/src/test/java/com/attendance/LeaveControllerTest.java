@@ -15,7 +15,7 @@ import com.attendance.controller.LeaveController;
 import com.attendance.dto.request.LeaveRequestRecord;
 import com.attendance.dto.response.LeaveResponse;
 import com.attendance.dto.response.LeaveTypeResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.EmployeeService;
 import com.attendance.service.LeaveService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,7 +60,7 @@ class LeaveControllerTest {
     @Test
     void getMyLeavesReturnsPagedResult() throws Exception {
         LeaveResponse leave = new LeaveResponse(1L, 4L, "Pham Thi Employee", "EMP-0004", "Kinh doanh", "Nhân viên",
-                "AL", "Nghỉ phép năm", LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng", "PENDING", null, LocalDateTime.now());
+                "AL", "Nghỉ phép năm", LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng", "PENDING", null, LocalDateTime.now(), null, null);
         PageResponse<LeaveResponse> page = new PageResponse<>(List.of(leave), 1, 20, 1, 1);
 
         when(employeeService.getCurrentEmployeeId()).thenReturn(4L);
@@ -74,9 +74,9 @@ class LeaveControllerTest {
     @Test
     void createMyLeaveReturnsCreatedPayload() throws Exception {
         LeaveRequestRecord request = new LeaveRequestRecord(null, "AL",
-                LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng");
+                LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng", null, null);
         LeaveResponse response = new LeaveResponse(1L, 4L, "Pham Thi Employee", "EMP-0004", "Kinh doanh", "Nhân viên",
-                "AL", "Nghỉ phép năm", LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng", "PENDING", null, LocalDateTime.now());
+                "AL", "Nghỉ phép năm", LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng", "PENDING", null, LocalDateTime.now(), null, null);
 
         when(employeeService.getCurrentEmployeeId()).thenReturn(4L);
         when(leaveService.createRequest(any(LeaveRequestRecord.class))).thenReturn(response);
@@ -102,7 +102,7 @@ class LeaveControllerTest {
     @Test
     void approveLeaveReturnsUpdatedStatus() throws Exception {
         LeaveResponse response = new LeaveResponse(1L, 4L, "Pham Thi Employee", "EMP-0004", "Kinh doanh", "Nhân viên",
-                "AL", "Nghỉ phép năm", LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng", "APPROVED", "Tran Thi HR", LocalDateTime.now());
+                "AL", "Nghỉ phép năm", LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng", "APPROVED", "Tran Thi HR", LocalDateTime.now(), null, null);
 
         when(employeeService.getCurrentEmployeeId()).thenReturn(2L);
         when(leaveService.approve(1L, 2L)).thenReturn(response);
@@ -115,7 +115,7 @@ class LeaveControllerTest {
     @Test
     void createLeaveRejectsMissingType() throws Exception {
         LeaveRequestRecord request = new LeaveRequestRecord(null, "",
-                LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng");
+                LocalDate.of(2026, 4, 10), LocalDate.of(2026, 4, 10), 1.0, "Việc riêng", null, null);
 
         mockMvc.perform(post("/api/leaves/me")
                         .contentType(APPLICATION_JSON)

@@ -27,6 +27,8 @@ public class LeaveMapper {
                 leaveRequest.getReason(),
                 leaveRequest.getStatus(),
                 approvedBy == null ? null : approvedBy.fullName(),
-                leaveRequest.getCreatedAt());
+                leaveRequest.getCreatedAt(),
+                leaveRequest.getCorrectedCheckIn(),
+                leaveRequest.getCorrectedCheckOut());
     }
 }

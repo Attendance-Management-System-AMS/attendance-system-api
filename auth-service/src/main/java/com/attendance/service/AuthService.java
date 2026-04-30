@@ -100,12 +100,43 @@ public class AuthService {
                 .roles(Set.copyOf(roles))
                 .build());
 
-        return new InternalUserResponse(
-                saved.getId(),
-                saved.getUsername(),
-                saved.getEmail(),
-                saved.isEnabled(),
-                saved.getRoles().stream().map(Role::getRoleName).collect(java.util.stream.Collectors.toSet()));
+        return toInternalUserResponse(saved);
+    }
+
+    @Transactional
+    public InternalUserResponse updateInternalUser(Long id, InternalUpdateUserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
+
+        String username = request.username() == null ? null : request.username().trim();
+        if (username == null || username.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên đăng nhập là bắt buộc");
+        }
+
+        userRepository.findByUsername(username)
+                .filter(found -> !found.getId().equals(user.getId()))
+                .ifPresent(found -> {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên đăng nhập đã tồn tại");
+                });
+
+        String email = request.email() == null ? null : request.email().trim();
+        if (email != null && !email.isBlank()) {
+            userRepository.findByEmail(email)
+                    .filter(found -> !found.getId().equals(user.getId()))
+                    .ifPresent(found -> {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại");
+                    });
+        }
+
+        user.setUsername(username);
+        user.setEmail(email == null || email.isBlank() ? null : email);
+        user.setEnabled(request.enabled());
+        if (!request.enabled()) {
+            user.setRefreshTokenHash(null);
+            user.setRefreshTokenExpiresAt(null);
+        }
+
+        return toInternalUserResponse(userRepository.save(user));
     }
 
     // Làm mới access token bằng refresh token còn hiệu lực được lưu trên tài khoản.
@@ -392,6 +423,15 @@ public class AuthService {
 
         return userRepository.findByUsername(subject)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
+    }
+
+    private InternalUserResponse toInternalUserResponse(User user) {
+        return new InternalUserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.isEnabled(),
+                user.getRoles().stream().map(Role::getRoleName).collect(java.util.stream.Collectors.toSet()));
     }
 
     // Lấy chuỗi đầu tiên không rỗng trong hai giá trị truyền vào.

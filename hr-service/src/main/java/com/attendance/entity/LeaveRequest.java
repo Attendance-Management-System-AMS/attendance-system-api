@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -53,4 +54,11 @@ public class LeaveRequest {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    // Dùng cho đơn giải trình công (loại AC)
+    @Column(name = "corrected_check_in")
+    private LocalTime correctedCheckIn;
+
+    @Column(name = "corrected_check_out")
+    private LocalTime correctedCheckOut;
 }

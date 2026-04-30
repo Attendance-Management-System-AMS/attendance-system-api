@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.attendance.dto.request.CreateEmployeeRequest;
 import com.attendance.dto.request.InternalCreateUserRequest;
+import com.attendance.dto.request.InternalUpdateUserRequest;
 import com.attendance.dto.response.EmployeeResponse;
 import com.attendance.entity.Department;
 import com.attendance.entity.Employee;
@@ -106,7 +107,7 @@ public class EmployeeService {
                 saved.getEmployeeCode(),
                 buildDefaultPassword(saved.getEmployeeCode()),
                 saved.getEmail(),
-                "ACTIVE".equals(saved.getStatus()),
+                isActiveStatus(saved.getStatus()),
                 Set.of("ROLE_EMPLOYEE")));
         saved.setUserId(user.id());
         return employeeMapper.toResponse(saved);
@@ -222,6 +223,7 @@ public class EmployeeService {
         employeeMapper.updateRelations(employee, department, position, manager);
 
         Employee saved = employeeRepository.save(employee);
+        syncAuthAccount(saved);
         return employeeMapper.toResponse(saved);
     }
 
@@ -282,7 +284,8 @@ public class EmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
         employee.setStatus("INACTIVE");
-        employeeRepository.save(employee);
+        Employee saved = employeeRepository.save(employee);
+        syncAuthAccount(saved);
     }
 
     /**
@@ -362,6 +365,21 @@ public class EmployeeService {
                 // Bỏ qua bản ghi không parse được để không chặn toàn bộ thao tác đăng ký.
             }
         }
+    }
+
+    private void syncAuthAccount(Employee employee) {
+        if (employee.getUserId() == null) {
+            return;
+        }
+
+        authClient.updateUser(employee.getUserId(), new InternalUpdateUserRequest(
+                employee.getEmployeeCode(),
+                employee.getEmail(),
+                isActiveStatus(employee.getStatus())));
+    }
+
+    private boolean isActiveStatus(String status) {
+        return status != null && "ACTIVE".equalsIgnoreCase(status.trim());
     }
 }
 

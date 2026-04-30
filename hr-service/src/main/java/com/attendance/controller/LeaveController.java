@@ -64,7 +64,9 @@ public class LeaveController {
                 request.fromDate(),
                 request.toDate(),
                 request.totalDays(),
-                request.reason());
+                request.reason(),
+                request.correctedCheckIn(),
+                request.correctedCheckOut());
         LeaveResponse response = leaveService.createRequest(secureRequest);
         return ApiResponse.success(201, "Gửi đơn xin nghỉ thành công", response);
     }

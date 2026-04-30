@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.attendance.controller.HolidayController;
 import com.attendance.dto.request.HolidayRequest;
 import com.attendance.dto.response.HolidayResponse;
-import com.attendance.exception.GlobalExceptionHandler;
+import com.attendance.common.error.GlobalExceptionHandler;
 import com.attendance.service.HolidayService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;

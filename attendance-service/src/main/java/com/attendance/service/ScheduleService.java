@@ -115,7 +115,7 @@ public class ScheduleService {
             if (!sameEffectiveFrom(other.getEffectiveFrom(), nextEffectiveFrom)) {
                 continue;
             }
-            if (ShiftUtils.isOverlapping(existing.getDayOfWeek(), newShift, other.getDayOfWeek(), other.getShift())) {
+            if (isScheduleConflict(existing.getDayOfWeek(), newShift, other)) {
                 if (force) {
                     other.setIsActive(false);
                     employeeScheduleRepository.save(other);
@@ -256,8 +256,7 @@ public class ScheduleService {
                 continue;
             }
 
-            // Kiểm tra chồng lấn thời gian (xuyên ngày được xử lý trong ShiftUtils)
-            if (ShiftUtils.isOverlapping(dayOfWeek, newShift, existing.getDayOfWeek(), existing.getShift())) {
+            if (isScheduleConflict(dayOfWeek, newShift, existing)) {
                 if (force) {
                     // Giữ lịch sử phân ca, chỉ ngưng hiệu lực bản ghi đang trùng.
                     existing.setIsActive(false);
@@ -273,6 +272,13 @@ public class ScheduleService {
                 }
             }
         }
+    }
+
+    private boolean isScheduleConflict(Integer dayOfWeek, Shift newShift, EmployeeSchedule existing) {
+        if (dayOfWeek != null && dayOfWeek.equals(existing.getDayOfWeek())) {
+            return true;
+        }
+        return ShiftUtils.isOverlapping(dayOfWeek, newShift, existing.getDayOfWeek(), existing.getShift());
     }
 
     private boolean sameEffectiveFrom(LocalDate existingEffectiveFrom, LocalDate newEffectiveFrom) {

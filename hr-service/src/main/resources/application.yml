@@ -22,8 +22,6 @@ spring:
     locations: classpath:db/migration
 
 app:
-  cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   face-match:
     distance-threshold: ${FACE_MATCH_DISTANCE_THRESHOLD:0.55}
 

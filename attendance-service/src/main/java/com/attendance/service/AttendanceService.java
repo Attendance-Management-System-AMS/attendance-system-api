@@ -324,13 +324,31 @@ public class AttendanceService {
     // Lấy ca làm trong ngày hiện tại của nhân viên.
     private Shift getTodayShift(Long employeeId, LocalDate date) {
         int dayOfWeek = date.getDayOfWeek().getValue();
-        return employeeScheduleRepository.findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(employeeId, date)
-                .stream()
-                .filter(schedule -> schedule.getEffectiveTo() == null || !schedule.getEffectiveTo().isBefore(date))
-                .filter(schedule -> schedule.getDayOfWeek() == dayOfWeek)
-                .map(EmployeeSchedule::getShift)
-                .findFirst()
-                .orElse(null);
+        EmployeeSchedule selected = null;
+        for (EmployeeSchedule schedule : employeeScheduleRepository
+                .findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(employeeId, date)) {
+            if (schedule.getEffectiveTo() != null && schedule.getEffectiveTo().isBefore(date)) {
+                continue;
+            }
+            if (schedule.getDayOfWeek() != dayOfWeek) {
+                continue;
+            }
+
+            if (selected == null) {
+                selected = schedule;
+                continue;
+            }
+
+            if (sameEffectiveFrom(selected.getEffectiveFrom(), schedule.getEffectiveFrom())) {
+                throw new AppException(
+                        ErrorCode.INVALID_INPUT,
+                        "Nhân viên đang có nhiều ca làm cùng ngày hiệu lực, hệ thống chưa hỗ trợ split shift");
+            }
+
+            break;
+        }
+
+        return selected == null ? null : selected.getShift();
     }
 
     private Attendance buildApprovedLeaveAttendance(Long employeeId, LocalDate workDate) {
@@ -374,12 +392,161 @@ public class AttendanceService {
         return attendance.getCheckInTime() != null || attendance.getCheckOutTime() != null;
     }
 
+    private boolean sameEffectiveFrom(LocalDate first, LocalDate second) {
+        if (first == null && second == null) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        return first.isEqual(second);
+    }
+
     private boolean hasApprovedLeaveSafely(Long employeeId, LocalDate date) {
         try {
             return hrClient.hasApprovedLeave(employeeId, date);
         } catch (Exception ex) {
             log.warn("Không kiểm tra được đơn nghỉ đã duyệt cho employeeId={}, date={}: {}", employeeId, date, ex.getMessage());
             return false;
+        }
+    }
+
+    // Cập nhật bảng chấm công khi đơn giải trình công được duyệt.
+    @Transactional
+    public void syncAttendanceCorrection(Long employeeId, LocalDate workDate,
+                                         LocalTime correctedCheckIn, LocalTime correctedCheckOut) {
+        if (employeeId == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Mã nhân viên là bắt buộc");
+        }
+        if (workDate == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Ngày cần giải trình là bắt buộc");
+        }
+        if (workDate.isAfter(LocalDate.now())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không thể giải trình công cho ngày trong tương lai");
+        }
+
+        Attendance attendance = attendanceRepository.findByEmployeeIdAndWorkDate(employeeId, workDate)
+                .orElse(null);
+        if (attendance != null
+                && ("ON_LEAVE".equalsIgnoreCase(attendance.getStatus())
+                || "HOLIDAY".equalsIgnoreCase(attendance.getStatus()))) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Không thể giải trình công cho ngày nghỉ đã được xác nhận");
+        }
+
+        Shift shift = getTodayShift(employeeId, workDate);
+
+        if (attendance == null) {
+            if (correctedCheckIn == null) {
+                throw new AppException(
+                        ErrorCode.INVALID_INPUT,
+                        "Không thể bổ sung giờ ra khi ngày công chưa có giờ vào");
+            }
+            attendance = Attendance.builder()
+                    .employeeId(employeeId)
+                    .workDate(workDate)
+                    .lateMinutes(0)
+                    .earlyLeaveMinutes(0)
+                    .workedMinutes(0)
+                    .expectedMinutes(shift == null ? 0 : calculateExpectedMinutes(shift))
+                    .build();
+        }
+
+        if (correctedCheckIn != null) {
+            attendance.setCheckInTime(resolveCorrectionDateTime(workDate, correctedCheckIn, shift, null));
+        }
+        if (correctedCheckOut != null) {
+            attendance.setCheckOutTime(resolveCorrectionDateTime(workDate, correctedCheckOut, shift, attendance.getCheckInTime()));
+        }
+
+        validateCorrectionTimeline(attendance.getCheckInTime(), attendance.getCheckOutTime());
+        recalculateAttendanceStatus(attendance, shift);
+
+        attendanceRepository.save(attendance);
+        log.info("Đã cập nhật giải trình công cho employeeId={}, workDate={}, checkIn={}, checkOut={}",
+                employeeId, workDate, correctedCheckIn, correctedCheckOut);
+    }
+
+    private void recalculateAttendanceStatus(Attendance attendance, Shift shift) {
+        LocalDateTime checkIn = attendance.getCheckInTime();
+        LocalDateTime checkOut = attendance.getCheckOutTime();
+        attendance.setExpectedMinutes(shift == null ? 0 : calculateExpectedMinutes(shift));
+
+        if (checkIn == null && checkOut == null) {
+            attendance.setStatus("ABSENT");
+            attendance.setLateMinutes(0);
+            attendance.setEarlyLeaveMinutes(0);
+            attendance.setWorkedMinutes(0);
+            return;
+        }
+
+        if (checkIn == null || checkOut == null) {
+            attendance.setStatus("INCOMPLETE");
+            attendance.setLateMinutes(resolveLateMinutes(checkIn, shift));
+            attendance.setEarlyLeaveMinutes(0);
+            attendance.setWorkedMinutes(0);
+            return;
+        }
+
+        int lateMinutes = resolveLateMinutes(checkIn, shift);
+        boolean isLate = lateMinutes > 0;
+        attendance.setLateMinutes(lateMinutes);
+
+        int earlyLeaveMinutes = 0;
+        boolean isEarlyLeave = false;
+        if (shift != null) {
+            LocalDateTime scheduledEnd = ShiftUtils.resolveShiftEnd(attendance.getWorkDate(), shift);
+            if (scheduledEnd != null && checkOut.isBefore(scheduledEnd)) {
+                isEarlyLeave = true;
+                earlyLeaveMinutes = Math.toIntExact(Duration.between(checkOut, scheduledEnd).toMinutes());
+            }
+        }
+        attendance.setEarlyLeaveMinutes(earlyLeaveMinutes);
+
+        if (isLate && isEarlyLeave) {
+            attendance.setStatus("LATE_AND_EARLY_LEAVE");
+        } else if (isLate) {
+            attendance.setStatus("LATE");
+        } else if (isEarlyLeave) {
+            attendance.setStatus("EARLY_LEAVE");
+        } else {
+            attendance.setStatus("PRESENT");
+        }
+
+        attendance.setWorkedMinutes(calculateWorkedMinutes(checkIn, checkOut, shift));
+    }
+
+    private int resolveLateMinutes(LocalDateTime checkIn, Shift shift) {
+        if (checkIn == null || shift == null) {
+            return 0;
+        }
+        LocalTime allowedLate = shift.getStartTime()
+                .plusMinutes(shift.getGracePeriod() != null ? shift.getGracePeriod() : 0);
+        if (!checkIn.toLocalTime().isAfter(allowedLate)) {
+            return 0;
+        }
+        return Math.toIntExact(Duration.between(shift.getStartTime(), checkIn.toLocalTime()).toMinutes());
+    }
+
+    private LocalDateTime resolveCorrectionDateTime(
+            LocalDate workDate,
+            LocalTime value,
+            Shift shift,
+            LocalDateTime referenceCheckIn) {
+        LocalDateTime resolved = workDate.atTime(value);
+        if (shift != null && ShiftUtils.isOvernight(shift) && value.isBefore(shift.getStartTime())) {
+            return resolved.plusDays(1);
+        }
+        if (referenceCheckIn != null && resolved.isBefore(referenceCheckIn)) {
+            return resolved.plusDays(1);
+        }
+        return resolved;
+    }
+
+    private void validateCorrectionTimeline(LocalDateTime checkIn, LocalDateTime checkOut) {
+        if (checkIn != null && checkOut != null && !checkOut.isAfter(checkIn)) {
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
+                    "Giờ ra bổ sung phải sau giờ vào bổ sung");
         }
     }
 

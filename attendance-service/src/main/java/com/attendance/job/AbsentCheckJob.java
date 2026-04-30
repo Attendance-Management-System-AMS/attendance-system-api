@@ -18,10 +18,12 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -74,12 +76,18 @@ public class AbsentCheckJob {
             if (holiday) {
                 status = "HOLIDAY";
                 stats.holidayCount++;
-            } else if (hrClient.hasApprovedLeave(employeeId, workDate)) {
-                status = "ON_LEAVE";
-                stats.onLeaveCount++;
-            } else if (shiftEnded) {
-                status = "ABSENT";
-                stats.absentCount++;
+            } else {
+                Boolean hasApprovedLeave = hasApprovedLeaveSafely(employeeId, workDate);
+                if (hasApprovedLeave == null) {
+                    continue;
+                }
+                if (hasApprovedLeave) {
+                    status = "ON_LEAVE";
+                    stats.onLeaveCount++;
+                } else if (shiftEnded) {
+                    status = "ABSENT";
+                    stats.absentCount++;
+                }
             }
 
             if (status == null) {
@@ -103,6 +111,7 @@ public class AbsentCheckJob {
 
     private List<EmployeeSchedule> resolveEffectiveSchedules(int dayOfWeek, LocalDate workDate) {
         Map<Long, EmployeeSchedule> latestByEmployee = new LinkedHashMap<>();
+        Set<Long> ambiguousEmployees = new HashSet<>();
 
         employeeScheduleRepository.findByEffectiveFromLessThanEqual(workDate).stream()
                 .filter(schedule -> Boolean.TRUE.equals(schedule.getIsActive()))
@@ -112,8 +121,16 @@ public class AbsentCheckJob {
                     EmployeeSchedule current = latestByEmployee.get(schedule.getEmployeeId());
                     if (current == null || schedule.getEffectiveFrom().isAfter(current.getEffectiveFrom())) {
                         latestByEmployee.put(schedule.getEmployeeId(), schedule);
+                        ambiguousEmployees.remove(schedule.getEmployeeId());
+                    } else if (sameEffectiveFrom(current.getEffectiveFrom(), schedule.getEffectiveFrom())) {
+                        ambiguousEmployees.add(schedule.getEmployeeId());
                     }
                 });
+
+        ambiguousEmployees.forEach(employeeId -> {
+            latestByEmployee.remove(employeeId);
+            log.warn("Bỏ qua employeeId={} vì có nhiều lịch cùng ngày hiệu lực, cần chuẩn hóa dữ liệu phân ca", employeeId);
+        });
 
         return new ArrayList<>(latestByEmployee.values());
     }
@@ -123,6 +140,29 @@ public class AbsentCheckJob {
             return !now.isBefore(workDate.atTime(23, 59, 59));
         }
         return !now.isBefore(ShiftUtils.resolveShiftEnd(workDate, shift));
+    }
+
+    private Boolean hasApprovedLeaveSafely(Long employeeId, LocalDate workDate) {
+        try {
+            return hrClient.hasApprovedLeave(employeeId, workDate);
+        } catch (Exception ex) {
+            log.warn(
+                    "Bỏ qua employeeId={} cho workDate={} vì không kiểm tra được trạng thái nghỉ phép từ hr-service: {}",
+                    employeeId,
+                    workDate,
+                    ex.getMessage());
+            return null;
+        }
+    }
+
+    private boolean sameEffectiveFrom(LocalDate first, LocalDate second) {
+        if (first == null && second == null) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        return first.isEqual(second);
     }
 
     private static final class JobStats {

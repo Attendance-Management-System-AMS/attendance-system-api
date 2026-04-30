@@ -144,6 +144,30 @@ class ScheduleServiceTest {
     }
 
     @Test
+    void assignScheduleRejectsSecondShiftOnSameDayEvenWhenTimesDoNotOverlap() {
+        LocalDate effectiveDate = LocalDate.now().plusDays(30);
+        Shift morningShift = createShift(1L, "Ca sáng", LocalTime.of(6, 0), LocalTime.of(10, 0));
+        Shift eveningShift = createShift(2L, "Ca tối", LocalTime.of(14, 0), LocalTime.of(18, 0));
+        EmployeeSchedule existingSchedule = createSchedule(10L, 5L, morningShift, 1, true, effectiveDate);
+        EmployeeScheduleRequest request = new EmployeeScheduleRequest(
+                5L,
+                2L,
+                1,
+                true,
+                effectiveDate,
+                null,
+                false);
+
+        when(shiftRepository.findById(2L)).thenReturn(Optional.of(eveningShift));
+        when(employeeScheduleRepository.findByEmployeeIdAndIsActiveTrue(5L)).thenReturn(List.of(existingSchedule));
+
+        AppException exception = assertThrows(AppException.class, () -> scheduleService.assignSchedule(request));
+
+        assertEquals("Phát hiện xung đột lịch làm", exception.getMessage());
+        verify(employeeScheduleRepository, never()).save(any(EmployeeSchedule.class));
+    }
+
+    @Test
     void assignScheduleRejectsPastEffectiveFrom() {
         EmployeeScheduleRequest request = new EmployeeScheduleRequest(
                 5L,
