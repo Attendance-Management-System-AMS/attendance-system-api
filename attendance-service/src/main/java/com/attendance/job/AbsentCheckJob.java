@@ -11,6 +11,7 @@ import com.attendance.util.ShiftUtils;
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,8 @@ public class AbsentCheckJob {
     private final HolidayRepository holidayRepository;
     private final HrClient hrClient;
     private final Clock clock;
+    @Autowired(required = false)
+    private com.attendance.service.OvertimeRequestService overtimeRequestService;
 
     // Chạy định kỳ để hoàn tất ca làm đã qua giờ kết thúc, kể cả ca xuyên đêm từ hôm trước.
     @Scheduled(cron = "0 */15 * * * ?", zone = "Asia/Bangkok")
@@ -67,6 +70,7 @@ public class AbsentCheckJob {
                 if (shiftEnded && attendance.getCheckInTime() != null && attendance.getCheckOutTime() == null) {
                     attendance.setStatus("MISSING_CHECKOUT");
                     attendanceRepository.save(attendance);
+                    recalculateOvertimeIfAvailable(employeeId, workDate);
                     stats.missingCheckoutCount++;
                 }
                 continue;
@@ -101,6 +105,7 @@ public class AbsentCheckJob {
                     .build();
             try {
                 attendanceRepository.save(attendanceRecord);
+                recalculateOvertimeIfAvailable(employeeId, workDate);
             } catch (DataIntegrityViolationException ex) {
                 log.debug("Bỏ qua do bản ghi chấm công đã tồn tại: employeeId={}, workDate={}", employeeId, workDate);
             }
@@ -176,6 +181,12 @@ public class AbsentCheckJob {
             this.onLeaveCount += other.onLeaveCount;
             this.holidayCount += other.holidayCount;
             this.missingCheckoutCount += other.missingCheckoutCount;
+        }
+    }
+
+    private void recalculateOvertimeIfAvailable(Long employeeId, LocalDate workDate) {
+        if (overtimeRequestService != null) {
+            overtimeRequestService.recalculateAttendanceOvertime(employeeId, workDate);
         }
     }
 }

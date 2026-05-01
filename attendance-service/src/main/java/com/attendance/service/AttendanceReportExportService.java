@@ -52,7 +52,7 @@ public class AttendanceReportExportService {
         html.append(".number{text-align:right}");
         html.append("</style></head><body>");
         html.append("<table>");
-        int columnCount = includeDetails ? 10 + reportMonth.lengthOfMonth() : 10;
+        int columnCount = includeDetails ? 11 + reportMonth.lengthOfMonth() : 11;
         html.append("<tr><th class=\"title\" colspan=\"").append(columnCount).append("\">");
         html.append("BẢNG TỔNG HỢP CHẤM CÔNG THÁNG ").append(month).append('/').append(year);
         html.append("</th></tr>");
@@ -114,7 +114,7 @@ public class AttendanceReportExportService {
         html.append("</style></head><body>");
 
         html.append("<table>");
-        html.append("<tr><th class=\"title\" colspan=\"9\">BẢNG CÔNG NHÂN VIÊN THÁNG ")
+        html.append("<tr><th class=\"title\" colspan=\"12\">BẢNG CÔNG NHÂN VIÊN THÁNG ")
                 .append(month).append('/').append(year).append("</th></tr>");
         appendInfoRow(html, "Mã nhân viên", employee.employeeCode(), "Họ và tên", employee.fullName());
         appendInfoRow(
@@ -136,6 +136,9 @@ public class AttendanceReportExportService {
         html.append("<td class=\"section\">Tổng giờ</td><td class=\"number\">")
                 .append(String.format("%.2f", totals.workedMinutes() / 60.0))
                 .append("</td>");
+        html.append("<td class=\"section\">Tăng ca</td><td class=\"number\">")
+                .append(String.format("%.2f", totals.overtimeMinutes() / 60.0))
+                .append("</td>");
         html.append("</tr>");
         html.append("</table>");
 
@@ -149,6 +152,7 @@ public class AttendanceReportExportService {
         html.append("<th>Đi muộn</th>");
         html.append("<th>Về sớm</th>");
         html.append("<th>Tổng giờ</th>");
+        html.append("<th>Tăng ca</th>");
         html.append("<th>Ghi chú</th>");
         html.append("</tr>");
 
@@ -188,6 +192,7 @@ public class AttendanceReportExportService {
         html.append("<th>Về sớm</th>");
         html.append("<th>Vắng</th>");
         html.append("<th>Tổng giờ</th>");
+        html.append("<th>Tăng ca</th>");
         if (includeDetails) {
             for (int day = 1; day <= reportMonth.lengthOfMonth(); day++) {
                 html.append("<th>").append(day).append("</th>");
@@ -222,6 +227,7 @@ public class AttendanceReportExportService {
             appendNumberCell(html, "");
             appendNumberCell(html, "");
             appendNumberCell(html, "");
+            appendNumberCell(html, "");
             appendCell(html, "");
             html.append("</tr>");
             return;
@@ -233,6 +239,7 @@ public class AttendanceReportExportService {
         appendNumberCell(html, attendance.getLateMinutes() == null ? "" : attendance.getLateMinutes());
         appendNumberCell(html, attendance.getEarlyLeaveMinutes() == null ? "" : attendance.getEarlyLeaveMinutes());
         appendNumberCell(html, attendance.getWorkedMinutes() == null ? "" : String.format("%.2f", attendance.getWorkedMinutes() / 60.0));
+        appendNumberCell(html, attendance.getPayableOvertimeMinutes() == null ? "" : String.format("%.2f", attendance.getPayableOvertimeMinutes() / 60.0));
         appendCell(html, attendance.getCheckInTime() != null && attendance.getCheckOutTime() == null ? "Thiếu giờ ra" : "");
         html.append("</tr>");
     }
@@ -257,6 +264,7 @@ public class AttendanceReportExportService {
         appendNumberCell(html, totals.earlyLeaveDays());
         appendNumberCell(html, totals.absentDays());
         appendNumberCell(html, String.format("%.2f", totals.workedMinutes() / 60.0));
+        appendNumberCell(html, String.format("%.2f", totals.overtimeMinutes() / 60.0));
 
         if (includeDetails) {
             for (int day = 1; day <= reportMonth.lengthOfMonth(); day++) {
@@ -274,6 +282,7 @@ public class AttendanceReportExportService {
         int earlyLeaveDays = 0;
         int absentDays = 0;
         int workedMinutes = 0;
+        int overtimeMinutes = 0;
 
         for (int day = 1; day <= reportMonth.lengthOfMonth(); day++) {
             Attendance attendance = attendanceByDate == null ? null : attendanceByDate.get(reportMonth.atDay(day));
@@ -297,9 +306,10 @@ public class AttendanceReportExportService {
                 earlyLeaveDays++;
             }
             workedMinutes += attendance.getWorkedMinutes() == null ? 0 : attendance.getWorkedMinutes();
+            overtimeMinutes += attendance.getPayableOvertimeMinutes() == null ? 0 : attendance.getPayableOvertimeMinutes();
         }
 
-        return new MonthlyTotals(workDays, lateDays, earlyLeaveDays, absentDays, workedMinutes);
+        return new MonthlyTotals(workDays, lateDays, earlyLeaveDays, absentDays, workedMinutes, overtimeMinutes);
     }
 
     private String formatDailyCell(Attendance attendance) {
@@ -388,6 +398,7 @@ public class AttendanceReportExportService {
             int lateDays,
             int earlyLeaveDays,
             int absentDays,
-            int workedMinutes) {
+            int workedMinutes,
+            int overtimeMinutes) {
     }
 }

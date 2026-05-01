@@ -25,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,8 @@ public class AttendanceService {
     private final HrClient hrClient;
     private final AttendanceMapper attendanceMapper;
     private final HolidayRepository holidayRepository;
+    @Autowired(required = false)
+    private OvertimeRequestService overtimeRequestService;
     @Value("${app.attendance.min-checkout-after-minutes:30}")
     private long minCheckoutAfterMinutes;
 
@@ -129,6 +132,10 @@ public class AttendanceService {
                 base.earlyLeaveMinutes(),
                 base.workedMinutes(),
                 base.expectedMinutes(),
+                base.actualOvertimeMinutes(),
+                base.approvedOvertimeMinutes(),
+                base.payableOvertimeMinutes(),
+                base.overtimeStatus(),
                 base.createdAt(),
                 hr.fullName(),
                 hr.employeeCode(),
@@ -234,6 +241,7 @@ public class AttendanceService {
         attendance.setExpectedMinutes(shift == null ? 0 : calculateExpectedMinutes(shift));
 
         Attendance saved = attendanceRepository.save(attendance);
+        recalculateOvertimeIfAvailable(saved.getEmployeeId(), saved.getWorkDate());
         recordLog(employeeId, now, "OUT", deviceId);
         return toResponse(saved);
     }
@@ -493,6 +501,7 @@ public class AttendanceService {
         recalculateAttendanceStatus(attendance, shift);
 
         attendanceRepository.save(attendance);
+        recalculateOvertimeIfAvailable(attendance.getEmployeeId(), attendance.getWorkDate());
         log.info("Đã cập nhật giải trình công cho employeeId={}, workDate={}, checkIn={}, checkOut={}",
                 employeeId, workDate, correctedCheckIn, correctedCheckOut);
     }
@@ -649,5 +658,11 @@ public class AttendanceService {
             return "PRESENT";
         }
         return attendance.getStatus();
+    }
+
+    private void recalculateOvertimeIfAvailable(Long employeeId, LocalDate workDate) {
+        if (overtimeRequestService != null) {
+            overtimeRequestService.recalculateAttendanceOvertime(employeeId, workDate);
+        }
     }
 }

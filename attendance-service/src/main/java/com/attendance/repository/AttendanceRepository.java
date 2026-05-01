@@ -20,6 +20,8 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long>, J
 
     List<Attendance> findByEmployeeIdOrderByWorkDateDesc(Long employeeId);
 
+    List<Attendance> findByEmployeeIdInAndWorkDateBetween(List<Long> employeeIds, LocalDate fromDate, LocalDate toDate);
+
     List<Attendance> findByWorkDateOrderByEmployeeIdAsc(LocalDate workDate);
 
     List<Attendance> findByWorkDateBetweenOrderByEmployeeIdAscWorkDateAsc(LocalDate fromDate, LocalDate toDate);
