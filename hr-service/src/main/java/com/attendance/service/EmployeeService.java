@@ -323,6 +323,14 @@ public class EmployeeService {
         return employeeMapper.toResponse(employeeRepository.save(employee));
     }
 
+    @Transactional
+    public EmployeeResponse deleteFaceEmbedding(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        employee.setFaceEmbedding(null);
+        return employeeMapper.toResponse(employeeRepository.save(employee));
+    }
+
     /**
      * So khớp với nhân viên ACTIVE đã có face_embedding; Euclidean distance nhỏ hơn ngưỡng thì khớp
      * (cùng metric với {@code faceapi.euclideanDistance} trong face-api.js).
