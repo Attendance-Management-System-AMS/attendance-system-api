@@ -15,4 +15,11 @@ public interface OvertimeRequestRepository extends JpaRepository<OvertimeRequest
             Long employeeId,
             LocalDate workDate,
             Collection<String> statuses);
+
+    List<OvertimeRequest> findByWorkDateBetweenOrderByEmployeeIdAscWorkDateAsc(LocalDate fromDate, LocalDate toDate);
+
+    List<OvertimeRequest> findByEmployeeIdInAndWorkDateBetweenOrderByEmployeeIdAscWorkDateAsc(
+            List<Long> employeeIds,
+            LocalDate fromDate,
+            LocalDate toDate);
 }
