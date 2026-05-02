@@ -51,7 +51,7 @@ public class AttendanceReportService {
         Map<Long, List<Attendance>> attendancesByEmployee = groupAttendancesByEmployee(attendances);
 
         List<EmployeeAttendanceSummaryResponse> employees = scope.employees().stream()
-                .map(snapshot -> buildEmployeeAttendanceSummary(snapshot, attendancesByEmployee.get(snapshot.id())))
+                .map(snapshot -> buildEmployeeAttendanceSummary(snapshot, attendancesByEmployee.get(snapshot.id()), year))
                 .sorted(Comparator
                         .comparingInt(EmployeeAttendanceSummaryResponse::workedMinutes)
                         .reversed()
@@ -350,13 +350,17 @@ public class AttendanceReportService {
 
     private EmployeeAttendanceSummaryResponse buildEmployeeAttendanceSummary(
             HrEmployeeSnapshot snapshot,
-            List<Attendance> attendances) {
+            List<Attendance> attendances,
+            int year) {
         AttendanceAccumulator accumulator = new AttendanceAccumulator();
         if (attendances != null) {
             for (Attendance attendance : attendances) {
                 accumulator.addAttendance(attendance, normalizeAttendanceStatus(attendance));
             }
         }
+        List<AttendanceMonthlySummaryItemResponse> months = buildAttendanceMonthlySummaries(
+                attendances == null ? List.of() : attendances,
+                year);
         return new EmployeeAttendanceSummaryResponse(
                 snapshot.id(),
                 snapshot.employeeCode(),
@@ -372,7 +376,8 @@ public class AttendanceReportService {
                 accumulator.missingCheckoutDays,
                 accumulator.incompleteDays,
                 accumulator.workedMinutes,
-                accumulator.overtimeMinutes);
+                accumulator.overtimeMinutes,
+                months);
     }
 
     private EmployeeOvertimeSummaryResponse buildEmployeeOvertimeSummary(

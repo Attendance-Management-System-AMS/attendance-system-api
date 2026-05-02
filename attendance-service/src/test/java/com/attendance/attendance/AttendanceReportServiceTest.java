@@ -77,6 +77,14 @@ class AttendanceReportServiceTest {
         assertThat(summary.employees())
                 .extracting(employee -> employee.employeeId())
                 .contains(99L);
+        assertThat(summary.employees())
+                .filteredOn(employee -> employee.employeeId().equals(99L))
+                .singleElement()
+                .satisfies(employee -> {
+                    assertThat(employee.months()).hasSize(12);
+                    assertThat(employee.months().get(1).workDays()).isEqualTo(1);
+                    assertThat(employee.months().get(1).workedMinutes()).isEqualTo(480);
+                });
     }
 
     @Test

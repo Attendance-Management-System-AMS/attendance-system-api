@@ -1,5 +1,7 @@
 package com.attendance.dto.response;
 
+import java.util.List;
+
 public record EmployeeAttendanceSummaryResponse(
         Long employeeId,
         String employeeCode,
@@ -15,5 +17,6 @@ public record EmployeeAttendanceSummaryResponse(
         int missingCheckoutDays,
         int incompleteDays,
         int workedMinutes,
-        int overtimeMinutes) {
+        int overtimeMinutes,
+        List<AttendanceMonthlySummaryItemResponse> months) {
 }
