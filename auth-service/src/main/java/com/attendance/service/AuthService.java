@@ -57,8 +57,7 @@ public class AuthService {
         }
 
         String normalizedIdentifier = loginIdentifier.trim();
-        User user = userRepository.findByUsername(normalizedIdentifier)
-                .or(() -> userRepository.findByEmail(normalizedIdentifier))
+        User user = findUserByLoginIdentifier(normalizedIdentifier)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu"));
 
         if (!user.isEnabled()) {
@@ -78,12 +77,12 @@ public class AuthService {
         if (username == null || username.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên đăng nhập là bắt buộc");
         }
-        if (userRepository.existsByUsername(username)) {
+        if (Boolean.TRUE.equals(userRepository.existsByUsernameIgnoreCase(username))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên đăng nhập đã tồn tại");
         }
 
         String email = request.email() == null ? null : request.email().trim();
-        if (email != null && !email.isBlank() && userRepository.existsByEmail(email)) {
+        if (email != null && !email.isBlank() && Boolean.TRUE.equals(userRepository.existsByEmailIgnoreCase(email))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại");
         }
 
@@ -113,19 +112,17 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên đăng nhập là bắt buộc");
         }
 
-        userRepository.findByUsername(username)
-                .filter(found -> !found.getId().equals(user.getId()))
+        findOtherUserWithSameUsername(user.getId(), username)
                 .ifPresent(found -> {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên đăng nhập đã tồn tại");
                 });
 
         String email = request.email() == null ? null : request.email().trim();
         if (email != null && !email.isBlank()) {
-            userRepository.findByEmail(email)
-                    .filter(found -> !found.getId().equals(user.getId()))
-                    .ifPresent(found -> {
-                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại");
-                    });
+            findOtherUserWithSameEmail(user.getId(), email)
+                .ifPresent(found -> {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại");
+                });
         }
 
         user.setUsername(username);
@@ -294,6 +291,25 @@ public class AuthService {
             return null;
         }
         return authHeader.substring(7).trim();
+    }
+
+    private java.util.Optional<User> findUserByLoginIdentifier(String identifier) {
+        return userRepository.findByUsername(identifier)
+                .or(() -> userRepository.findByEmail(identifier))
+                .or(() -> userRepository.findFirstByUsernameIgnoreCase(identifier))
+                .or(() -> userRepository.findFirstByEmailIgnoreCase(identifier));
+    }
+
+    private java.util.Optional<User> findOtherUserWithSameUsername(Long currentUserId, String username) {
+        return userRepository.findByUsername(username)
+                .or(() -> userRepository.findFirstByUsernameIgnoreCase(username))
+                .filter(found -> !found.getId().equals(currentUserId));
+    }
+
+    private java.util.Optional<User> findOtherUserWithSameEmail(Long currentUserId, String email) {
+        return userRepository.findByEmail(email)
+                .or(() -> userRepository.findFirstByEmailIgnoreCase(email))
+                .filter(found -> !found.getId().equals(currentUserId));
     }
 
     private User resolveUserFromAccessToken(String accessToken) {

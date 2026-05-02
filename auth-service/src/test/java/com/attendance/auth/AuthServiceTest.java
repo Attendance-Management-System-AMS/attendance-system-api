@@ -81,6 +81,29 @@ class AuthServiceTest {
     }
 
     @Test
+    void loginFallsBackToCaseInsensitiveUsernameLookup() {
+        User user = user(7L, "EMP-0101");
+        LoginRequest request = new LoginRequest();
+        request.setUsername("emp-0101");
+        request.setPassword("Secret@123");
+
+        when(userRepository.findByUsername("emp-0101")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("emp-0101")).thenReturn(Optional.empty());
+        when(userRepository.findFirstByUsernameIgnoreCase("emp-0101")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("Secret@123", "encoded-password")).thenReturn(true);
+        when(jwtService.generateAccessToken(eq("7"), anyMap())).thenReturn("access-token");
+        when(jwtService.generateRefreshToken(eq("7"), anyMap())).thenReturn("refresh-token");
+        when(jwtService.getExpiration("refresh-token")).thenReturn(Instant.parse("2026-04-26T00:00:00Z"));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AuthResponse response = authService.login(request);
+
+        assertThat(response.getAccessToken()).isEqualTo("access-token");
+        assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
+        verify(userRepository).save(user);
+    }
+
+    @Test
     void refreshReplacesStoredRefreshToken() {
         User user = user(1L, "admin");
         user.setRefreshTokenHash(hashRefreshToken("old-refresh-token"));
