@@ -46,7 +46,7 @@ spring:
             - id: attendance-service
               uri: lb://attendance-service
               predicates:
-                - Path=/api/attendance/**,/api/reports/**
+                - Path=/api/attendance/**,/api/reports/**,/api/overtime-requests/**
 
 app:
   cors:

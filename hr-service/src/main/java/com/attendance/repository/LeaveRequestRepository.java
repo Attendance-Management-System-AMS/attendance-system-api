@@ -10,6 +10,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -34,4 +36,20 @@ public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long
             Collection<String> statuses,
             LocalDate fromDate,
             LocalDate toDate);
+
+    @Query("""
+            select count(leaveRequest) > 0
+            from LeaveRequest leaveRequest
+            join leaveRequest.leaveType leaveType
+            where leaveRequest.employeeId = :employeeId
+              and leaveRequest.status = :status
+              and leaveRequest.fromDate <= :date
+              and leaveRequest.toDate >= :date
+              and upper(leaveType.code) <> :excludedLeaveTypeCode
+            """)
+    boolean existsApprovedLeaveExcludingType(
+            @Param("employeeId") Long employeeId,
+            @Param("status") String status,
+            @Param("date") LocalDate date,
+            @Param("excludedLeaveTypeCode") String excludedLeaveTypeCode);
 }

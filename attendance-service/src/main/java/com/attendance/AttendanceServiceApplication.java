@@ -1,4 +1,4 @@
-package com.attendance.attendance;
+package com.attendance;
 
 import com.attendance.common.env.DevelopmentEnvLoader;
 import org.springframework.boot.SpringApplication;

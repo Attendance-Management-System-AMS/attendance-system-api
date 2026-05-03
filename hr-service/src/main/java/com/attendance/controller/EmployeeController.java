@@ -85,6 +85,12 @@ public class EmployeeController {
         return ApiResponse.success(200, "Đăng ký khuôn mặt thành công", employeeService.registerFaceEmbedding(id, request));
     }
 
+    @DeleteMapping("/{id}/face-descriptor")
+    @Operation(summary = "Xóa descriptor khuôn mặt của nhân viên")
+    public ApiResponse<EmployeeResponse> deleteFaceDescriptor(@PathVariable Long id) {
+        return ApiResponse.success(200, "Xóa khuôn mặt thành công", employeeService.deleteFaceEmbedding(id));
+    }
+
     // Vô hiệu hoá nhân viên thay vì xoá cứng.
     @DeleteMapping("/{id}")
     @Operation(summary = "Vô hiệu hoá nhân viên", description = "Đặt trạng thái nhân viên thành INACTIVE")

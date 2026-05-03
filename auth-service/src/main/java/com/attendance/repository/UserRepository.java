@@ -8,14 +8,26 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Tìm user theo username.
     Optional<User> findByUsername(String username);
 
+    // Tìm user theo username không phân biệt hoa thường.
+    Optional<User> findFirstByUsernameIgnoreCase(String username);
+
     // Tìm user theo email.
     Optional<User> findByEmail(String email);
+
+    // Tìm user theo email không phân biệt hoa thường.
+    Optional<User> findFirstByEmailIgnoreCase(String email);
 
     // Kiểm tra username đã tồn tại chưa.
     Boolean existsByUsername(String username);
 
+    // Kiểm tra username đã tồn tại chưa, không phân biệt hoa thường.
+    Boolean existsByUsernameIgnoreCase(String username);
+
     // Kiểm tra email đã tồn tại chưa.
     Boolean existsByEmail(String email);
+
+    // Kiểm tra email đã tồn tại chưa, không phân biệt hoa thường.
+    Boolean existsByEmailIgnoreCase(String email);
 }
 
 

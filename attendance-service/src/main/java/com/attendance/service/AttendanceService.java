@@ -25,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,10 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -45,14 +50,16 @@ public class AttendanceService {
     private final HrClient hrClient;
     private final AttendanceMapper attendanceMapper;
     private final HolidayRepository holidayRepository;
+    @Autowired(required = false)
+    private OvertimeRequestService overtimeRequestService;
     @Value("${app.attendance.min-checkout-after-minutes:30}")
     private long minCheckoutAfterMinutes;
 
     // Check-in nhân viên theo ID và xác thực nhân viên tồn tại trong HR.
     @Transactional
     public AttendanceResponse checkIn(Long employeeId) {
-        requireEmployee(employeeId);
-        return performCheckIn(employeeId, "WEB");
+        HrEmployeeSnapshot hr = requireEmployee(employeeId);
+        return withEmployeeBrief(performCheckIn(employeeId, "WEB"), hr);
     }
 
     @Transactional
@@ -125,6 +132,10 @@ public class AttendanceService {
                 base.earlyLeaveMinutes(),
                 base.workedMinutes(),
                 base.expectedMinutes(),
+                base.actualOvertimeMinutes(),
+                base.approvedOvertimeMinutes(),
+                base.payableOvertimeMinutes(),
+                base.overtimeStatus(),
                 base.createdAt(),
                 hr.fullName(),
                 hr.employeeCode(),
@@ -184,8 +195,8 @@ public class AttendanceService {
     // Check-out nhân viên trong ngày hiện tại.
     @Transactional
     public AttendanceResponse checkOut(Long employeeId) {
-        requireEmployee(employeeId);
-        return performCheckOut(employeeId, "WEB");
+        HrEmployeeSnapshot hr = requireEmployee(employeeId);
+        return withEmployeeBrief(performCheckOut(employeeId, "WEB"), hr);
     }
 
     private AttendanceResponse performCheckOut(Long employeeId, String deviceId) {
@@ -230,6 +241,7 @@ public class AttendanceService {
         attendance.setExpectedMinutes(shift == null ? 0 : calculateExpectedMinutes(shift));
 
         Attendance saved = attendanceRepository.save(attendance);
+        recalculateOvertimeIfAvailable(saved.getEmployeeId(), saved.getWorkDate());
         recordLog(employeeId, now, "OUT", deviceId);
         return toResponse(saved);
     }
@@ -251,7 +263,34 @@ public class AttendanceService {
             Pageable pageable) {
         Page<Attendance> page = attendanceRepository.findAll(
                 AttendanceSpecifications.matches(employeeId, date, fromDate, toDate, status), pageable);
-        return PageResponse.of(page.map(this::toResponse));
+        Map<Long, HrEmployeeSnapshot> employeeSnapshots = loadEmployeeSnapshots(page.getContent());
+        return PageResponse.of(page.map(attendance ->
+                withEmployeeBrief(toResponse(attendance), employeeSnapshots.get(attendance.getEmployeeId()))));
+    }
+
+    private Map<Long, HrEmployeeSnapshot> loadEmployeeSnapshots(List<Attendance> attendances) {
+        List<Long> employeeIds = attendances.stream()
+                .map(Attendance::getEmployeeId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (employeeIds.isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            Map<Long, HrEmployeeSnapshot> snapshots = new LinkedHashMap<>();
+            for (HrEmployeeSnapshot snapshot : hrClient.findEmployeeSnapshotsByIds(employeeIds)) {
+                if (snapshot != null && snapshot.id() != null) {
+                    snapshots.put(snapshot.id(), snapshot);
+                }
+            }
+            return snapshots;
+        } catch (Exception ex) {
+            log.warn("Không lấy được batch snapshot nhân viên employeeIds={}: {}", employeeIds, ex.getMessage());
+            return Map.of();
+        }
     }
 
     @Transactional
@@ -462,6 +501,7 @@ public class AttendanceService {
         recalculateAttendanceStatus(attendance, shift);
 
         attendanceRepository.save(attendance);
+        recalculateOvertimeIfAvailable(attendance.getEmployeeId(), attendance.getWorkDate());
         log.info("Đã cập nhật giải trình công cho employeeId={}, workDate={}, checkIn={}, checkOut={}",
                 employeeId, workDate, correctedCheckIn, correctedCheckOut);
     }
@@ -618,5 +658,11 @@ public class AttendanceService {
             return "PRESENT";
         }
         return attendance.getStatus();
+    }
+
+    private void recalculateOvertimeIfAvailable(Long employeeId, LocalDate workDate) {
+        if (overtimeRequestService != null) {
+            overtimeRequestService.recalculateAttendanceOvertime(employeeId, workDate);
+        }
     }
 }

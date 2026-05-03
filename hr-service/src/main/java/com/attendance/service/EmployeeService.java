@@ -161,6 +161,21 @@ public class EmployeeService {
 
     @Transactional(readOnly = true)
     public List<HrEmployeeSnapshot> findEmployeeSnapshots(Long departmentId, Long employeeId, String status) {
+        return findEmployeeSnapshots(departmentId, employeeId, status, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<HrEmployeeSnapshot> findEmployeeSnapshots(
+            Long departmentId,
+            Long employeeId,
+            String status,
+            List<Long> employeeIds) {
+        if (employeeIds != null && !employeeIds.isEmpty()) {
+            return employeeRepository.findByIdIn(employeeIds).stream()
+                    .map(this::toSnapshot)
+                    .toList();
+        }
+
         if (employeeId != null) {
             return employeeRepository.findById(employeeId).stream()
                     .map(this::toSnapshot)
@@ -305,6 +320,14 @@ public class EmployeeService {
         } catch (JsonProcessingException e) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Không lưu được descriptor");
         }
+        return employeeMapper.toResponse(employeeRepository.save(employee));
+    }
+
+    @Transactional
+    public EmployeeResponse deleteFaceEmbedding(Long id) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EMPLOYEE_NOT_FOUND));
+        employee.setFaceEmbedding(null);
         return employeeMapper.toResponse(employeeRepository.save(employee));
     }
 

@@ -36,7 +36,9 @@ function Import-EnvFile {
 
 $envFiles = @(
     Join-Path $root ".env",
-    Join-Path $root ".env.development"
+    Join-Path $root ".env.development",
+    Join-Path $root ".env.local",
+    Join-Path $root ".env.development.local"
 )
 
 foreach ($envFile in $envFiles) {

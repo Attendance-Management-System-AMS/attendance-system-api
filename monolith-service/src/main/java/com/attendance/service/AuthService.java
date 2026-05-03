@@ -51,8 +51,7 @@ public class AuthService {
         }
 
         String normalizedIdentifier = loginIdentifier.trim();
-        User user = userRepository.findByUsername(normalizedIdentifier)
-                .or(() -> userRepository.findByEmail(normalizedIdentifier))
+        User user = findUserByLoginIdentifier(normalizedIdentifier)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu"));
 
         if (!user.isEnabled()) {
@@ -64,6 +63,13 @@ public class AuthService {
         }
 
         return buildAuthResponse(user);
+    }
+
+    private java.util.Optional<User> findUserByLoginIdentifier(String identifier) {
+        return userRepository.findByUsername(identifier)
+                .or(() -> userRepository.findByEmail(identifier))
+                .or(() -> userRepository.findFirstByUsernameIgnoreCase(identifier))
+                .or(() -> userRepository.findFirstByEmailIgnoreCase(identifier));
     }
 
     // Làm mới access token bằng refresh token còn hiệu lực.

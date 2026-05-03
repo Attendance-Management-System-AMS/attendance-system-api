@@ -46,6 +46,22 @@ public class Attendance {
     @Column(name = "expected_minutes")
     private Integer expectedMinutes;
 
+    @Column(name = "actual_overtime_minutes", nullable = false)
+    @Builder.Default
+    private Integer actualOvertimeMinutes = 0;
+
+    @Column(name = "approved_overtime_minutes", nullable = false)
+    @Builder.Default
+    private Integer approvedOvertimeMinutes = 0;
+
+    @Column(name = "payable_overtime_minutes", nullable = false)
+    @Builder.Default
+    private Integer payableOvertimeMinutes = 0;
+
+    @Column(name = "overtime_status", nullable = false)
+    @Builder.Default
+    private String overtimeStatus = "NONE";
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -179,11 +179,11 @@ public class LeaveService {
 
     @Transactional(readOnly = true)
     public boolean hasApprovedLeave(Long employeeId, LocalDate date) {
-        return leaveRequestRepository.existsByEmployeeIdAndStatusAndFromDateLessThanEqualAndToDateGreaterThanEqual(
+        return leaveRequestRepository.existsApprovedLeaveExcludingType(
                 employeeId,
                 "APPROVED",
                 date,
-                date);
+                "AC");
     }
 
     private LeaveResponse toResponse(LeaveRequest leaveRequest) {

@@ -1,14 +1,18 @@
 package com.attendance.repository;
 
 import com.attendance.entity.EmployeeSchedule;
+
 import java.time.LocalDate;
 import java.util.List;
+
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedule, Long>, JpaSpecificationExecutor<EmployeeSchedule> {
+public interface EmployeeScheduleRepository
+        extends JpaRepository<EmployeeSchedule, Long>, JpaSpecificationExecutor<EmployeeSchedule> {
 
     boolean existsByShift_Id(Long shiftId);
 
@@ -16,7 +20,8 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
 
     List<EmployeeSchedule> findByEmployeeIdAndIsActiveTrue(Long employeeId);
 
-    List<EmployeeSchedule> findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqual(Long employeeId, LocalDate date);
+    List<EmployeeSchedule> findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqual(Long employeeId,
+            LocalDate date);
 
     List<EmployeeSchedule> findByEmployeeIdAndIsActiveTrueAndEffectiveFromLessThanEqualOrderByEffectiveFromDesc(
             Long employeeId,
@@ -24,8 +29,6 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
 
     List<EmployeeSchedule> findByDayOfWeekAndIsActiveTrue(Integer dayOfWeek);
 
+    @EntityGraph(attributePaths = { "shift" })
     List<EmployeeSchedule> findByEffectiveFromLessThanEqual(LocalDate date);
 }
-
-
-
