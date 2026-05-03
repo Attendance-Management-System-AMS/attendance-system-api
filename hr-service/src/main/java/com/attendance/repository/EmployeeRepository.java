@@ -51,10 +51,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long>, JpaSp
     @EntityGraph(attributePaths = {"department", "position"})
     Optional<Employee> findByUserId(Long userId);
 
+    // Nạp trước phòng ban và chức vụ khi lấy nhiều nhân viên theo danh sách userId.
+    @EntityGraph(attributePaths = {"department", "position"})
+    List<Employee> findByUserIdIn(Collection<Long> userIds);
+
     // Nạp trước phòng ban và chức vụ khi lấy nhiều nhân viên theo danh sách ID.
     @EntityGraph(attributePaths = {"department", "position"})
     List<Employee> findByIdIn(Collection<Long> ids);
 }
-
 
 

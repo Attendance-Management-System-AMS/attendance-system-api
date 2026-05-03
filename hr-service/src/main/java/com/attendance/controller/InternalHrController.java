@@ -28,6 +28,11 @@ public class InternalHrController {
         return employeeService.getInternalEmployee(userId);
     }
 
+    @GetMapping("/users/employees")
+    public List<EmployeeInternalResponse> getEmployeesByUserIds(@RequestParam List<Long> userIds) {
+        return employeeService.getInternalEmployees(userIds);
+    }
+
     @GetMapping("/employees/{employeeId}/snapshot")
     public HrEmployeeSnapshot getEmployeeSnapshot(@PathVariable Long employeeId) {
         return employeeService.getEmployeeSnapshot(employeeId);

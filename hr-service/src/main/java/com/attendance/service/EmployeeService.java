@@ -26,6 +26,7 @@ import com.attendance.repository.spec.EmployeeSpecifications;
 import com.attendance.repository.PositionRepository;
 import com.attendance.util.FaceEmbeddingUtils;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -141,13 +142,27 @@ public class EmployeeService {
         Employee employee = employeeRepository.findByUserId(userId).orElse(null);
         if (employee == null) return null;
         
-        return EmployeeInternalResponse.builder()
-                .employeeId(employee.getId())
-                .userId(employee.getUserId())
-                .fullName(employee.getFullName())
-                .departmentName(employee.getDepartment() != null ? employee.getDepartment().getName() : null)
-                .positionName(employee.getPosition() != null ? employee.getPosition().getName() : null)
-                .build();
+        return toInternalEmployeeResponse(employee);
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmployeeInternalResponse> getInternalEmployees(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> uniqueUserIds = userIds.stream()
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toCollection(LinkedHashSet::new),
+                        List::copyOf));
+        if (uniqueUserIds.isEmpty()) {
+            return List.of();
+        }
+
+        return employeeRepository.findByUserIdIn(uniqueUserIds).stream()
+                .map(this::toInternalEmployeeResponse)
+                .toList();
     }
 
     // Phuong thuc moi cho Attendance module goi truc tiep
@@ -196,6 +211,16 @@ public class EmployeeService {
                 employee.getFullName(),
                 employee.getDepartment() != null ? employee.getDepartment().getName() : null,
                 employee.getPosition() != null ? employee.getPosition().getName() : null);
+    }
+
+    private EmployeeInternalResponse toInternalEmployeeResponse(Employee employee) {
+        return EmployeeInternalResponse.builder()
+                .employeeId(employee.getId())
+                .userId(employee.getUserId())
+                .fullName(employee.getFullName())
+                .departmentName(employee.getDepartment() != null ? employee.getDepartment().getName() : null)
+                .positionName(employee.getPosition() != null ? employee.getPosition().getName() : null)
+                .build();
     }
 
     // Cập nhật thông tin nhân viên hiện có.

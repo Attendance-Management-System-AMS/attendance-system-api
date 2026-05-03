@@ -34,6 +34,7 @@ public class SecurityConfig {
                         .requestMatchers("/internal/auth/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/roles", "/api/auth/admin/**").hasAuthority("ROLE_ADMIN")
                         
                         // Role boundaries at the filter chain level. Method security below remains the final guard.
                         .requestMatchers("/api/employees/**", "/api/departments/**", "/api/positions/**")

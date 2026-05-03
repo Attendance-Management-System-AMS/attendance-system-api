@@ -8,10 +8,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.attendance.client.HrClient;
+import com.attendance.dto.request.AdminUpdateUserAccessRequest;
 import com.attendance.dto.request.InternalUpdateUserRequest;
 import com.attendance.dto.request.LoginRequest;
 import com.attendance.dto.request.RefreshTokenRequest;
+import com.attendance.dto.response.AdminUserResponse;
 import com.attendance.dto.response.AuthResponse;
+import com.attendance.dto.response.EmployeeInternalResponse;
 import com.attendance.entity.Role;
 import com.attendance.entity.User;
 import com.attendance.repository.RoleRepository;
@@ -27,6 +30,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -34,7 +38,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.server.ResponseStatusException;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -177,6 +186,92 @@ class AuthServiceTest {
         assertThat(user.getRefreshTokenHash()).isNull();
         assertThat(user.getRefreshTokenExpiresAt()).isNull();
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void updateAdminUserAccessReplacesRolesAndDisablesUser() {
+        User currentAdmin = user(1L, "admin");
+        User targetUser = user(2L, "manager");
+        targetUser.setRefreshTokenHash(hashRefreshToken("stored-refresh-token"));
+        targetUser.setRefreshTokenExpiresAt(OffsetDateTime.now(ZoneOffset.UTC).plusDays(1));
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(targetUser));
+        when(roleRepository.findByRoleNameIn(Set.of("ROLE_MANAGER", "ROLE_EMPLOYEE"))).thenReturn(List.of(
+                Role.builder().id(2L).roleName("ROLE_MANAGER").build(),
+                Role.builder().id(3L).roleName("ROLE_EMPLOYEE").build()));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(currentAdmin));
+
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("1", null));
+        try {
+            AdminUserResponse response = authService.updateAdminUserAccess(
+                    2L,
+                    new AdminUpdateUserAccessRequest(Set.of("ROLE_MANAGER", "ROLE_EMPLOYEE"), false));
+
+            assertThat(response.enabled()).isFalse();
+            assertThat(response.roles()).containsExactly("ROLE_MANAGER", "ROLE_EMPLOYEE");
+            assertThat(targetUser.getRefreshTokenHash()).isNull();
+            assertThat(targetUser.getRefreshTokenExpiresAt()).isNull();
+            verify(userRepository).save(targetUser);
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void updateAdminUserAccessRejectsSelfAdminRemoval() {
+        User currentAdmin = user(1L, "admin");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(currentAdmin));
+        when(roleRepository.findByRoleNameIn(Set.of("ROLE_HR"))).thenReturn(List.of(
+                Role.builder().id(2L).roleName("ROLE_HR").build()));
+
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("1", null));
+        try {
+            assertThatThrownBy(() -> authService.updateAdminUserAccess(
+                    1L,
+                    new AdminUpdateUserAccessRequest(Set.of("ROLE_HR"), true)))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .hasMessageContaining("tự thu hồi quyền quản trị");
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void searchAdminUsersUsesBatchHrLookupForCurrentPage() {
+        User admin = user(1L, "admin");
+        User manager = user(2L, "manager");
+        manager.setRoles(Set.of(Role.builder().id(2L).roleName("ROLE_MANAGER").build()));
+
+        PageRequest pageable = PageRequest.of(0, 2);
+
+        when(userRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(admin, manager), pageable, 2));
+        when(hrClient.getEmployeesByUserIds(List.of(1L, 2L))).thenReturn(List.of(
+                EmployeeInternalResponse.builder()
+                        .employeeId(10L)
+                        .userId(1L)
+                        .fullName("System Admin")
+                        .departmentName("IT")
+                        .positionName("Administrator")
+                        .build(),
+                EmployeeInternalResponse.builder()
+                        .employeeId(11L)
+                        .userId(2L)
+                        .fullName("Nguyen Van Manager")
+                        .departmentName("Operations")
+                        .positionName("Manager")
+                        .build()));
+
+        var page = authService.searchAdminUsers(null, null, null, pageable);
+
+        assertThat(page.content()).hasSize(2);
+        assertThat(page.content().get(0).fullName()).isEqualTo("System Admin");
+        assertThat(page.content().get(1).fullName()).isEqualTo("Nguyen Van Manager");
+        verify(hrClient).getEmployeesByUserIds(List.of(1L, 2L));
     }
 
     private String hashRefreshToken(String refreshToken) {

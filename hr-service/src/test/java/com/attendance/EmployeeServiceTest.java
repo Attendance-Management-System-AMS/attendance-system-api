@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.attendance.client.AuthClient;
+import com.attendance.dto.response.EmployeeInternalResponse;
 import com.attendance.dto.request.UpdateEmployeeRequest;
 import com.attendance.entity.Employee;
 import com.attendance.mapper.EmployeeMapper;
@@ -17,6 +18,7 @@ import com.attendance.repository.PositionRepository;
 import com.attendance.service.EmployeeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -101,6 +103,24 @@ class EmployeeServiceTest {
                 "EMP-0007".equals(syncRequest.username())
                         && "old@company.com".equals(syncRequest.email())
                         && !syncRequest.enabled()));
+    }
+
+    @Test
+    void getInternalEmployeesLoadsProfilesInBatch() {
+        Employee admin = createEmployee(1L, 101L, "EMP-0101", "admin@company.com", "ACTIVE");
+        admin.setFullName("System Admin");
+        Employee manager = createEmployee(2L, 102L, "EMP-0102", "manager@company.com", "ACTIVE");
+        manager.setFullName("Nguyen Van Manager");
+
+        when(employeeRepository.findByUserIdIn(List.of(101L, 102L))).thenReturn(List.of(admin, manager));
+
+        List<EmployeeInternalResponse> profiles = employeeService.getInternalEmployees(List.of(101L, 102L, 101L));
+
+        assertThat(profiles).hasSize(2);
+        assertThat(profiles).extracting(EmployeeInternalResponse::getUserId).containsExactly(101L, 102L);
+        assertThat(profiles).extracting(EmployeeInternalResponse::getFullName)
+                .containsExactly("System Admin", "Nguyen Van Manager");
+        verify(employeeRepository).findByUserIdIn(List.of(101L, 102L));
     }
 
     private Employee createEmployee(Long id, Long userId, String employeeCode, String email, String status) {

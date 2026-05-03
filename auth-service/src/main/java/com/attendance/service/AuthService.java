@@ -1,6 +1,7 @@
 package com.attendance.service;
 
 import com.attendance.client.HrClient;
+import com.attendance.common.dto.PageResponse;
 import com.attendance.dto.request.*;
 import com.attendance.dto.response.*;
 import com.attendance.entity.Role;
@@ -8,10 +9,15 @@ import com.attendance.entity.User;
 import com.attendance.repository.RoleRepository;
 import com.attendance.repository.UserRepository;
 import feign.FeignException;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
@@ -25,11 +31,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +50,7 @@ public class AuthService {
     public static final String ROLE_HR = "ROLE_HR";
     public static final String ROLE_MANAGER = "ROLE_MANAGER";
     public static final String ROLE_EMPLOYEE = "ROLE_EMPLOYEE";
+    private static final List<String> ROLE_PRIORITY = List.of(ROLE_ADMIN, ROLE_HR, ROLE_MANAGER, ROLE_EMPLOYEE);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -194,35 +204,146 @@ public class AuthService {
         return buildUserProfile(user);
     }
 
+    public List<RoleSummaryResponse> getRoleSummaries() {
+        return roleRepository.findAllByOrderByRoleNameAsc().stream()
+                .map(role -> new RoleSummaryResponse(
+                        role.getRoleName(),
+                        role.getDescription(),
+                        userRepository.countByRoles_RoleName(role.getRoleName())))
+                .toList();
+    }
+
+    public PageResponse<AdminUserResponse> searchAdminUsers(String keyword, Boolean enabled, String role, Pageable pageable) {
+        Page<User> userPage = userRepository.findAll(buildAdminUserSpecification(keyword, enabled, role), pageable);
+        Map<Long, EmployeeInternalResponse> employeeProfiles = getEmployeeProfilesByUserIds(
+                userPage.getContent().stream()
+                        .map(User::getId)
+                        .toList());
+        Page<AdminUserResponse> page = userPage.map(user -> buildAdminUserResponse(user, employeeProfiles.get(user.getId())));
+        return PageResponse.of(page);
+    }
+
+    @Transactional
+    public AdminUserResponse updateAdminUserAccess(Long id, AdminUpdateUserAccessRequest request) {
+        User targetUser = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại"));
+
+        List<Role> roles = roleRepository.findByRoleNameIn(request.roles());
+        if (roles.size() != request.roles().size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vai trò không hợp lệ");
+        }
+
+        User currentUser = getCurrentAuthenticatedUser();
+        boolean removingOwnAdminRole = currentUser.getId().equals(targetUser.getId()) && request.roles().stream()
+                .noneMatch(ROLE_ADMIN::equals);
+        if (removingOwnAdminRole) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bạn không thể tự thu hồi quyền quản trị của chính mình");
+        }
+
+        boolean disablingOwnAccount = currentUser.getId().equals(targetUser.getId()) && !request.enabled();
+        if (disablingOwnAccount) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bạn không thể tự khóa tài khoản đang đăng nhập");
+        }
+
+        targetUser.setRoles(Set.copyOf(roles));
+        targetUser.setEnabled(request.enabled());
+        if (!request.enabled()) {
+            targetUser.setRefreshTokenHash(null);
+            targetUser.setRefreshTokenExpiresAt(null);
+        }
+
+        User savedUser = userRepository.save(targetUser);
+        Map<Long, EmployeeInternalResponse> employeeProfiles = getEmployeeProfilesByUserIds(List.of(savedUser.getId()));
+        return buildAdminUserResponse(savedUser, employeeProfiles.get(savedUser.getId()));
+    }
+
     private UserProfileResponse buildUserProfile(User user) {
         UserProfileResponse.UserProfileResponseBuilder builder = UserProfileResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .enabled(user.isEnabled())
-                .roles(String.join(",", user.getRoles().stream().map(Role::getRoleName).toList()));
+                .roles(String.join(",", sortRoleNames(user.getRoles())));
 
         enrichUserProfileFromHr(builder, user.getId());
 
         return builder.build();
     }
 
-    private void enrichUserProfileFromHr(UserProfileResponse.UserProfileResponseBuilder builder, Long userId) {
-        try {
-            EmployeeInternalResponse employee = hrClient.getEmployeeByUserId(userId);
-            if (employee == null) {
-                return;
-            }
+    private AdminUserResponse buildAdminUserResponse(User user) {
+        return buildAdminUserResponse(user, getEmployeeProfileByUserId(user.getId()));
+    }
 
-            builder.fullName(employee.getFullName())
-                    .departmentName(employee.getDepartmentName())
-                    .positionName(employee.getPositionName());
+    private AdminUserResponse buildAdminUserResponse(User user, EmployeeInternalResponse employee) {
+        String fullName = null;
+        String departmentName = null;
+        String positionName = null;
+
+        if (employee != null) {
+            fullName = employee.getFullName();
+            departmentName = employee.getDepartmentName();
+            positionName = employee.getPositionName();
+        }
+
+        return new AdminUserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                fullName,
+                departmentName,
+                positionName,
+                user.isEnabled(),
+                sortRoleNames(user.getRoles()),
+                user.getCreatedAt());
+    }
+
+    private void enrichUserProfileFromHr(UserProfileResponse.UserProfileResponseBuilder builder, Long userId) {
+        EmployeeInternalResponse employee = getEmployeeProfileByUserId(userId);
+        if (employee == null) {
+            return;
+        }
+
+        builder.fullName(employee.getFullName())
+                .departmentName(employee.getDepartmentName())
+                .positionName(employee.getPositionName());
+    }
+
+    private EmployeeInternalResponse getEmployeeProfileByUserId(Long userId) {
+        try {
+            return hrClient.getEmployeeByUserId(userId);
         } catch (FeignException.NotFound ex) {
             log.debug("Không có hồ sơ nhân viên liên kết với userId={}", userId);
+            return null;
         } catch (FeignException ex) {
             log.warn("Bỏ qua đồng bộ hồ sơ nhân viên cho userId={} vì hr-service chưa sẵn sàng: status={}", userId, ex.status());
+            return null;
         } catch (Exception ex) {
             log.warn("Bỏ qua đồng bộ hồ sơ nhân viên cho userId={} do lỗi ngoài dự kiến: {}", userId, ex.getMessage());
+            return null;
+        }
+    }
+
+    private Map<Long, EmployeeInternalResponse> getEmployeeProfilesByUserIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+
+        try {
+            return hrClient.getEmployeesByUserIds(userIds).stream()
+                    .filter(employee -> employee.getUserId() != null)
+                    .collect(java.util.stream.Collectors.toMap(
+                            EmployeeInternalResponse::getUserId,
+                            Function.identity(),
+                            (current, replacement) -> current));
+        } catch (FeignException.NotFound ex) {
+            log.debug("Không có hồ sơ nhân viên cho tập userIds={}", userIds);
+            return Map.of();
+        } catch (FeignException ex) {
+            log.warn("Bỏ qua đồng bộ hồ sơ nhân viên cho tập userIds={} vì hr-service chưa sẵn sàng: status={}", userIds, ex.status());
+            return Map.of();
+        } catch (Exception ex) {
+            log.warn("Bỏ qua đồng bộ hồ sơ nhân viên cho tập userIds={} do lỗi ngoài dự kiến: {}", userIds, ex.getMessage());
+            return Map.of();
         }
     }
 
@@ -252,6 +373,34 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
         clearStoredRefreshToken(user);
         userRepository.save(user);
+    }
+
+    private Specification<User> buildAdminUserSpecification(String keyword, Boolean enabled, String role) {
+        return (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.isBlank()) {
+                String normalizedKeyword = "%" + keyword.trim().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("username")), normalizedKeyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("email"), "")), normalizedKeyword)));
+            }
+
+            if (enabled != null) {
+                predicates.add(criteriaBuilder.equal(root.get("isEnabled"), enabled));
+            }
+
+            if (role != null && !role.isBlank()) {
+                predicates.add(criteriaBuilder.equal(
+                        root.join("roles", JoinType.INNER).get("roleName"),
+                        role.trim()));
+            }
+
+            return predicates.isEmpty()
+                    ? criteriaBuilder.conjunction()
+                    : criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     // Lấy User từ SecurityContext.
@@ -448,6 +597,18 @@ public class AuthService {
                 user.getEmail(),
                 user.isEnabled(),
                 user.getRoles().stream().map(Role::getRoleName).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    private List<String> sortRoleNames(Set<Role> roles) {
+        return roles.stream()
+                .map(Role::getRoleName)
+                .sorted(Comparator
+                        .comparingInt((String roleName) -> {
+                            int index = ROLE_PRIORITY.indexOf(roleName);
+                            return index >= 0 ? index : Integer.MAX_VALUE;
+                        })
+                        .thenComparing(roleName -> roleName))
+                .toList();
     }
 
     // Lấy chuỗi đầu tiên không rỗng trong hai giá trị truyền vào.
