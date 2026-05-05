@@ -1,0 +1,47 @@
+name: Deploy Backend to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to DigitalOcean Droplet
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_DROPLET_HOST }}
+          username: ${{ secrets.DO_DROPLET_USER }}
+          key: ${{ secrets.DO_DROPLET_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            echo "🚀 Start deploying backend..."
+
+            cd /opt/apps/attendance-system-api
+
+            echo "📦 Pull latest code from main..."
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "🔐 Check production env..."
+            test -f .env.production
+
+            echo "🐳 Build and restart Docker services..."
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --remove-orphans
+
+            echo "🧹 Clean unused Docker build cache..."
+            docker builder prune -f
+
+            echo "🔍 Check running containers..."
+            docker ps
+
+            echo "🧪 Check API Gateway health..."
+            sleep 60
+            curl -f http://localhost:9000/actuator/health
+
+            echo "✅ Deploy completed successfully!"
