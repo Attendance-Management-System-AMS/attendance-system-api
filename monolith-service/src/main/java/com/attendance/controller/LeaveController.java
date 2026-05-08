@@ -75,6 +75,15 @@ public class LeaveController {
         return ApiResponse.success(201, "Gửi đơn xin nghỉ thành công", response);
     }
 
+    // Huỷ đơn nghỉ PENDING của chính tôi.
+    @DeleteMapping("/me/{id}")
+    @Operation(summary = "Huỷ đơn nghỉ của tôi", description = "Nhân viên tự huỷ đơn nghỉ PENDING của chính mình")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER','ROLE_EMPLOYEE')")
+    public ApiResponse<Void> cancelMyLeave(@Parameter(description = "ID đơn nghỉ") @PathVariable Long id) {
+        Long employeeId = employeeService.getCurrentEmployeeId();
+        leaveService.cancelByEmployee(id, employeeId);
+        return ApiResponse.success(200, "Huỷ đơn nghỉ thành công", null);
+    }
     // Tạo mới đơn xin nghỉ cho nhân viên (Dành cho HR/Manager).
     @PostMapping
     @Operation(summary = "Tạo đơn xin nghỉ (HR/Manager)")

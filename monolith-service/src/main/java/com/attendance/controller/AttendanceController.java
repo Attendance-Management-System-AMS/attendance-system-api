@@ -29,7 +29,7 @@ public class AttendanceController {
     // Ghi nhận check-in cho nhân viên theo ID.
     @PostMapping("/check-in/{employeeId}")
     @Operation(summary = "Check-in nhân viên")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<AttendanceResponse> checkIn(
             @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
         return ApiResponse.success("Check-in thành công", attendanceService.checkIn(employeeId));
@@ -45,7 +45,7 @@ public class AttendanceController {
     // Ghi nhận check-out cho nhân viên theo ID.
     @PostMapping("/check-out/{employeeId}")
     @Operation(summary = "Check-out nhân viên")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<AttendanceResponse> checkOut(
             @Parameter(description = "ID nhân viên") @PathVariable Long employeeId) {
         return ApiResponse.success("Check-out thành công", attendanceService.checkOut(employeeId));

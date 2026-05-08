@@ -29,7 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/attendance/holidays")
 @RequiredArgsConstructor
 @Tag(name = "Ngày nghỉ", description = "Quản lý ngày nghỉ lễ và nghỉ hưởng lương")
-@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class HolidayController {
 
     private final HolidayService holidayService;
@@ -38,6 +37,7 @@ public class HolidayController {
     @GetMapping
     @Operation(summary = "Lấy danh sách ngày nghỉ (phân trang, lọc)",
             description = "Lọc theo tên, trạng thái lương và khoảng thời gian.")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER','ROLE_EMPLOYEE')")
     public ApiResponse<PageResponse<HolidayResponse>> getHolidays(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -56,6 +56,7 @@ public class HolidayController {
     // Tạo mới một ngày nghỉ.
     @PostMapping
     @Operation(summary = "Tạo ngày nghỉ")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<HolidayResponse> createHoliday(@Valid @RequestBody HolidayRequest request) {
         HolidayResponse response = holidayService.create(request);
         return ApiResponse.success("Tạo ngày nghỉ thành công", response);
@@ -64,6 +65,7 @@ public class HolidayController {
     // Lấy chi tiết ngày nghỉ theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết ngày nghỉ theo ID")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER','ROLE_EMPLOYEE')")
     public ApiResponse<HolidayResponse> getHolidayById(
             @Parameter(description = "ID ngày nghỉ") @PathVariable Long id) {
         return ApiResponse.success("Lấy ngày nghỉ thành công", holidayService.getById(id));
@@ -72,6 +74,7 @@ public class HolidayController {
     // Cập nhật thông tin ngày nghỉ.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật ngày nghỉ")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<HolidayResponse> updateHoliday(
             @Parameter(description = "ID ngày nghỉ") @PathVariable Long id,
             @Valid @RequestBody HolidayRequest request) {
@@ -81,6 +84,7 @@ public class HolidayController {
     // Xóa ngày nghỉ theo ID.
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa ngày nghỉ")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<Void> deleteHoliday(
             @Parameter(description = "ID ngày nghỉ") @PathVariable Long id) {
         holidayService.delete(id);
