@@ -41,7 +41,7 @@ jobs:
             docker ps
 
             echo "🧪 Check API Gateway health..."
-            sleep 60
-            curl -f http://localhost:9000/actuator/health
+            sleep 120
+            curl --retry 10 --retry-delay 5 --retry-connrefused -f http://localhost:9000/actuator/health
 
             echo "✅ Deploy completed successfully!"
