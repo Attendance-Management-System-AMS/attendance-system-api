@@ -36,24 +36,49 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
                         // Role boundaries at the filter chain level. Method security below remains the final guard.
+
+                        // Employee/Department/Position: GET → ADMIN, HR, MANAGER; CUD → ADMIN, HR
+                        .requestMatchers(HttpMethod.GET, "/api/employees/**", "/api/departments/**", "/api/positions/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER")
                         .requestMatchers("/api/employees/**", "/api/departments/**", "/api/positions/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
-                        .requestMatchers("/api/attendance/shifts/**", "/api/attendance/holidays/**")
+
+                        // Shifts: ADMIN, HR full access
+                        .requestMatchers("/api/attendance/shifts/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
+
+                        // Holidays: GET → ALL roles; CUD → ADMIN, HR
+                        .requestMatchers(HttpMethod.GET, "/api/attendance/holidays/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER", "ROLE_EMPLOYEE")
+                        .requestMatchers("/api/attendance/holidays/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
+
+                        // Attendance delete/check-in/check-out: ADMIN, HR
                         .requestMatchers(HttpMethod.DELETE, "/api/attendance/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
                         .requestMatchers("/api/attendance/check-in/**", "/api/attendance/check-out/**")
-                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
+
+                        // Schedule management: ADMIN, HR
                         .requestMatchers("/api/attendance/schedules/bulk", "/api/attendance/schedules/apply-template")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
                         .requestMatchers(HttpMethod.POST, "/api/attendance/schedules/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
+                        .requestMatchers(HttpMethod.PUT, "/api/attendance/schedules/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
                         .requestMatchers(HttpMethod.DELETE, "/api/attendance/schedules/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR")
-                        .requestMatchers("/api/leaves/me", "/api/leaves/types", "/api/attendance/me", "/api/attendance/today/me",
-                                "/api/attendance/schedules/me")
+
+                        // Self-service endpoints: ALL roles
+                        .requestMatchers("/api/leaves/me/**", "/api/leaves/types",
+                                "/api/attendance/me", "/api/attendance/today/me",
+                                "/api/attendance/schedules/me",
+                                "/api/overtime-requests/me/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER", "ROLE_EMPLOYEE")
-                        .requestMatchers("/api/leaves/**", "/api/reports/**", "/api/attendance/**")
+
+                        // Management endpoints: ADMIN, HR, MANAGER
+                        .requestMatchers("/api/leaves/**", "/api/reports/**",
+                                "/api/attendance/**", "/api/overtime-requests/**")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_HR", "ROLE_MANAGER")
                         .anyRequest().authenticated()
                 )

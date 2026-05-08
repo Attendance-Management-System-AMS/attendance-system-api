@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/positions")
 @Tag(name = "Chức vụ", description = "Quản lý chức vụ nhân sự")
-@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class PositionController {
 
     private final PositionService positionService;
@@ -39,6 +38,7 @@ public class PositionController {
     @GetMapping
     @Operation(summary = "Lấy danh sách chức vụ (phân trang, lọc)",
             description = "Lọc theo từ khoá tên và/hoặc departmentId")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
     public ApiResponse<PageResponse<PositionResponse>> getPositions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -53,6 +53,7 @@ public class PositionController {
     // Lấy chi tiết chức vụ theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết chức vụ theo ID")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
     public ApiResponse<PositionResponse> getPositionById(
             @Parameter(description = "ID chức vụ") @PathVariable Long id) {
         return ApiResponse.success(positionService.getById(id));
@@ -61,6 +62,7 @@ public class PositionController {
     // Tạo mới một chức vụ.
     @PostMapping
     @Operation(summary = "Tạo mới chức vụ")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<PositionResponse> createPosition(@Valid @RequestBody PositionRequest request) {
         PositionResponse response = positionService.create(request);
         return ApiResponse.success(201, "Tạo chức vụ thành công", response);
@@ -69,6 +71,7 @@ public class PositionController {
     // Cập nhật thông tin chức vụ.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật chức vụ")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<PositionResponse> updatePosition(
             @Parameter(description = "ID chức vụ") @PathVariable Long id,
             @Valid @RequestBody PositionRequest request) {
@@ -79,6 +82,7 @@ public class PositionController {
     // Xóa chức vụ theo ID.
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa chức vụ")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<Void> deletePosition(
             @Parameter(description = "ID chức vụ") @PathVariable Long id) {
         positionService.delete(id);

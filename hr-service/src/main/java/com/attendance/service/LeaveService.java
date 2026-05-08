@@ -169,6 +169,23 @@ public class LeaveService {
         leaveRequestRepository.delete(leaveRequest);
     }
 
+    // Nhân viên tự huỷ đơn PENDING của chính mình.
+    @Transactional
+    public void cancelByEmployee(Long leaveId, Long employeeId) {
+        LeaveRequest leaveRequest = leaveRequestRepository.findById(leaveId)
+                .orElseThrow(() -> new AppException(ErrorCode.LEAVE_NOT_FOUND));
+
+        if (!leaveRequest.getEmployeeId().equals(employeeId)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền huỷ đơn nghỉ này");
+        }
+
+        if (!"PENDING".equals(leaveRequest.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Chỉ có thể huỷ đơn đang chờ xử lý");
+        }
+
+        leaveRequestRepository.delete(leaveRequest);
+    }
+
     @Transactional(readOnly = true)
     public List<LeaveTypeResponse> getAllLeaveTypes() {
         return leaveTypeRepository.findByIsActive(true)

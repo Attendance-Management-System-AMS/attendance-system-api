@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/departments")
 @Tag(name = "Phòng ban", description = "Quản lý danh mục phòng ban")
-@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class DepartmentController {
 
     private final DepartmentService departmentService;
@@ -38,6 +37,7 @@ public class DepartmentController {
     // Tạo mới một phòng ban.
     @PostMapping
     @Operation(summary = "Tạo mới phòng ban")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<DepartmentResponse> createDepartment(@Valid @RequestBody DepartmentRequest request) {
         DepartmentResponse response = departmentService.create(request);
         return ApiResponse.success(201, "Tạo phòng ban thành công", response);
@@ -46,6 +46,7 @@ public class DepartmentController {
     // Lấy danh sách phòng ban theo phân trang và từ khoá.
     @GetMapping
     @Operation(summary = "Lấy danh sách phòng ban (phân trang, lọc)")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
     public ApiResponse<PageResponse<DepartmentResponse>> getDepartments(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -59,6 +60,7 @@ public class DepartmentController {
     // Lấy chi tiết phòng ban theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết phòng ban theo ID")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
     public ApiResponse<DepartmentResponse> getDepartmentById(
             @Parameter(description = "ID phòng ban") @PathVariable Long id) {
         return ApiResponse.success(departmentService.getById(id));
@@ -67,6 +69,7 @@ public class DepartmentController {
     // Cập nhật thông tin phòng ban.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật phòng ban")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<DepartmentResponse> updateDepartment(
             @Parameter(description = "ID phòng ban") @PathVariable Long id,
             @Valid @RequestBody DepartmentRequest request) {
@@ -77,6 +80,7 @@ public class DepartmentController {
     // Xóa phòng ban theo ID.
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa phòng ban")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<Void> deleteDepartment(
             @Parameter(description = "ID phòng ban") @PathVariable Long id) {
         departmentService.delete(id);

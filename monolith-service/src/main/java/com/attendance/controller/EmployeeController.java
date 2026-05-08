@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/employees")
 @Tag(name = "Hồ sơ nhân viên", description = "Quản lý thông tin và hồ sơ nhân sự")
-@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class EmployeeController {
 
     private final EmployeeService employeeService;
@@ -36,6 +35,7 @@ public class EmployeeController {
     // Tạo mới một hồ sơ nhân viên.
     @PostMapping
     @Operation(summary = "Tạo mới nhân viên")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<EmployeeResponse> createEmployee(@Valid @RequestBody EmployeeRequest request) {
         EmployeeResponse response = employeeService.create(request);
         return ApiResponse.success(201, "Tạo nhân viên thành công", response);
@@ -44,6 +44,7 @@ public class EmployeeController {
     // Lấy danh sách nhân viên theo phân trang và bộ lọc.
     @GetMapping
     @Operation(summary = "Lấy danh sách nhân viên (phân trang, lọc)")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
     public ApiResponse<PageResponse<EmployeeResponse>> getEmployees(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -61,6 +62,7 @@ public class EmployeeController {
     // Lấy chi tiết nhân viên theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết nhân viên theo ID")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR','ROLE_MANAGER')")
     public ApiResponse<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
         return ApiResponse.success(employeeService.getById(id));
     }
@@ -68,6 +70,7 @@ public class EmployeeController {
     // Cập nhật thông tin nhân viên.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật thông tin nhân viên")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<EmployeeResponse> updateEmployee(@PathVariable Long id,
                                                         @Valid @RequestBody EmployeeRequest request) {
         EmployeeResponse response = employeeService.update(id, request);
@@ -77,6 +80,7 @@ public class EmployeeController {
     // Lưu descriptor khuôn mặt của nhân viên.
     @PutMapping("/{id}/face-descriptor")
     @Operation(summary = "Đăng ký / cập nhật descriptor khuôn mặt (face-api.js, 128 float)")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<EmployeeResponse> registerFaceDescriptor(
             @PathVariable Long id,
             @Valid @RequestBody FaceDescriptorRequest request) {
@@ -86,6 +90,7 @@ public class EmployeeController {
     // Vô hiệu hoá nhân viên thay vì xoá cứng.
     @DeleteMapping("/{id}")
     @Operation(summary = "Vô hiệu hoá nhân viên", description = "Đặt trạng thái nhân viên thành INACTIVE")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<Void> deleteEmployee(
             @Parameter(description = "ID nhân viên") @PathVariable Long id) {
         employeeService.delete(id);

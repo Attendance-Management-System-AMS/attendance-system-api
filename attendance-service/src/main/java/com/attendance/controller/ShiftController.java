@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/attendance/shifts")
 @RequiredArgsConstructor
 @Tag(name = "Danh mục ca làm", description = "Quản lý các loại ca làm việc trong hệ thống")
-@PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
 public class ShiftController {
 
     private final ShiftService shiftService;
@@ -35,6 +34,7 @@ public class ShiftController {
     // Tạo mới một ca làm việc.
     @PostMapping
     @Operation(summary = "Tạo mới ca làm")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<ShiftResponse> createShift(@Valid @RequestBody ShiftRequest request) {
         ShiftResponse response = shiftService.create(request);
         return ApiResponse.success("Tạo ca làm thành công", response);
@@ -44,6 +44,7 @@ public class ShiftController {
     @GetMapping
     @Operation(summary = "Lấy danh sách ca làm (phân trang, lọc)",
             description = "Lọc theo từ khoá tên. Nếu không truyền page/size sẽ dùng giá trị mặc định.")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<PageResponse<ShiftResponse>> getShifts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -57,6 +58,7 @@ public class ShiftController {
     // Lấy chi tiết ca làm theo ID.
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết ca làm theo ID")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<ShiftResponse> getShiftById(
             @Parameter(description = "ID ca làm") @PathVariable Long id) {
         return ApiResponse.success("Lấy ca làm thành công", shiftService.getById(id));
@@ -65,6 +67,7 @@ public class ShiftController {
     // Cập nhật thông tin ca làm.
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật ca làm")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<ShiftResponse> updateShift(
             @Parameter(description = "ID ca làm") @PathVariable Long id,
             @Valid @RequestBody ShiftRequest request) {
@@ -74,6 +77,7 @@ public class ShiftController {
     // Xóa ca làm theo ID.
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa ca làm")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_HR')")
     public ApiResponse<Void> deleteShift(
             @Parameter(description = "ID ca làm") @PathVariable Long id) {
         shiftService.delete(id);
